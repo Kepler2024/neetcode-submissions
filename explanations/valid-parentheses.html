@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>有效的括号</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* 版式：单栏教材，一章一个前置知识；左括号/入栈用琥珀色，右括号/出栈用蓝色，配对成功用绿色，失败用红色，贯穿全页 */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --ink: #17202b;
+  --muted: #586372;
+  --line: #dce1e7;
+  --pre: #b86e0a;
+  --pre-soft: #fcefd8;
+  --suf: #1d6aa3;
+  --suf-soft: #e0edf8;
+  --ans: #2b7a4b;
+  --ans-soft: #e1f2e7;
+  --bad: #b3372f;
+  --bad-soft: #fbe5e3;
+  --code-bg: #eef1f5;
+  --font-display: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151b; --surface: #19202a; --ink: #e5e9ef; --muted: #9ba6b4; --line: #2b3441;
+    --pre: #f0a845; --pre-soft: #3a2b14; --suf: #6cb2e8; --suf-soft: #142b3e;
+    --ans: #5fcb8c; --ans-soft: #153223; --bad: #f08379; --bad-soft: #3d1c1a; --code-bg: #141a22;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151b; --surface: #19202a; --ink: #e5e9ef; --muted: #9ba6b4; --line: #2b3441;
+  --pre: #f0a845; --pre-soft: #3a2b14; --suf: #6cb2e8; --suf-soft: #142b3e;
+  --ans: #5fcb8c; --ans-soft: #153223; --bad: #f08379; --bad-soft: #3d1c1a; --code-bg: #141a22;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.75;
+}
+.wrap {
+  max-width: 760px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 80px;
+  display: flex; flex-direction: column; gap: 56px;
+}
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.3; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 44px); font-weight: 800; }
+h2 { font-size: clamp(22px, 4.2vw, 28px); font-weight: 800; }
+h3 { font-size: 18px; font-weight: 600; }
+p { margin: 0; }
+section { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lead { font-size: 18px; color: var(--muted); }
+code, .mono { font-family: var(--font-mono); font-size: .92em; }
+:not(pre) > code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; }
+.pre { color: var(--pre); font-weight: 700; }
+.suf { color: var(--suf); font-weight: 700; }
+.ans { color: var(--ans); font-weight: 700; }
+.bad { color: var(--bad); font-weight: 700; }
+a { color: var(--suf); }
+
+.problem { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 99px; background: var(--ans-soft); color: var(--ans); }
+.example { font-family: var(--font-mono); font-size: 14px; background: var(--code-bg); border-radius: 6px; padding: 10px 12px; overflow-x: auto; white-space: pre; }
+
+.toc { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; padding: 0; margin: 0; list-style: none; counter-reset: toc; }
+.toc li { counter-increment: toc; }
+.toc a { display: flex; gap: 10px; align-items: baseline; text-decoration: none; color: var(--ink); padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 15px; }
+.toc a::before { content: counter(toc, decimal-leading-zero); font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.toc a:hover, .toc a:focus-visible { border-color: var(--suf); }
+
+.chap { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.chap .num { font-family: var(--font-mono); font-size: 14px; color: var(--muted); }
+
+.note { border-left: 3px solid var(--suf); padding: 4px 0 4px 14px; }
+.note.warn { border-color: var(--pre); }
+.note.ok { border-color: var(--ans); }
+.note.no { border-color: var(--bad); }
+
+.arr-wrap { overflow-x: auto; padding-bottom: 4px; }
+.arr { display: inline-grid; grid-auto-flow: column; grid-auto-columns: minmax(40px, 1fr); gap: 6px; }
+.row-label { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.cell {
+  border: 1.5px solid var(--line); border-radius: 6px; background: var(--surface);
+  text-align: center; font-family: var(--font-mono); padding: 6px 4px; font-size: 18px; font-weight: 600;
+  transition: background .2s, border-color .2s;
+}
+.cell .idx { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
+.cell.open { background: var(--pre-soft); border-color: var(--pre); }
+.cell.cur { outline: 3px solid var(--ink); outline-offset: 1px; }
+.cell.done { background: var(--ans-soft); border-color: var(--ans); }
+.cell.fail { background: var(--bad-soft); border-color: var(--bad); }
+.cell.dim { opacity: .45; }
+
+/* 栈：竖着画，栈顶在上 */
+.stack-box { display: flex; flex-direction: column; gap: 6px; align-items: center; min-width: 120px; }
+.stack {
+  display: flex; flex-direction: column-reverse; gap: 4px; width: 96px; min-height: 196px;
+  border: 2px solid var(--muted); border-top: 0; border-radius: 0 0 10px 10px; padding: 6px; justify-content: flex-start;
+}
+.slot {
+  font-family: var(--font-mono); font-size: 18px; font-weight: 600; text-align: center; padding: 3px 0;
+  border-radius: 5px; background: var(--pre-soft); border: 1.5px solid var(--pre); color: var(--ink);
+  position: relative;
+}
+.slot.top::after { content: "← 栈顶 stack[-1]"; position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--muted); white-space: nowrap; font-weight: 400; font-family: var(--font-body); }
+.slot.hit { background: var(--ans-soft); border-color: var(--ans); }
+.slot.miss { background: var(--bad-soft); border-color: var(--bad); }
+.stack-cap { font-size: 12px; color: var(--muted); }
+.empty-hint { font-size: 13px; color: var(--muted); text-align: center; margin: auto 0; }
+
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); }
+th { font-size: 13px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+td code { white-space: nowrap; }
+tr:last-child td, tr:last-child th { border-bottom: 0; }
+
+.lab { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.lab-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lab-title { font-weight: 700; font-size: 15px; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button {
+  font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+}
+button:hover { border-color: var(--muted); }
+button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button.mono { font-family: var(--font-mono); }
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--suf); outline-offset: 2px; }
+input[type=text] {
+  font-family: var(--font-mono); font-size: 15px; padding: 6px 10px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink); min-width: 0; width: 100%;
+}
+.err { color: var(--bad); font-size: 14px; }
+
+pre.code { margin: 0; background: var(--code-bg); border-radius: 8px; padding: 12px 0; overflow-x: auto; font-family: var(--font-mono); font-size: 14px; line-height: 1.7; }
+pre.code .ln { display: block; padding: 0 14px; border-left: 3px solid transparent; white-space: pre; }
+pre.code .ln.hl { background: var(--pre-soft); border-left-color: var(--pre); }
+pre.code .ln.hl2 { background: var(--suf-soft); border-left-color: var(--suf); }
+pre.code .ln.hl3 { background: var(--bad-soft); border-left-color: var(--bad); }
+pre.code .ln.hl4 { background: var(--ans-soft); border-left-color: var(--ans); }
+.k { color: var(--suf); font-weight: 600; }
+.c { color: var(--muted); font-style: italic; }
+.n { color: var(--pre); }
+
+.console {
+  font-family: var(--font-mono); font-size: 14px; background: var(--code-bg); border-radius: 8px;
+  padding: 10px 14px; min-height: 3.2em; overflow-x: auto; white-space: pre-wrap; word-break: break-all;
+}
+.console .out { color: var(--ans); }
+.console .ex { color: var(--bad); }
+.msg { min-height: 3.5em; padding: 10px 14px; border-radius: 8px; background: var(--bg); font-size: 15px; }
+.progress { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+.pill { display: inline-block; font-family: var(--font-mono); font-size: 14px; padding: 2px 12px; border-radius: 99px; border: 1.5px solid var(--line); }
+.pill.t { border-color: var(--ans); color: var(--ans); background: var(--ans-soft); }
+.pill.f { border-color: var(--bad); color: var(--bad); background: var(--bad-soft); }
+
+.play-row { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.play-row > * { min-width: 0; }
+.play-main { flex: 1 1 260px; display: flex; flex-direction: column; gap: 12px; }
+.stepper-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+@media (min-width: 720px) { .stepper-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); align-items: start; } }
+.viz { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+.formula { font-family: var(--font-mono); font-size: 15px; background: var(--surface); border: 1px dashed var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: pre; }
+
+.quiz { display: flex; flex-direction: column; gap: 18px; }
+.q { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.q-text { font-weight: 500; }
+.opts { display: flex; flex-direction: column; gap: 6px; }
+.opt { text-align: left; background: var(--bg); }
+.opt.right { background: var(--ans-soft); border-color: var(--ans); }
+.opt.wrong { background: var(--bad-soft); border-color: var(--bad); }
+.explain { font-size: 14px; color: var(--muted); }
+
+.checklist { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.checklist label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.checklist input { margin-top: 6px; accent-color: var(--ans); width: 16px; height: 16px; flex: none; }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+ul.plain, ol.plain { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
+footer { font-size: 13px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<main class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:14px">
+  <span class="eyebrow">NeetCode · Stack · Easy</span>
+  <h1>有效的括号</h1>
+  <p class="lead">Valid Parentheses。这一页从“怎样一个一个读字符串里的字符”讲起，依次讲清 Python 的列表、栈、字典和布尔判断，最后走到 O(n) 的最优解。每一章只讲一个前置知识，所有 Python 语法都会单独解释。</p>
+</header>
+
+<section class="problem" aria-label="题目">
+  <div><span class="tag">题目</span></div>
+  <p>给你一个只包含 <code>(</code> <code>)</code> <code>[</code> <code>]</code> <code>{</code> <code>}</code> 的字符串 <code>s</code>，判断它是否<strong>有效</strong>。有效需要同时满足：</p>
+  <ul class="plain">
+    <li>每个左括号都被<strong>同类型</strong>的右括号闭合。</li>
+    <li>左括号按<strong>正确的顺序</strong>闭合。</li>
+    <li>每个右括号都有一个对应的、同类型的左括号。</li>
+  </ul>
+  <div class="example">输入: s = "[]"
+输出: true
+
+输入: s = "([{}])"
+输出: true
+
+输入: s = "[(])"
+输出: false</div>
+  <p style="font-size:14px;color:var(--muted)">约束：1 ≤ s.length ≤ 1000。</p>
+</section>
+
+<nav aria-label="目录" style="display:flex;flex-direction:column;gap:10px">
+  <span class="eyebrow">学习路线</span>
+  <ol class="toc">
+    <li><a href="#string">字符串与逐字符遍历</a></li>
+    <li><a href="#rule">什么叫“有效”</a></li>
+    <li><a href="#count">为什么数个数不够</a></li>
+    <li><a href="#list">Python 列表的基本操作</a></li>
+    <li><a href="#stack">栈：后进先出</a></li>
+    <li><a href="#dict">字典：右括号查左括号</a></li>
+    <li><a href="#bool">真假判断与 and 短路</a></li>
+    <li><a href="#idea">算法思路与三种失败</a></li>
+    <li><a href="#step">单步执行</a></li>
+    <li><a href="#code">完整代码与复杂度</a></li>
+    <li><a href="#quiz">自测</a></li>
+  </ol>
+</nav>
+
+<!-- 01 -->
+<section id="string">
+  <div class="chap"><span class="num">01</span><h2>字符串与逐字符遍历</h2></div>
+  <p>字符串就是一串字符排成一行，和数组一样每个字符有一个<strong>下标</strong>，从 0 开始。<code>s = "([{}])"</code> 长这样：</p>
+  <div class="arr-wrap"><div class="arr" id="demoStr"></div></div>
+  <p>Python 里有两种常见的遍历写法：</p>
+<pre class="code" data-lang="py">for c in s:              # 直接拿到每个字符，c 依次是 "(", "[", "{", ...
+    print(c)
+
+for i in range(len(s)):  # 拿到下标 i，再用 s[i] 取字符
+    print(i, s[i])</pre>
+  <ul class="plain">
+    <li><code>len(s)</code> 是字符串的长度，这里是 6。</li>
+    <li><code>for c in s</code> 里的 <code>c</code> 是一个<strong>你自己起的变量名</strong>，每循环一次，它就变成下一个字符。本题不需要下标，所以用这种更简洁的写法。</li>
+    <li>Python 里一个字符就是长度为 1 的字符串，写作 <code>"("</code> 或 <code>'('</code>，单引号双引号都行。比较两个字符是否相同用 <code>==</code>，例如 <code>c == "("</code>。</li>
+  </ul>
+</section>
+
+<!-- 02 -->
+<section id="rule">
+  <div class="chap"><span class="num">02</span><h2>什么叫“有效”</h2></div>
+  <p>把括号想成<strong>盒子</strong>：左括号是打开一个盒子，右括号是关上一个盒子。有效的意思是：</p>
+  <ul class="plain">
+    <li>关盒子时，关的必须是<strong>最近打开、还没关上</strong>的那个盒子。</li>
+    <li>盒子的类型要一致：圆盒子 <code>(</code> 只能用 <code>)</code> 关。</li>
+    <li>最后所有盒子都关上了，没有剩下的。</li>
+  </ul>
+  <div class="tbl-wrap"><table>
+    <tr><th>字符串</th><th>结果</th><th>原因</th></tr>
+    <tr><td><code>"()[]{}"</code></td><td><span class="ans">有效</span></td><td>三个盒子并排，各开各关。</td></tr>
+    <tr><td><code>"([{}])"</code></td><td><span class="ans">有效</span></td><td>盒子套盒子，从里往外依次关上。</td></tr>
+    <tr><td><code>"(]"</code></td><td><span class="bad">无效</span></td><td>打开的是圆盒子，却用方括号去关，类型不对。</td></tr>
+    <tr><td><code>"[(])"</code></td><td><span class="bad">无效</span></td><td>最近打开的是 <code>(</code>，却先关了 <code>]</code>，顺序不对。</td></tr>
+    <tr><td><code>"(("</code></td><td><span class="bad">无效</span></td><td>读完了，还有盒子没关。</td></tr>
+    <tr><td><code>")("</code></td><td><span class="bad">无效</span></td><td>一上来就关盒子，可是根本没有打开的盒子。</td></tr>
+  </table></div>
+  <p class="note">关键词是“<strong>最近打开的</strong>”。下一章会看到，正是这一点让简单的计数失效，也正是这一点指向了“栈”。</p>
+</section>
+
+<!-- 03 -->
+<section id="count">
+  <div class="chap"><span class="num">03</span><h2>为什么数个数不够</h2></div>
+  <p>很多人的第一反应是：数一数每种左括号和右括号的个数，个数相等就有效。看 <code>"[(])"</code>：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>类型</th><th>左括号个数</th><th>右括号个数</th><th>相等？</th></tr>
+    <tr><td><code>( )</code></td><td>1</td><td>1</td><td class="ans">相等</td></tr>
+    <tr><td><code>[ ]</code></td><td>1</td><td>1</td><td class="ans">相等</td></tr>
+  </table></div>
+  <p>个数全部相等，但它是<span class="bad">无效</span>的。计数只记住了“有几个”，丢掉了“<strong>谁先谁后</strong>”。而这道题恰恰要求：遇到右括号时，能立刻知道<strong>最近一个还没配对的左括号</strong>是什么。</p>
+  <p class="note ok">我们需要一个容器，能做到：放进去的东西按顺序排着，并且随时能拿到<strong>最后放进去的那一个</strong>。这个容器叫<strong>栈</strong>。在 Python 里，用列表就能当栈用，所以先学列表。</p>
+</section>
+
+<!-- 04 -->
+<section id="list">
+  <div class="chap"><span class="num">04</span><h2>Python 列表的基本操作</h2></div>
+  <p>列表（list）是 Python 里最常用的容器，用方括号写：<code>stack = []</code> 表示一个空列表，<code>stack = ["(", "["]</code> 表示里面有两个元素。本题只用到下面五个操作：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>写法</th><th>作用</th><th>例子（stack = ["(", "["]）</th></tr>
+    <tr><td><code>stack.append(x)</code></td><td>把 x 加到列表<strong>末尾</strong></td><td><code>stack.append("{")</code> 后变成 <code>["(", "[", "{"]</code></td></tr>
+    <tr><td><code>stack.pop()</code></td><td>删掉<strong>末尾</strong>的元素，并把它返回</td><td>返回 <code>"["</code>，列表变成 <code>["("]</code></td></tr>
+    <tr><td><code>stack[-1]</code></td><td>看一眼<strong>末尾</strong>的元素，不删除</td><td>得到 <code>"["</code>，列表不变</td></tr>
+    <tr><td><code>len(stack)</code></td><td>元素个数</td><td>得到 <code>2</code></td></tr>
+    <tr><td><code>not stack</code></td><td>列表为空时是 True</td><td>得到 <code>False</code>（不为空）</td></tr>
+  </table></div>
+  <h3>负数下标 -1 是什么意思</h3>
+  <p>Python 允许用负数从后往前数：<code>-1</code> 是最后一个，<code>-2</code> 是倒数第二个。所以 <code>stack[-1]</code> 和 <code>stack[len(stack) - 1]</code> 是一回事，只是更短。</p>
+  <div class="arr-wrap"><div class="arr" id="negIdx"></div></div>
+  <p class="note no">两个会报错的情况：对<strong>空列表</strong>调用 <code>pop()</code> 会抛出 <code>IndexError: pop from empty list</code>；对空列表取 <code>stack[-1]</code> 会抛出 <code>IndexError: list index out of range</code>。所以取之前一定要先确认列表不为空，第 07 章会讲怎么写。</p>
+</section>
+
+<!-- 05 -->
+<section id="stack">
+  <div class="chap"><span class="num">05</span><h2>栈：后进先出</h2></div>
+  <p><strong>栈</strong>（stack）是一种只能在<strong>一头</strong>放和拿的容器，像一摞盘子：新盘子放在最上面，拿也只能从最上面拿。最后放进去的最先拿出来，叫<strong>后进先出</strong>（LIFO，Last In First Out）。</p>
+  <ul class="plain">
+    <li>放进去叫<strong>入栈</strong>（push），Python 写 <code>stack.append(x)</code>。</li>
+    <li>拿出来叫<strong>出栈</strong>（pop），Python 写 <code>stack.pop()</code>。</li>
+    <li>只看不拿叫<strong>查看栈顶</strong>（peek），Python 写 <code>stack[-1]</code>。</li>
+  </ul>
+  <p>列表的“末尾”就是栈的“顶部”。点按钮亲手操作一下，下方会显示对应的 Python 语句和结果：</p>
+  <div class="lab">
+    <div class="play-row">
+      <div class="stack-box">
+        <div class="stack" id="pgStack"></div>
+        <span class="stack-cap">栈底</span>
+      </div>
+      <div class="play-main">
+        <div class="controls">
+          <button type="button" class="mono" data-push="(">append("(")</button>
+          <button type="button" class="mono" data-push="[">append("[")</button>
+          <button type="button" class="mono" data-push="{">append("{")</button>
+        </div>
+        <div class="controls">
+          <button type="button" class="mono" id="pgPop">pop()</button>
+          <button type="button" class="mono" id="pgPeek">stack[-1]</button>
+          <button type="button" class="mono" id="pgEmpty">not stack</button>
+          <button type="button" id="pgClear">清空</button>
+        </div>
+        <div class="console" id="pgLog" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+  <p class="note ok">和括号对上号：遇到<span class="pre">左括号</span>就入栈（打开一个盒子）；遇到<span class="suf">右括号</span>就看栈顶，栈顶正好是“<strong>最近打开、还没关上</strong>”的那个左括号。这就是第 02 章那个关键词的实现方式。</p>
+</section>
+
+<!-- 06 -->
+<section id="dict">
+  <div class="chap"><span class="num">06</span><h2>字典：右括号查左括号</h2></div>
+  <p>遇到右括号 <code>)</code> 时，我们要知道“它应该配哪个左括号”。可以写一串 if：</p>
+<pre class="code" data-lang="py">if c == ")":
+    want = "("
+elif c == "]":
+    want = "["
+elif c == "}":
+    want = "{"</pre>
+  <p>能用，但啰嗦。更好的工具是<strong>字典</strong>（dict）：它存的是一对一对的“<strong>键 → 值</strong>”，给出键就能查到值，像查字典一样。</p>
+<pre class="code" data-lang="py">closeToOpen = {")": "(", "]": "[", "}": "{"}</pre>
+  <ul class="plain">
+    <li>字典用花括号写，每一对写成 <code>键: 值</code>，对与对之间用逗号隔开。这里<strong>键是右括号</strong>，<strong>值是对应的左括号</strong>。</li>
+    <li><code>closeToOpen[")"]</code> 用键查值，得到 <code>"("</code>。查一个不存在的键会报 <code>KeyError</code>。</li>
+    <li><code>c in closeToOpen</code> 判断 c 是不是字典的<strong>键</strong>，返回 True 或 False。注意 <code>in</code> 只看键，不看值，所以 <code>"(" in closeToOpen</code> 是 False。</li>
+  </ul>
+  <p>一个字典同时帮我们做了两件事：用 <code>in</code> 区分<strong>左右括号</strong>，用 <code>[ ]</code> 查出<strong>该配的左括号</strong>。点一个字符试试：</p>
+  <div class="lab">
+    <div class="controls" id="dictBtns"></div>
+    <div class="console" id="dictLog" aria-live="polite"></div>
+  </div>
+  <p class="note">变量名 <code>closeToOpen</code> 是 NeetCode 的写法，意思是“close（右括号）到 open（左括号）的映射”。名字你可以随便起，比如 <code>pairs</code>，好的名字能让人一眼看出键和值分别是什么。</p>
+</section>
+
+<!-- 07 -->
+<section id="bool">
+  <div class="chap"><span class="num">07</span><h2>真假判断与 and 短路</h2></div>
+  <h3>列表本身就能当真假用</h3>
+  <p>在 <code>if</code> 后面放一个列表，Python 会把<strong>空列表当成 False</strong>，<strong>非空列表当成 True</strong>：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>stack 的值</th><th><code>if stack:</code></th><th><code>not stack</code></th><th>等价写法</th></tr>
+    <tr><td><code>[]</code></td><td class="bad">不进入</td><td class="ans">True</td><td><code>len(stack) == 0</code></td></tr>
+    <tr><td><code>["("]</code></td><td class="ans">进入</td><td class="bad">False</td><td><code>len(stack) != 0</code></td></tr>
+  </table></div>
+  <p>所以最后一行 <code>return not stack</code> 的意思是：“栈空了就返回 True，没空就返回 False”。<code>not</code> 把真假反过来。</p>
+  <h3>and 的短路</h3>
+  <p><code>A and B</code> 只有两边都为真才是真。关键在于 Python <strong>从左往右</strong>算，一旦 A 是假，结果已经确定是假，<strong>根本不会去算 B</strong>。这叫<strong>短路</strong>。</p>
+<pre class="code" data-lang="py">if stack and stack[-1] == closeToOpen[c]:
+    stack.pop()</pre>
+  <p>当 stack 为空时，左边 <code>stack</code> 是假，右边的 <code>stack[-1]</code> 不会执行，也就不会报 IndexError。<strong>顺序不能反</strong>：写成 <code>stack[-1] == ... and stack</code>，空栈时会先执行 <code>stack[-1]</code>，直接报错。</p>
+  <h3>return 会立刻结束函数</h3>
+  <p>函数里一旦执行到 <code>return False</code>，后面的代码（包括循环剩下的部分）都不再执行。发现一处错误就能马上下结论，不用把字符串读完。</p>
+</section>
+
+<!-- 08 -->
+<section id="idea">
+  <div class="chap"><span class="num">08</span><h2>算法思路与三种失败</h2></div>
+  <p>把前面的知识拼起来，从左到右读每个字符 c：</p>
+  <ol class="plain">
+    <li>c 是<span class="pre">左括号</span>（不在字典的键里）：入栈，<code>stack.append(c)</code>。</li>
+    <li>c 是<span class="suf">右括号</span>（在字典的键里）：
+      <ul class="plain">
+        <li>如果栈不空，并且栈顶正好是 <code>closeToOpen[c]</code>：配对成功，出栈。</li>
+        <li>否则：立刻 <code>return False</code>。</li>
+      </ul></li>
+    <li>读完所有字符：栈空就有效，<code>return not stack</code>。</li>
+  </ol>
+  <p>无效只有三种可能，每一种都对应代码里的一个位置：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>失败原因</th><th>例子</th><th>代码在哪里发现</th></tr>
+    <tr><td>右括号来了，栈是空的</td><td><code>")("</code>、<code>"())"</code></td><td><code>if stack</code> 为假 → return False</td></tr>
+    <tr><td>右括号和栈顶类型不配</td><td><code>"(]"</code>、<code>"[(])"</code></td><td><code>stack[-1] == closeToOpen[c]</code> 为假 → return False</td></tr>
+    <tr><td>读完了栈里还有左括号</td><td><code>"(("</code>、<code>"{[]"</code></td><td>最后 <code>not stack</code> 为假</td></tr>
+  </table></div>
+  <p class="note warn">小优化：长度为奇数的字符串一定无效，因为括号总是成对出现。可以在开头加 <code>if len(s) % 2 == 1: return False</code>（<code>%</code> 是取余数）。不加也完全正确。</p>
+</section>
+
+<!-- 09 -->
+<section id="step">
+  <div class="chap"><span class="num">09</span><h2>单步执行</h2></div>
+  <p>输入任意括号串，一步一步看代码怎么走。左边是字符串和栈，右边高亮当前执行的代码行：</p>
+  <div class="lab">
+    <div class="lab-head">
+      <label for="stInput" class="lab-title">s =</label>
+      <div class="controls" id="stPresets"></div>
+    </div>
+    <input type="text" id="stInput" value="([{}])" autocomplete="off" aria-describedby="stErr">
+    <span class="err" id="stErr" hidden></span>
+    <div class="stepper-grid">
+      <div class="viz">
+        <div>
+          <div class="row-label">字符串 s（黑框是当前字符 c）</div>
+          <div class="arr-wrap"><div class="arr" id="stStr"></div></div>
+        </div>
+        <div class="play-row">
+          <div class="stack-box">
+            <div class="stack" id="stStack"></div>
+            <span class="stack-cap">栈底</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:14px;min-width:0">
+            <span>c = <span class="mono" id="stC">无</span></span>
+            <span>结果：<span id="stRes" class="pill">运行中</span></span>
+          </div>
+        </div>
+      </div>
+      <pre class="code" id="stCode"></pre>
+    </div>
+    <div class="msg" id="stMsg" aria-live="polite"></div>
+    <div class="lab-head">
+      <div class="controls">
+        <button type="button" id="stReset">重来</button>
+        <button type="button" id="stPrev">上一步</button>
+        <button type="button" id="stNext" class="primary">下一步</button>
+        <button type="button" id="stPlay">自动播放</button>
+      </div>
+      <span class="progress" id="stProg"></span>
+    </div>
+  </div>
+  <p style="font-size:14px;color:var(--muted)">颜色说明：琥珀色是还在栈里等待配对的左括号，绿色是已经配对成功的括号，红色是出错的位置。</p>
+</section>
+
+<!-- 10 -->
+<section id="code">
+  <div class="chap"><span class="num">10</span><h2>完整代码与复杂度</h2></div>
+  <div class="tabs" role="tablist" aria-label="语言">
+    <button type="button" role="tab" aria-selected="true" data-lang="py">Python</button>
+    <button type="button" role="tab" aria-selected="false" data-lang="java">Java</button>
+    <button type="button" role="tab" aria-selected="false" data-lang="cpp">C++</button>
+  </div>
+<pre class="code" data-lang="py" id="code-py">class Solution:
+    def isValid(self, s: str) -> bool:
+        stack = []                                  # 用列表当栈
+        closeToOpen = {")": "(", "]": "[", "}": "{"}  # 右括号 → 左括号
+
+        for c in s:
+            if c in closeToOpen:                    # c 是右括号
+                if stack and stack[-1] == closeToOpen[c]:
+                    stack.pop()                     # 配对成功，出栈
+                else:
+                    return False                    # 栈空或类型不配
+            else:                                   # c 是左括号
+                stack.append(c)                     # 入栈
+
+        return not stack                            # 栈空才有效</pre>
+<pre class="code" data-lang="java" id="code-java" hidden>class Solution {
+    public boolean isValid(String s) {
+        Deque&lt;Character&gt; stack = new ArrayDeque&lt;&gt;();
+        Map&lt;Character, Character&gt; closeToOpen = Map.of(')', '(', ']', '[', '}', '{');
+
+        for (char c : s.toCharArray()) {
+            if (closeToOpen.containsKey(c)) {
+                if (!stack.isEmpty() &amp;&amp; stack.peek().equals(closeToOpen.get(c))) {
+                    stack.pop();
+                } else {
+                    return false;
+                }
+            } else {
+                stack.push(c);
+            }
+        }
+        return stack.isEmpty();
+    }
+}</pre>
+<pre class="code" data-lang="cpp" id="code-cpp" hidden>class Solution {
+public:
+    bool isValid(string s) {
+        stack&lt;char&gt; st;
+        unordered_map&lt;char, char&gt; closeToOpen = {{')', '('}, {']', '['}, {'}', '{'}};
+
+        for (char c : s) {
+            if (closeToOpen.count(c)) {
+                if (!st.empty() &amp;&amp; st.top() == closeToOpen[c]) {
+                    st.pop();
+                } else {
+                    return false;
+                }
+            } else {
+                st.push(c);
+            }
+        }
+        return st.empty();
+    }
+};</pre>
+  <p style="font-size:14px;color:var(--muted)">第一行 <code>class Solution:</code> 和 <code>def isValid(self, s: str) -&gt; bool:</code> 是 NeetCode 给定的外壳。<code>s: str</code> 表示参数 s 是字符串，<code>-&gt; bool</code> 表示函数返回 True 或 False，这些只是提示，不影响运行。</p>
+  <h3>复杂度</h3>
+  <ul class="plain">
+    <li><strong>时间 O(n)</strong>：每个字符只看一次，每次的 append、pop、stack[-1]、字典查找都是常数时间。</li>
+    <li><strong>空间 O(n)</strong>：最坏情况是全是左括号，例如 <code>"(((("</code>，栈里要放 n 个元素。这道题不存在更省空间的通用解法，所以这就是最优解。</li>
+  </ul>
+  <h3>最容易写错的四个地方</h3>
+  <ul class="plain">
+    <li><strong>忘了判空</strong>：直接写 <code>if stack[-1] == closeToOpen[c]</code>，遇到 <code>")"</code> 开头的字符串会报 IndexError。</li>
+    <li><strong>and 两边顺序写反</strong>：必须先写 <code>stack</code> 再写 <code>stack[-1]</code>，靠短路保护。</li>
+    <li><strong>最后直接 return True</strong>：<code>"(("</code> 会被误判为有效。要写 <code>return not stack</code>。</li>
+    <li><strong>字典方向写反</strong>：写成 <code>{"(": ")", ...}</code>，那 <code>c in closeToOpen</code> 判断的就变成了左括号，后面整套逻辑都要跟着改。</li>
+  </ul>
+</section>
+
+<!-- 11 -->
+<section id="quiz">
+  <div class="chap"><span class="num">11</span><h2>自测</h2></div>
+  <p>点选答案，立即判分。全部答对说明前置知识已经过关。</p>
+  <div class="quiz" id="quizBox"></div>
+  <p class="progress" id="quizScore"></p>
+
+  <h3 style="margin-top:12px">掌握清单</h3>
+  <ul class="checklist" id="checklist">
+    <li><label><input type="checkbox" id="ck1"><span>能举例说明为什么只数括号个数是不够的。</span></label></li>
+    <li><label><input type="checkbox" id="ck2"><span>知道 <code>append</code>、<code>pop()</code>、<code>stack[-1]</code> 各自做什么，以及空列表上哪些会报错。</span></label></li>
+    <li><label><input type="checkbox" id="ck3"><span>能写出 closeToOpen 字典，并说清 <code>c in closeToOpen</code> 和 <code>closeToOpen[c]</code> 的区别。</span></label></li>
+    <li><label><input type="checkbox" id="ck4"><span>能解释 <code>stack and stack[-1] == ...</code> 为什么不会报错。</span></label></li>
+    <li><label><input type="checkbox" id="ck5"><span>能说出三种无效情况，并指出代码里分别在哪一行发现。</span></label></li>
+    <li><label><input type="checkbox" id="ck6"><span>能手动模拟 <code>"[(])"</code>，说出在第几个字符返回 False。</span></label></li>
+    <li><label><input type="checkbox" id="ck7"><span>不看本页，5 分钟内写出可以通过的代码。</span></label></li>
+  </ul>
+</section>
+
+<footer>同类题型：最小栈（Min Stack）、逆波兰表达式求值（Evaluate Reverse Polish Notation）、每日温度（Daily Temperatures）都用到“栈顶是最近一个还没处理的元素”这个思想。</footer>
+</main>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const q = (ch) => '"' + ch + '"';
+  const pyList = (arr) => "[" + arr.map(q).join(", ") + "]";
+
+  /* ---------- 语法高亮 ---------- */
+  const KW = /\b(class|def|for|in|if|elif|else|not|and|return|len|self|str|bool|print|range|True|False|public|boolean|String|char|new|true|false)\b|\b(\d+)\b/g;
+  function hlCode(text, lang) {
+    const marker = lang === "py" ? "#" : "//";
+    const pos = text.indexOf(marker);
+    const codePart = pos >= 0 ? text.slice(0, pos) : text;
+    const comPart = pos >= 0 ? text.slice(pos) : "";
+    const body = esc(codePart).replace(KW, (m, k, n) => k ? '<span class="k">' + k + "</span>" : '<span class="n">' + n + "</span>");
+    return body + (comPart ? '<span class="c">' + esc(comPart) + "</span>" : "");
+  }
+  document.querySelectorAll("pre.code[data-lang]").forEach((pre) => {
+    const lang = pre.dataset.lang;
+    pre.innerHTML = pre.textContent.split("\n").map((l) => '<span class="ln">' + (hlCode(l, lang) || " ") + "</span>").join("");
+  });
+
+  function cellHTML(v, i, cls) {
+    return '<div class="cell ' + (cls || "") + '"><span class="idx">' + i + "</span>" + esc(v) + "</div>";
+  }
+  const OPEN = "([{";
+
+  /* ---------- 01 字符串 ---------- */
+  $("demoStr").innerHTML = "([{}])".split("").map((c, i) => cellHTML(c, i, OPEN.includes(c) ? "open" : "")).join("");
+
+  /* ---------- 04 负数下标 ---------- */
+  const neg = ["(", "[", "{"];
+  $("negIdx").innerHTML = neg.map((c, i) =>
+    '<div class="cell' + (i === neg.length - 1 ? " cur" : "") + '"><span class="idx">' + i + " / " + (i - neg.length) + "</span>" + c + "</div>").join("");
+
+  /* ---------- 栈绘制 ---------- */
+  function drawStack(el, items, mark) {
+    if (!items.length) { el.innerHTML = '<span class="empty-hint">空栈</span>'; return; }
+    el.innerHTML = items.map((ch, k) => {
+      let cls = "slot";
+      if (k === items.length - 1) cls += " top";
+      if (k === items.length - 1 && mark) cls += " " + mark;
+      return '<div class="' + cls + '">' + esc(ch) + "</div>";
+    }).join("");
+  }
+
+  /* ---------- 05 栈操作台 ---------- */
+  let pg = ["(", "["];
+  const MAXPG = 7;
+  function pgLog(stmt, out, isErr) {
+    $("pgLog").innerHTML = "&gt;&gt;&gt; " + esc(stmt) + "\n" +
+      (out !== undefined ? '<span class="' + (isErr ? "ex" : "out") + '">' + esc(out) + "</span>\n" : "") +
+      "stack = " + esc(pyList(pg));
+  }
+  function pgDraw(mark) { drawStack($("pgStack"), pg, mark); }
+  document.querySelectorAll("[data-push]").forEach((b) => b.addEventListener("click", () => {
+    if (pg.length >= MAXPG) { pgLog("stack.append(" + q(b.dataset.push) + ")", "演示里最多放 " + MAXPG + " 个，先 pop 几个吧", true); return; }
+    pg.push(b.dataset.push); pgDraw(); pgLog("stack.append(" + q(b.dataset.push) + ")");
+  }));
+  $("pgPop").addEventListener("click", () => {
+    if (!pg.length) { pgDraw(); pgLog("stack.pop()", "IndexError: pop from empty list", true); return; }
+    const x = pg.pop(); pgDraw(); pgLog("stack.pop()", q(x) + "    # 返回被删掉的栈顶");
+  });
+  $("pgPeek").addEventListener("click", () => {
+    if (!pg.length) { pgDraw(); pgLog("stack[-1]", "IndexError: list index out of range", true); return; }
+    pgDraw("hit"); pgLog("stack[-1]", q(pg[pg.length - 1]) + "    # 只看不删");
+  });
+  $("pgEmpty").addEventListener("click", () => { pgDraw(); pgLog("not stack", pg.length ? "False    # 栈里还有东西" : "True    # 栈是空的"); });
+  $("pgClear").addEventListener("click", () => { pg = []; pgDraw(); pgLog("stack = []"); });
+  pgDraw(); pgLog('stack = ["(", "["]');
+
+  /* ---------- 06 字典查找 ---------- */
+  const MAP = { ")": "(", "]": "[", "}": "{" };
+  $("dictBtns").innerHTML = "()[]{}".split("").map((c) => '<button type="button" class="mono" data-dc="' + c + '">' + q(c) + "</button>").join("");
+  function dictShow(c) {
+    const isKey = c in MAP;
+    let html = "&gt;&gt;&gt; c = " + esc(q(c)) + "\n&gt;&gt;&gt; c in closeToOpen\n" +
+      '<span class="' + (isKey ? "out" : "ex") + '">' + (isKey ? "True" : "False") + "</span>\n";
+    if (isKey) {
+      html += "&gt;&gt;&gt; closeToOpen[c]\n" + '<span class="out">' + esc(q(MAP[c])) + "</span>    # " + esc(q(c)) + " 是右括号，要配 " + esc(q(MAP[c])) + "，所以去看栈顶是不是它";
+    } else {
+      html += "# " + esc(q(c)) + " 不是字典的键，说明它是左括号，应该入栈\n&gt;&gt;&gt; closeToOpen[c]\n" + '<span class="ex">KeyError: ' + esc("'" + c + "'") + "</span>";
+    }
+    $("dictLog").innerHTML = html;
+  }
+  $("dictBtns").addEventListener("click", (e) => { const b = e.target.closest("[data-dc]"); if (b) dictShow(b.dataset.dc); });
+  dictShow(")");
+
+  /* ---------- 09 单步执行 ---------- */
+  const STEP_CODE = [
+    "stack = []",
+    'closeToOpen = {")": "(", "]": "[", "}": "{"}',
+    "for c in s:",
+    "    if c in closeToOpen:",
+    "        if stack and stack[-1] == closeToOpen[c]:",
+    "            stack.pop()",
+    "        else:",
+    "            return False",
+    "    else:",
+    "        stack.append(c)",
+    "return not stack"
+  ];
+  $("stCode").innerHTML = STEP_CODE.map((l, k) => '<span class="ln" data-k="' + k + '">' + hlCode(l, "py") + "</span>").join("");
+
+  const PRESETS = ["([{}])", "()[]{}", "[(])", "(]", "((", "())", "{[()()]}"];
+  $("stPresets").innerHTML = PRESETS.map((p) => '<button type="button" class="mono" data-st="' + p + '">' + p + "</button>").join("");
+
+  function buildFrames(s) {
+    const F = [], st = [], status = Array(s.length).fill("");
+    // st 里存 {ch, i}，status: "" 未读 / "open" 在栈中 / "done" 已配对 / "fail" 出错
+    const push = (o) => F.push(Object.assign({ stack: st.map((x) => x.ch), status: status.slice(), cur: -1, c: null, result: null }, o));
+    push({ line: 0, hl: "hl", msg: "创建空栈 <code>stack = []</code>。" });
+    push({ line: 1, hl: "hl", msg: "建好字典：右括号是键，对应的左括号是值。" });
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i];
+      push({ line: 2, hl: "hl", cur: i, c, msg: "取出第 " + i + " 个字符，c = <code>" + q(c) + "</code>。" });
+      const isClose = c in MAP;
+      push({ line: 3, hl: "hl", cur: i, c, msg: "<code>" + q(c) + " in closeToOpen</code> 是 <strong>" + (isClose ? "True" : "False") + "</strong>：" + (isClose ? "它是<span class=\"suf\">右括号</span>，要去和栈顶配对。" : "它是<span class=\"pre\">左括号</span>，走 else 分支。") });
+      if (!isClose) {
+        st.push({ ch: c, i }); status[i] = "open";
+        push({ line: 9, hl: "hl", cur: i, c, msg: "<code>stack.append(" + q(c) + ")</code>：左括号入栈，等待以后的右括号来配它。" });
+        continue;
+      }
+      const want = MAP[c];
+      if (!st.length) {
+        status[i] = "fail";
+        push({ line: 4, hl: "hl3", cur: i, c, msg: "栈是空的，<code>stack</code> 为假，and 短路，右边的 <code>stack[-1]</code> 根本不执行。没有左括号可以配这个 <code>" + q(c) + "</code>。" });
+        push({ line: 7, hl: "hl3", cur: i, c, result: false, msg: "<code>return False</code>：失败原因是“右括号来了，栈是空的”。函数到此结束。" });
+        return F;
+      }
+      const top = st[st.length - 1];
+      if (top.ch === want) {
+        push({ line: 4, hl: "hl2", cur: i, c, mark: "hit", msg: "栈不空。栈顶 <code>stack[-1]</code> 是 <code>" + q(top.ch) + "</code>，<code>closeToOpen[" + q(c) + "]</code> 是 <code>" + q(want) + "</code>，相等，配对成功。" });
+        st.pop(); status[top.i] = "done"; status[i] = "done";
+        push({ line: 5, hl: "hl4", cur: i, c, msg: "<code>stack.pop()</code>：把配好的 <code>" + q(top.ch) + "</code> 拿出栈。下标 " + top.i + " 和 " + i + " 是一对。" });
+      } else {
+        status[i] = "fail";
+        push({ line: 4, hl: "hl3", cur: i, c, mark: "miss", msg: "栈顶是 <code>" + q(top.ch) + "</code>，但 <code>" + q(c) + "</code> 需要的是 <code>" + q(want) + "</code>，不相等。最近打开的盒子和要关的盒子类型不一样。" });
+        push({ line: 7, hl: "hl3", cur: i, c, mark: "miss", result: false, msg: "<code>return False</code>：失败原因是“右括号和栈顶类型不配”。后面的字符不用再看了。" });
+        return F;
+      }
+    }
+    const ok = st.length === 0;
+    if (!ok) st.forEach((x) => { status[x.i] = "fail"; });
+    push({ line: 10, hl: ok ? "hl4" : "hl3", result: ok, msg: ok
+      ? "字符串读完，栈是空的，<code>not stack</code> 是 True。所有括号都配上了，<span class=\"ans\">有效</span>。"
+      : "字符串读完，栈里还剩 " + st.length + " 个左括号 " + pyList(st.map((x) => x.ch)) + "，<code>not stack</code> 是 False。有盒子没关上，<span class=\"bad\">无效</span>。" });
+    return F;
+  }
+
+  let frames = [], idx = 0, cur = "", timer = null;
+  function stLoad() {
+    const v = $("stInput").value.trim();
+    if (!v.length) { $("stErr").textContent = "请输入至少一个括号"; $("stErr").hidden = false; return; }
+    if (/[^()[\]{}]/.test(v)) { $("stErr").textContent = "只能包含 ( ) [ ] { } 这六种字符，不要加引号或空格"; $("stErr").hidden = false; return; }
+    if (v.length > 16) { $("stErr").textContent = "演示里最多 16 个字符，方便看清"; $("stErr").hidden = false; return; }
+    $("stErr").hidden = true;
+    cur = v; frames = buildFrames(v); idx = 0; stop(); stDraw();
+  }
+  function stDraw() {
+    const f = frames[idx];
+    $("stStr").innerHTML = cur.split("").map((c, j) => {
+      let cls = f.status[j];
+      if (j === f.cur) cls += " cur";
+      return cellHTML(c, j, cls);
+    }).join("");
+    drawStack($("stStack"), f.stack, f.mark);
+    $("stC").textContent = f.c === null ? "无" : q(f.c);
+    const r = $("stRes");
+    r.className = "pill" + (f.result === true ? " t" : f.result === false ? " f" : "");
+    r.textContent = f.result === true ? "True" : f.result === false ? "False" : "运行中";
+    document.querySelectorAll("#stCode .ln").forEach((el) => {
+      const k = +el.dataset.k;
+      el.classList.remove("hl", "hl2", "hl3", "hl4");
+      if (k === f.line) el.classList.add(f.hl);
+    });
+    $("stMsg").innerHTML = f.msg;
+    $("stProg").textContent = "第 " + (idx + 1) + " / " + frames.length + " 步";
+    $("stPrev").disabled = idx === 0;
+    $("stNext").disabled = idx === frames.length - 1;
+  }
+  function stop() { if (timer) { clearInterval(timer); timer = null; } $("stPlay").textContent = "自动播放"; }
+  $("stNext").addEventListener("click", () => { stop(); if (idx < frames.length - 1) { idx++; stDraw(); } });
+  $("stPrev").addEventListener("click", () => { stop(); if (idx > 0) { idx--; stDraw(); } });
+  $("stReset").addEventListener("click", () => { stop(); idx = 0; stDraw(); });
+  $("stPlay").addEventListener("click", () => {
+    if (timer) { stop(); return; }
+    if (idx === frames.length - 1) idx = 0;
+    $("stPlay").textContent = "暂停";
+    timer = setInterval(() => { if (idx < frames.length - 1) { idx++; stDraw(); } else stop(); }, 1200);
+  });
+  $("stInput").addEventListener("input", stLoad);
+  $("stPresets").addEventListener("click", (e) => { const b = e.target.closest("[data-st]"); if (b) { $("stInput").value = b.dataset.st; stLoad(); } });
+  stLoad();
+
+  /* ---------- 10 语言切换 ---------- */
+  document.querySelectorAll('.tabs [role="tab"]').forEach((t) => t.addEventListener("click", () => {
+    document.querySelectorAll('.tabs [role="tab"]').forEach((x) => x.setAttribute("aria-selected", x === t ? "true" : "false"));
+    ["py", "java", "cpp"].forEach((l) => { $("code-" + l).hidden = l !== t.dataset.lang; });
+  }));
+
+  /* ---------- 11 自测 ---------- */
+  const QUIZ = [
+    { q: '"([)]" 里每种括号的左右个数都相等，它有效吗？', o: ["无效，顺序不对", "有效，个数相等就行", "无效，长度是偶数", "有效，因为能两两配对"], a: 0,
+      e: "读到 ) 时栈顶是 [，类型不配。计数丢掉了顺序信息。" },
+    { q: 'stack = ["(", "{"]，执行 stack.pop() 后，stack 是？', o: ['["("]', '["{"]', '[]', '["(", "{"]'], a: 0,
+      e: "pop() 删掉末尾（栈顶）的 \"{\"，剩下 [\"(\"]。" },
+    { q: 'stack = ["(", "["]，stack[-1] 的值是？', o: ['"["', '"("', "-1", "报错"], a: 0,
+      e: "-1 表示最后一个元素，也就是栈顶。它只看不删。" },
+    { q: 'closeToOpen = {")": "(", "]": "[", "}": "{"}，"(" in closeToOpen 是？', o: ["False", "True", "报错", '")"'], a: 0,
+      e: "in 只检查键。键是三个右括号，\"(\" 只是值，所以是 False。" },
+    { q: "当 stack = [] 时，stack and stack[-1] == \"(\" 会怎样？", o: ["得到 False，不会报错", "报 IndexError", "得到 True", "得到 None"], a: 0,
+      e: "空列表为假，and 短路，右边的 stack[-1] 不执行。" },
+    { q: '对 s = "())" 运行算法，在哪里返回 False？', o: ["读到下标 2 的 ) 时，栈是空的", "读到下标 1 的 ) 时", "读完后栈不空", "不会返回 False"], a: 0,
+      e: "下标 0 入栈，下标 1 配对出栈，下标 2 来时栈已空。" },
+    { q: '对 s = "{[" 运行算法，最后返回？', o: ["False，栈里剩两个左括号", "True，没有遇到不配的右括号", "报错", "False，长度是偶数"], a: 0,
+      e: "循环里没 return，但最后 not stack 为 False。这就是为什么不能直接 return True。" },
+    { q: "为什么遇到右括号时看的是栈顶，而不是栈底？", o: ["栈顶是最近打开、还没关上的左括号", "栈底已经被删除了", "Python 只能访问栈顶", "随便看哪个都行"], a: 0,
+      e: "有效括号要求先关最近打开的那个，这正是后进先出。" },
+    { q: "这个算法的时间和空间复杂度是？", o: ["时间 O(n)，空间 O(n)", "时间 O(n²)，空间 O(1)", "时间 O(n)，空间 O(1)", "时间 O(log n)，空间 O(n)"], a: 0,
+      e: "每个字符处理一次；最坏全是左括号，栈里放 n 个。" }
+  ];
+  const answered = {};
+  $("quizBox").innerHTML = QUIZ.map((it, qi) =>
+    '<div class="q"><div class="q-text">' + (qi + 1) + ". " + esc(it.q) + '</div><div class="opts">' +
+    it.o.map((o, oi) => ({ o, oi, r: (qi * 7 + oi * 5) % 4 })).sort((x, y) => x.r - y.r)
+      .map(({ o, oi }) => '<button type="button" class="opt" data-q="' + qi + '" data-o="' + oi + '">' + esc(o) + "</button>").join("") +
+    '</div><div class="explain" id="ex' + qi + '" hidden></div></div>').join("");
+  function score() {
+    const keys = Object.keys(answered), right = keys.filter((k) => answered[k]).length;
+    $("quizScore").textContent = keys.length ? "已作答 " + keys.length + " / " + QUIZ.length + "，答对 " + right + " 题" : "";
+  }
+  $("quizBox").addEventListener("click", (e) => {
+    const b = e.target.closest(".opt"); if (!b) return;
+    const qi = +b.dataset.q, oi = +b.dataset.o, it = QUIZ[qi], box = b.parentElement;
+    box.querySelectorAll(".opt").forEach((x) => x.classList.remove("right", "wrong"));
+    const ok = oi === it.a;
+    b.classList.add(ok ? "right" : "wrong");
+    if (!ok) box.querySelector('[data-o="' + it.a + '"]').classList.add("right");
+    if (!(qi in answered)) answered[qi] = ok;
+    const ex = $("ex" + qi); ex.hidden = false;
+    ex.textContent = (ok ? "答对了。" : "再想想。") + it.e;
+    score();
+  });
+
+  /* ---------- 掌握清单（仅保存在本浏览器） ---------- */
+  document.querySelectorAll("#checklist input").forEach((cb) => {
+    try { cb.checked = localStorage.getItem("vp-" + cb.id) === "1"; } catch (e) {}
+    cb.addEventListener("change", () => { try { localStorage.setItem("vp-" + cb.id, cb.checked ? "1" : "0"); } catch (e) {} });
+  });
+})();
+</script>
+
+</body>
+</html>
