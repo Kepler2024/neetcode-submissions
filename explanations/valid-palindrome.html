@@ -1,0 +1,948 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>验证回文串</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* 版式：单栏教材，一章一个前置知识；左指针 l 用琥珀色，右指针 r 用蓝色，配对相等用绿色，不相等用红色，被跳过的字符灰色划掉，贯穿全页 */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --ink: #17202b;
+  --muted: #586372;
+  --line: #dce1e7;
+  --pre: #b86e0a;
+  --pre-soft: #fcefd8;
+  --suf: #1d6aa3;
+  --suf-soft: #e0edf8;
+  --ans: #2b7a4b;
+  --ans-soft: #e1f2e7;
+  --bad: #b3372f;
+  --bad-soft: #fbe5e3;
+  --code-bg: #eef1f5;
+  --font-display: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151b; --surface: #19202a; --ink: #e5e9ef; --muted: #9ba6b4; --line: #2b3441;
+    --pre: #f0a845; --pre-soft: #3a2b14; --suf: #6cb2e8; --suf-soft: #142b3e;
+    --ans: #5fcb8c; --ans-soft: #153223; --bad: #f08379; --bad-soft: #3d1c1a; --code-bg: #141a22;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151b; --surface: #19202a; --ink: #e5e9ef; --muted: #9ba6b4; --line: #2b3441;
+  --pre: #f0a845; --pre-soft: #3a2b14; --suf: #6cb2e8; --suf-soft: #142b3e;
+  --ans: #5fcb8c; --ans-soft: #153223; --bad: #f08379; --bad-soft: #3d1c1a; --code-bg: #141a22;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.75;
+  font-variant-ligatures: none; /* 等宽字体的连字会把 != 显示成 ≠，初学者容易抄错 */
+}
+.wrap {
+  max-width: 760px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 80px;
+  display: flex; flex-direction: column; gap: 56px;
+}
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.3; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 44px); font-weight: 800; }
+h2 { font-size: clamp(22px, 4.2vw, 28px); font-weight: 800; }
+h3 { font-size: 18px; font-weight: 600; }
+p { margin: 0; }
+section { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lead { font-size: 18px; color: var(--muted); }
+code, .mono { font-family: var(--font-mono); font-size: .92em; }
+:not(pre) > code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; }
+.pre { color: var(--pre); font-weight: 700; }
+.suf { color: var(--suf); font-weight: 700; }
+.ans { color: var(--ans); font-weight: 700; }
+.bad { color: var(--bad); font-weight: 700; }
+.sp { color: var(--muted); font-family: var(--font-mono); }
+a { color: var(--suf); }
+
+/* 题目卡 */
+.problem { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 99px; background: var(--ans-soft); color: var(--ans); }
+.example { font-family: var(--font-mono); font-size: 14px; background: var(--code-bg); border-radius: 6px; padding: 10px 12px; overflow-x: auto; white-space: pre; }
+
+/* 目录 */
+.toc { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; padding: 0; margin: 0; list-style: none; counter-reset: toc; }
+.toc li { counter-increment: toc; }
+.toc a { display: flex; gap: 10px; align-items: baseline; text-decoration: none; color: var(--ink); padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 15px; }
+.toc a::before { content: counter(toc, decimal-leading-zero); font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.toc a:hover, .toc a:focus-visible { border-color: var(--suf); }
+
+/* 章节编号 */
+.chap { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.chap .num { font-family: var(--font-mono); font-size: 14px; color: var(--muted); }
+
+/* 提示块 */
+.note { border-left: 3px solid var(--suf); padding: 4px 0 4px 14px; }
+.note.warn { border-color: var(--pre); }
+.note.ok { border-color: var(--ans); }
+.note.no { border-color: var(--bad); }
+
+/* 字符格子 */
+.arr-wrap { overflow-x: auto; padding: 3px 3px 4px; position: relative; }
+.arr { display: inline-grid; grid-auto-flow: column; grid-auto-columns: minmax(40px, 1fr); gap: 6px; }
+.arr.tight { grid-auto-columns: minmax(20px, 1fr); gap: 3px; }
+.row-label { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.cell {
+  border: 1.5px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink);
+  text-align: center; font-family: var(--font-mono); padding: 6px 4px; font-size: 18px; font-weight: 600; line-height: 1.5;
+  transition: background .2s, border-color .2s, opacity .2s;
+}
+.arr.tight .cell { font-size: 15px; padding: 3px 0; border-radius: 4px; }
+.cell .idx { display: block; font-size: 11px; color: var(--muted); font-weight: 400; line-height: 1.4; }
+.arr.tight .cell .idx { font-size: 9px; }
+button.cell { font-family: var(--font-mono); font-size: 18px; font-weight: 600; padding: 6px 4px; border-radius: 6px; cursor: pointer; }
+.cell.cur { outline: 3px solid var(--ink); outline-offset: 1px; }
+.cell.at-l { outline: 2px solid var(--pre); outline-offset: 0; background: var(--pre-soft); }
+.cell.at-r { outline: 2px solid var(--suf); outline-offset: 0; background: var(--suf-soft); }
+.cell.at-l.at-r { outline-color: var(--ink); }
+.cell.done { background: var(--ans-soft); border-color: var(--ans); }
+.cell.fail { background: var(--bad-soft); border-color: var(--bad); }
+.cell.mid { background: var(--ans-soft); border-color: var(--ans); border-style: dashed; }
+.cell.skip { opacity: .5; text-decoration: line-through; }
+.col { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ptr { font-family: var(--font-mono); font-size: 12px; font-weight: 700; text-align: center; line-height: 1.3; min-height: 1.3em; color: var(--muted); }
+.ptr.ok { color: var(--ans); }
+.ptr.no { color: var(--bad); }
+.ptr .pl { color: var(--pre); }
+.ptr .pr { color: var(--suf); }
+.empty-hint { font-size: 13px; color: var(--muted); font-family: var(--font-mono); padding: 6px 0; }
+
+/* 表格 */
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); }
+th { font-size: 13px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+td code { white-space: nowrap; }
+tr:last-child td, tr:last-child th { border-bottom: 0; }
+
+/* 交互组件外壳 */
+.lab { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.lab-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lab-title { font-weight: 700; font-size: 15px; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button {
+  font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+}
+button:hover { border-color: var(--muted); }
+button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button.mono { font-family: var(--font-mono); }
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--suf); outline-offset: 2px; }
+input[type=text] {
+  font-family: var(--font-mono); font-size: 15px; padding: 6px 10px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink); min-width: 0; width: 100%;
+  font-variant-ligatures: none;
+}
+.err { color: var(--bad); font-size: 14px; }
+
+/* 代码块 */
+pre.code { margin: 0; background: var(--code-bg); border-radius: 8px; padding: 12px 0; overflow-x: auto; font-family: var(--font-mono); font-size: 14px; line-height: 1.7; }
+pre.code .ln { display: block; padding: 0 14px; border-left: 3px solid transparent; white-space: pre; }
+pre.code .ln.hl0 { background: var(--line); border-left-color: var(--ink); }
+pre.code .ln.hl { background: var(--pre-soft); border-left-color: var(--pre); }
+pre.code .ln.hl2 { background: var(--suf-soft); border-left-color: var(--suf); }
+pre.code .ln.hl3 { background: var(--bad-soft); border-left-color: var(--bad); }
+pre.code .ln.hl4 { background: var(--ans-soft); border-left-color: var(--ans); }
+.k { color: var(--suf); font-weight: 600; }
+.c { color: var(--muted); font-style: italic; }
+.n { color: var(--pre); }
+
+.console {
+  font-family: var(--font-mono); font-size: 14px; background: var(--code-bg); border-radius: 8px;
+  padding: 10px 14px; min-height: 3.2em; overflow-x: auto; white-space: pre-wrap; word-break: break-all;
+}
+.console .out { color: var(--ans); }
+.console .ex { color: var(--bad); }
+.msg { min-height: 3.5em; padding: 10px 14px; border-radius: 8px; background: var(--bg); font-size: 15px; }
+.progress { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+.pill { display: inline-block; font-family: var(--font-mono); font-size: 14px; padding: 2px 12px; border-radius: 99px; border: 1.5px solid var(--line); }
+.pill.t { border-color: var(--ans); color: var(--ans); background: var(--ans-soft); }
+.pill.f { border-color: var(--bad); color: var(--bad); background: var(--bad-soft); }
+
+/* 单步执行 */
+.vars { display: flex; gap: 8px; flex-wrap: wrap; }
+.var { font-family: var(--font-mono); padding: 3px 12px; border-radius: 99px; font-size: 14px; border: 1.5px solid var(--line); white-space: pre; }
+.var.p { border-color: var(--pre); color: var(--pre); }
+.var.s { border-color: var(--suf); color: var(--suf); }
+.stepper-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+@media (min-width: 720px) { .stepper-grid { grid-template-columns: minmax(0, .75fr) minmax(0, 1.5fr); align-items: start; } }
+.viz { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+.formula { font-family: var(--font-mono); font-size: 15px; background: var(--surface); border: 1px dashed var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: pre; }
+
+/* 测验 */
+.quiz { display: flex; flex-direction: column; gap: 18px; }
+.q { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.q-text { font-weight: 500; }
+.opts { display: flex; flex-direction: column; gap: 6px; }
+.opt { text-align: left; background: var(--bg); }
+.opt.right { background: var(--ans-soft); border-color: var(--ans); }
+.opt.wrong { background: var(--bad-soft); border-color: var(--bad); }
+.explain { font-size: 14px; color: var(--muted); }
+
+/* 清单 */
+.checklist { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.checklist label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.checklist input { margin-top: 6px; accent-color: var(--ans); width: 16px; height: 16px; flex: none; }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+ul.plain, ol.plain { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
+footer { font-size: 13px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:14px">
+  <span class="eyebrow">NeetCode · Two Pointers · Easy</span>
+  <h1>验证回文串</h1>
+  <p class="lead">Valid Palindrome。这一页从“字符串的下标”讲起，依次讲清回文的定义、怎样判断字母数字、大小写统一、字符串切片，再到双指针，最后走到 O(n) 时间、O(1) 额外空间的最优解。每一章只讲一个前置知识，所有 Python 语法都会单独解释。</p>
+</header>
+
+<section class="problem" aria-label="题目">
+  <div><span class="tag">题目</span></div>
+  <p>给你一个字符串 <code>s</code>，如果它是<strong>回文串</strong>，返回 <code>true</code>，否则返回 <code>false</code>。</p>
+  <p><strong>回文串</strong>是正着读和反着读都一样的字符串。本题判断时<strong>不区分大小写</strong>，并且<strong>忽略所有非字母数字字符</strong>。</p>
+  <p class="note">字母数字字符指字母 <code>A-Z</code>、<code>a-z</code> 和数字 <code>0-9</code>。</p>
+  <div class="example">输入: s = "Was it a car or a cat I saw?"
+输出: true
+解释: 只保留字母数字后是 "wasitacaroracatisaw"，是回文
+
+输入: s = "tab a cat"
+输出: false
+解释: "tabacat" 不是回文</div>
+  <p style="font-size:14px;color:var(--muted)">约束：1 ≤ s.length ≤ 1000，s 只包含可打印的 ASCII 字符。</p>
+</section>
+
+<nav aria-label="目录" style="display:flex;flex-direction:column;gap:10px">
+  <span class="eyebrow">学习路线</span>
+  <ol class="toc">
+    <li><a href="#string">字符串与下标</a></li>
+    <li><a href="#palin">什么是回文</a></li>
+    <li><a href="#alnum">字母数字：isalnum</a></li>
+    <li><a href="#lower">大小写：lower</a></li>
+    <li><a href="#clean">解法一：清洗后反转</a></li>
+    <li><a href="#twoptr">双指针：从两头往中间走</a></li>
+    <li><a href="#skip">跳过标点：内层循环与守卫</a></li>
+    <li><a href="#step">单步执行</a></li>
+    <li><a href="#code">完整代码与复杂度</a></li>
+    <li><a href="#quiz">自测</a></li>
+  </ol>
+</nav>
+
+<!-- 01 -->
+<section id="string">
+  <div class="chap"><span class="num">01</span><h2>字符串与下标</h2></div>
+  <p>字符串就是一串字符排成一行，每个字符有一个<strong>下标</strong>，从 0 开始。<strong>空格和标点也是字符</strong>，同样占一个位置。<code>s = "Race car!"</code> 长这样（<span class="sp">␣</span> 表示空格，格子上方是正数下标 / 负数下标）：</p>
+  <div class="arr-wrap"><div class="arr" id="demoStr" style="grid-auto-columns:minmax(48px,1fr)"></div></div>
+<pre class="code" data-lang="py">s = "Race car!"
+len(s)          # 9，一共 9 个字符
+s[0]            # "R"，第一个字符
+s[len(s) - 1]   # "!"，最后一个字符
+s[-1]           # "!"，负数下标从后往前数，-1 就是最后一个</pre>
+  <ul class="plain">
+    <li><code>len(s)</code> 是长度。长度为 n 的字符串，下标是 0 到 n-1，所以<strong>最后一个字符的下标是 <code>len(s) - 1</code></strong>。后面的右指针就从这里出发。</li>
+    <li>访问 <code>s[len(s)]</code> 会报 <code>IndexError: string index out of range</code>，因为下标最大只到 len(s) - 1。第 07 章会遇到这个错误。</li>
+    <li>Python 里一个字符就是长度为 1 的字符串，单引号双引号都行：<code>"a"</code> 和 <code>'a'</code> 一样。比较两个字符用 <code>==</code>（相等）和 <code>!=</code>（不相等）。</li>
+    <li>字符串<strong>不能原地修改</strong>：<code>s[0] = "r"</code> 会报错。想要一个“改过的”字符串，只能新建一个。第 05 章会用到这一点。</li>
+  </ul>
+</section>
+
+<!-- 02 -->
+<section id="palin">
+  <div class="chap"><span class="num">02</span><h2>什么是回文</h2></div>
+  <p><strong>回文</strong>是正着读和反着读完全一样的字符串，比如 <code>"level"</code>、<code>"abba"</code>。换一种说法：把字符串从中间对折，<strong>每一对镜像位置上的字符都相同</strong>。</p>
+  <p>长度为 n 时，下标 <code>i</code> 的镜像位置是 <code>n - 1 - i</code>：第一个配最后一个，第二个配倒数第二个，以此类推。</p>
+  <div class="formula">回文  ⇔  对所有 i &lt; n / 2，都有 s[i] == s[n - 1 - i]</div>
+  <div class="tbl-wrap"><table>
+    <tr><th>字符串</th><th>是回文？</th><th>原因</th></tr>
+    <tr><td><code>"level"</code></td><td><span class="ans">是</span></td><td>奇数长度，两两配对后正中间的 v 剩下，它和自己对称，不用比。</td></tr>
+    <tr><td><code>"abba"</code></td><td><span class="ans">是</span></td><td>偶数长度，正好两两配对，没有中间字符。</td></tr>
+    <tr><td><code>"abca"</code></td><td><span class="bad">否</span></td><td>第 2 对是 b 和 c，不相同。</td></tr>
+    <tr><td><code>"a"</code></td><td><span class="ans">是</span></td><td>只有一个字符，没有需要比较的对。</td></tr>
+    <tr><td><code>""</code></td><td><span class="ans">是</span></td><td>空字符串也没有需要比较的对，算作回文。像 <code>".,"</code> 这种全是标点的输入，清洗后就是空字符串。</td></tr>
+  </table></div>
+  <p>输入一个字符串，看每一对镜像位置（格子下方的数字是“第几对”）：</p>
+  <div class="lab">
+    <div class="lab-head">
+      <label for="mrInput" class="lab-title">s =</label>
+      <div class="controls" id="mrPresets"></div>
+    </div>
+    <input type="text" id="mrInput" value="level" autocomplete="off" spellcheck="false" aria-describedby="mrErr">
+    <span class="err" id="mrErr" hidden></span>
+    <div class="arr-wrap"><div class="arr" id="mrCells"></div></div>
+    <div class="console" id="mrLog" aria-live="polite"></div>
+  </div>
+  <p class="note warn">试试 <code>Abba</code> 和 <code>race car</code>：按上面的纯定义，它们都<strong>不是</strong>回文，因为 A 和 a 是不同的字符，空格也只在一边。可这道题要求不区分大小写、忽略空格标点，这两个都应该返回 true。接下来两章分别解决“忽略哪些字符”和“大小写”。</p>
+</section>
+
+<!-- 03 -->
+<section id="alnum">
+  <div class="chap"><span class="num">03</span><h2>字母数字：isalnum</h2></div>
+  <p>题目只看<strong>字母数字字符</strong>（alphanumeric）：26 个大写字母、26 个小写字母、10 个数字。空格、逗号、问号、冒号、下划线等等都要忽略。</p>
+  <p>Python 的字符串自带一个方法 <code>c.isalnum()</code>：c 是字母或数字时返回 <code>True</code>，否则返回 <code>False</code>。“方法”就是跟在一个值后面、用点号调用的函数。</p>
+<pre class="code" data-lang="py">"a".isalnum()   # True
+"7".isalnum()   # True
+",".isalnum()   # False
+" ".isalnum()   # False，空格不算
+"_".isalnum()   # False，下划线也不算</pre>
+  <p>在下面输入任意字符串，绿色是会被保留的字符，灰色划掉的是要忽略的。点任意一个格子，看 Python 怎么判断它：</p>
+  <div class="lab">
+    <label for="caInput" class="lab-title">s =</label>
+    <input type="text" id="caInput" value="Hi, R2-D2_!" autocomplete="off" spellcheck="false" aria-describedby="caErr">
+    <span class="err" id="caErr" hidden></span>
+    <div class="arr-wrap"><div class="arr" id="caCells"></div></div>
+    <div class="console" id="caLog" aria-live="polite"></div>
+    <p id="caSum" style="font-size:15px"></p>
+  </div>
+
+  <h3>不用 isalnum，自己写一个</h3>
+  <p>面试官有时会要求不用内置函数。计算机里每个字符都对应一个整数编号，叫 <strong>ASCII 码</strong>，<code>ord(c)</code> 能取出这个编号。在 ASCII 表里，数字、大写字母、小写字母各自<strong>连续排列</strong>：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>类别</th><th>字符</th><th>ASCII 码</th></tr>
+    <tr><td>数字</td><td><code>"0"</code> 到 <code>"9"</code></td><td>48 到 57</td></tr>
+    <tr><td>大写字母</td><td><code>"A"</code> 到 <code>"Z"</code></td><td>65 到 90</td></tr>
+    <tr><td>小写字母</td><td><code>"a"</code> 到 <code>"z"</code></td><td>97 到 122</td></tr>
+    <tr><td>其他（举例）</td><td>空格、<code>"!"</code>、<code>","</code>、<code>"?"</code>、<code>"_"</code></td><td>32、33、44、63、95</td></tr>
+  </table></div>
+  <p>所以只要判断编号是否落在这三段之一：</p>
+<pre class="code" data-lang="py">def alphaNum(c):
+    return (ord("A") &lt;= ord(c) &lt;= ord("Z") or
+            ord("a") &lt;= ord(c) &lt;= ord("z") or
+            ord("0") &lt;= ord(c) &lt;= ord("9"))</pre>
+  <ul class="plain">
+    <li><code>a &lt;= x &lt;= b</code> 是 Python 的<strong>连续比较</strong>，等价于 <code>a &lt;= x and x &lt;= b</code>，意思是 x 在 a 和 b 之间（含两端）。</li>
+    <li><code>or</code>：只要有一边为真，结果就是真。三段里满足任意一段就是字母数字。</li>
+    <li>最外层的圆括号让一个表达式可以跨多行书写，Python 会把括号里的内容当成一行。</li>
+  </ul>
+  <p class="note">Python 的 <code>isalnum()</code> 对中文、带重音的字母等也会返回 True。本题约束只有 ASCII 字符，所以两种写法的结果完全一样。</p>
+</section>
+
+<!-- 04 -->
+<section id="lower">
+  <div class="chap"><span class="num">04</span><h2>大小写：lower</h2></div>
+  <p>题目要求不区分大小写，<code>"W"</code> 和 <code>"w"</code> 要当成同一个字符。最简单的办法：比较之前，<strong>两边都转成小写</strong>。</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>写法</th><th>结果</th><th>说明</th></tr>
+    <tr><td><code>"W".lower()</code></td><td><code>"w"</code></td><td>大写变小写</td></tr>
+    <tr><td><code>"w".lower()</code></td><td><code>"w"</code></td><td>本来就是小写，不变</td></tr>
+    <tr><td><code>"7".lower()</code></td><td><code>"7"</code></td><td>数字和标点没有大小写，不变</td></tr>
+    <tr><td><code>"Was It".lower()</code></td><td><code>"was it"</code></td><td>整个字符串可以一起转</td></tr>
+  </table></div>
+  <ul class="plain">
+    <li><code>lower()</code> <strong>返回一个新字符串</strong>，原来的不变（第 01 章说过字符串不能原地修改）。执行 <code>c.lower()</code> 之后 c 还是大写，要用它的返回值。</li>
+    <li>大写字母和对应小写字母的 ASCII 码正好差 32：<code>ord("a") - ord("A")</code> 是 32。lower() 做的事，本质上就是把 65–90 映射到 97–122。</li>
+    <li>全转大写 <code>upper()</code> 也可以，只要<strong>两边用同一种</strong>。</li>
+  </ul>
+  <p class="note no">常见错误：只把一边转小写，比如 <code>s[l].lower() != s[r]</code>。遇到 <code>"aA"</code> 时，左边是 "a"，右边还是 "A"，会被误判为不相等。</p>
+</section>
+
+<!-- 05 -->
+<section id="clean">
+  <div class="chap"><span class="num">05</span><h2>解法一：清洗后反转</h2></div>
+  <p>最直接的思路：先把 s <strong>清洗</strong>成一个只含小写字母数字的新字符串，再看它和自己的反转是否相同。</p>
+<pre class="code" data-lang="py">newStr = ""
+for c in s:
+    if c.isalnum():                # 只要字母和数字
+        newStr += c.lower()        # 统一成小写，拼到末尾
+return newStr == newStr[::-1]      # 和自己的反转比较</pre>
+  <ul class="plain">
+    <li><code>newStr = ""</code> 是空字符串。<code>newStr += x</code> 把 x 拼到末尾，等价于 <code>newStr = newStr + x</code>（每次都生成一个新字符串）。</li>
+    <li><code>==</code> 比较两个字符串是否完全相同，结果是 True 或 False，可以直接 return。</li>
+    <li><code>newStr[::-1]</code> 是 newStr 倒过来的字符串，下面讲。</li>
+  </ul>
+
+  <h3>切片：s[起点:终点:步长]</h3>
+  <p>切片从字符串里截出一段，方括号里三个数分别是起点、终点（<strong>不包含</strong>）、步长，都可以省略。起点和终点都省略表示整段；步长写 -1 表示<strong>从后往前</strong>一个一个取。以 <code>t = "abcde"</code> 为例：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>写法</th><th>结果</th><th>说明</th></tr>
+    <tr><td><code>t[1:4]</code></td><td><code>"bcd"</code></td><td>取下标 1、2、3，不含 4</td></tr>
+    <tr><td><code>t[:2]</code></td><td><code>"ab"</code></td><td>起点省略，从头开始</td></tr>
+    <tr><td><code>t[::2]</code></td><td><code>"ace"</code></td><td>步长 2，隔一个取一个</td></tr>
+    <tr><td><code>t[::-1]</code></td><td><code>"edcba"</code></td><td>步长 -1，整段倒过来</td></tr>
+  </table></div>
+
+  <h3>一行写法：推导式与 join</h3>
+<pre class="code" data-lang="py">t = "".join(c.lower() for c in s if c.isalnum())
+return t == t[::-1]</pre>
+  <ul class="plain">
+    <li><code>c.lower() for c in s if c.isalnum()</code> 读作：“对 s 里的每个 c，如果它是字母数字，就取 <code>c.lower()</code>”。这种写法叫<strong>推导式</strong>，外面加上方括号 <code>[...]</code> 就得到一个列表。</li>
+    <li><code>"".join(一串字符串)</code> 用前面那个字符串当“胶水”，把它们按顺序粘成一个。这里胶水是空串，所以直接首尾相接。对比：<code>"-".join(["a", "b"])</code> 得到 <code>"a-b"</code>。</li>
+  </ul>
+  <p>输入任意字符串，看清洗和反转的结果（绿色是两行对应位置相同，红色是不同）：</p>
+  <div class="lab">
+    <div class="lab-head">
+      <label for="clInput" class="lab-title">s =</label>
+      <span>结果：<span id="clRes" class="pill">True</span></span>
+    </div>
+    <input type="text" id="clInput" value="Was it a car or a cat I saw?" autocomplete="off" spellcheck="false" aria-describedby="clErr">
+    <div class="controls" id="clPresets"></div>
+    <span class="err" id="clErr" hidden></span>
+    <div>
+      <div class="row-label">s（灰色划掉的字符会被丢掉）</div>
+      <div class="arr-wrap"><div class="arr tight" id="clS"></div></div>
+    </div>
+    <div>
+      <div class="row-label">t：只留字母数字，转小写</div>
+      <div class="arr-wrap"><div class="arr tight" id="clT"></div></div>
+    </div>
+    <div>
+      <div class="row-label">t[::-1]：t 倒过来</div>
+      <div class="arr-wrap"><div class="arr tight" id="clR"></div></div>
+    </div>
+    <div class="console" id="clLog" aria-live="polite"></div>
+  </div>
+  <p class="note warn">这个解法正确，时间 O(n)。但它新建了 t 和 t[::-1] 两个长度最多为 n 的字符串，额外空间 <strong>O(n)</strong>；而且必须先把整个字符串清洗完，才能开始比较。能不能不建新字符串、边走边比？这就是下一章的双指针。</p>
+</section>
+
+<!-- 06 -->
+<section id="twoptr">
+  <div class="chap"><span class="num">06</span><h2>双指针：从两头往中间走</h2></div>
+  <p><strong>双指针</strong>就是用两个变量记住两个下标。这里左指针 <span class="pre mono">l</span> 从最左边出发，右指针 <span class="suf mono">r</span> 从最右边出发，每比较完一对，两个指针一起往中间挪一格。它做的事和第 02 章的“镜像配对”完全一样，只是不用每次去算 <code>n - 1 - i</code>。</p>
+  <p>先假设字符串 t 已经是干净的（只有小写字母数字）：</p>
+<pre class="code" data-lang="py">l, r = 0, len(t) - 1
+while l &lt; r:
+    if t[l] != t[r]:
+        return False
+    l, r = l + 1, r - 1
+return True</pre>
+  <ul class="plain">
+    <li><code>while 条件:</code> 只要条件为真，就一直重复下面缩进的代码，<strong>每一轮开始前都会重新检查条件</strong>。和 for 不同，while 不需要事先知道要循环几次。</li>
+    <li><code>l, r = 0, len(t) - 1</code> 是<strong>同时赋值</strong>：先把右边的值全部算好，再按顺序交给左边的变量。<code>l, r = l + 1, r - 1</code> 就是“l 加一、r 减一”，等价于分两行写 <code>l += 1</code> 和 <code>r -= 1</code>。</li>
+    <li>一旦发现一对不相等，立刻 <code>return False</code>，函数马上结束，后面的不用再看。这是比解法一好的另一点：可以<strong>提前结束</strong>。</li>
+  </ul>
+  <p>用 <code>t = "racecar"</code>（n = 7）手动走一遍：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>轮次</th><th>l</th><th>r</th><th>t[l]</th><th>t[r]</th><th>结果</th></tr>
+    <tr><td>1</td><td>0</td><td>6</td><td><code>r</code></td><td><code>r</code></td><td class="ans">相等，l、r 往中间走</td></tr>
+    <tr><td>2</td><td>1</td><td>5</td><td><code>a</code></td><td><code>a</code></td><td class="ans">相等</td></tr>
+    <tr><td>3</td><td>2</td><td>4</td><td><code>c</code></td><td><code>c</code></td><td class="ans">相等</td></tr>
+    <tr><td>结束</td><td>3</td><td>3</td><td colspan="2">都指向 <code>e</code></td><td><code>l &lt; r</code> 不成立，循环结束，return True</td></tr>
+  </table></div>
+  <h3>为什么是 l &lt; r，而不是 l &lt;= r</h3>
+  <p>l == r 时两个指针指着同一个字符（奇数长度的正中间），自己和自己一定相等，没必要比。写成 <code>l &lt;= r</code> 结果也对，只是多比较一次。l &gt; r 说明两个指针已经交错，所有的对都比完了；偶数长度的 <code>"abba"</code> 就是在 l = 2、r = 1 时结束的。</p>
+  <p class="note">额外空间：只用了 l 和 r 两个整数变量，没有新建字符串，所以是 <strong>O(1)</strong>。</p>
+</section>
+
+<!-- 07 -->
+<section id="skip">
+  <div class="chap"><span class="num">07</span><h2>跳过标点：内层循环与守卫</h2></div>
+  <p>回到没清洗过的原始字符串。如果直接在 <code>s = "race car"</code> 上用上一章的代码，会怎样？</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>l</th><th>r</th><th>s[l]</th><th>s[r]</th><th>结果</th></tr>
+    <tr><td>0</td><td>7</td><td><code>r</code></td><td><code>r</code></td><td class="ans">相等</td></tr>
+    <tr><td>1</td><td>6</td><td><code>a</code></td><td><code>a</code></td><td class="ans">相等</td></tr>
+    <tr><td>2</td><td>5</td><td><code>c</code></td><td><code>c</code></td><td class="ans">相等</td></tr>
+    <tr><td>3</td><td>4</td><td><code>e</code></td><td><span class="sp">␣</span> 空格</td><td class="bad">不相等，return False（错了）</td></tr>
+  </table></div>
+  <p>"race car" 清洗后是 "racecar"，正确答案是 True。问题在于空格只出现在一边，把镜像位置打乱了。办法是：<strong>每次比较之前，让两个指针各自先跳过要忽略的字符</strong>，停在下一个字母或数字上。</p>
+<pre class="code" data-lang="py">while l &lt; r and not s[l].isalnum():   # 左指针：遇到要忽略的就往右挪
+    l += 1
+while l &lt; r and not s[r].isalnum():   # 右指针：遇到要忽略的就往左挪
+    r -= 1</pre>
+  <ul class="plain">
+    <li><code>not</code> 把真假反过来。<code>not s[l].isalnum()</code> 的意思是“s[l] <strong>不是</strong>字母数字”。整句读作：只要 s[l] 是要忽略的字符，就把 l 往右挪一格。</li>
+    <li>这里必须用 <code>while</code> 而不是 <code>if</code>：可能连着好几个要忽略的字符，比如 <code>", "</code>（逗号加空格），要一直跳到字母数字为止。</li>
+    <li>左指针往右走（<code>l += 1</code>），右指针往左走（<code>r -= 1</code>），方向不能写反。</li>
+  </ul>
+
+  <h3>守卫 l &lt; r：为什么内层也要写</h3>
+  <p><code>A and B</code> 只有两边都为真才是真，而且 Python <strong>从左往右</strong>算：A 为假时结果已经确定是假，<strong>根本不会去算 B</strong>。这叫<strong>短路</strong>。内层的 <code>l &lt; r</code> 就是靠短路，在 l 追上 r 时挡住后面的 <code>s[l]</code>。看看去掉它，对 <code>s = "!!!"</code> 会发生什么：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>步骤</th><th>l</th><th>发生了什么</th></tr>
+    <tr><td>1</td><td>0</td><td>s[0] 是 <code>"!"</code>，跳过，l 变成 1</td></tr>
+    <tr><td>2</td><td>1</td><td>s[1] 是 <code>"!"</code>，跳过，l 变成 2</td></tr>
+    <tr><td>3</td><td>2</td><td>s[2] 是 <code>"!"</code>，跳过，l 变成 3</td></tr>
+    <tr><td>4</td><td>3</td><td>去读 s[3]，字符串只有 3 个字符，报 <code class="bad">IndexError: string index out of range</code></td></tr>
+  </table></div>
+  <p>加上守卫之后，l 最多走到和 r 相等就停，不会越界，也不会越过 r 跑进已经比较过的区域。</p>
+
+  <h3>再走一遍 "race car"</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>轮次</th><th>l</th><th>r</th><th>发生了什么</th></tr>
+    <tr><td>1</td><td>0</td><td>7</td><td>都是字母，不用跳。<code>r</code> 和 <code>r</code> 相等，往中间走</td></tr>
+    <tr><td>2</td><td>1</td><td>6</td><td><code>a</code> 和 <code>a</code> 相等</td></tr>
+    <tr><td>3</td><td>2</td><td>5</td><td><code>c</code> 和 <code>c</code> 相等</td></tr>
+    <tr><td rowspan="2">4</td><td>3</td><td>4</td><td>s[3] 是 <code>e</code>，左指针不动；s[4] 是空格，右指针跳过，r 变成 3</td></tr>
+    <tr><td>3</td><td>3</td><td>r 追上 l，守卫让右指针停下。<code>e</code> 和自己比较，相等，然后 l = 4，r = 2</td></tr>
+    <tr><td>结束</td><td>4</td><td>2</td><td><code>l &lt; r</code> 不成立，<span class="ans">return True</span></td></tr>
+  </table></div>
+  <p class="note ok">三块拼起来就是最终解法：外层 while 管“还有没有没比较的对”，两个内层 while 管“跳过要忽略的字符”，中间的 if 管“不区分大小写地比较”。下一章逐行单步看。</p>
+</section>
+
+<!-- 08 -->
+<section id="step">
+  <div class="chap"><span class="num">08</span><h2>单步执行</h2></div>
+  <p>输入任意字符串，一步一步看代码怎么走。上方是字符串和两个指针，左边是变量，右边高亮当前执行的代码行：</p>
+  <div class="lab">
+    <label for="stInput" class="lab-title">s =</label>
+    <input type="text" id="stInput" value="Was it a car or a cat I saw?" autocomplete="off" spellcheck="false" aria-describedby="stErr">
+    <div class="controls" id="stPresets"></div>
+    <span class="err" id="stErr" hidden></span>
+    <div>
+      <div class="row-label">字符串 s（<span class="pre">琥珀色框是 <span class="mono">l</span></span>，<span class="suf">蓝色框是 <span class="mono">r</span></span>）</div>
+      <div class="arr-wrap" id="stWrap"><div class="arr tight" id="stStr"></div></div>
+    </div>
+    <div class="stepper-grid">
+      <div class="viz">
+        <div class="vars"><span class="var p" id="stL"></span><span class="var s" id="stR"></span></div>
+        <div class="vars"><span class="var p" id="stSL"></span><span class="var s" id="stSR"></span></div>
+        <span style="font-size:14px">结果：<span id="stRes" class="pill">运行中</span></span>
+      </div>
+      <pre class="code" id="stCode"></pre>
+    </div>
+    <div class="msg" id="stMsg" aria-live="polite"></div>
+    <div class="lab-head">
+      <div class="controls">
+        <button type="button" id="stReset">重来</button>
+        <button type="button" id="stPrev">上一步</button>
+        <button type="button" id="stNext" class="primary">下一步</button>
+        <button type="button" id="stPlay">自动播放</button>
+      </div>
+      <span class="progress" id="stProg"></span>
+    </div>
+  </div>
+  <p style="font-size:14px;color:var(--muted)">颜色说明：灰色划掉的是被跳过的空格或标点；绿色是已经配对相等的字符，绿色虚线框是正中间不用和别人比较的字符；红色是对不上的那一对。</p>
+</section>
+
+<!-- 09 -->
+<section id="code">
+  <div class="chap"><span class="num">09</span><h2>完整代码与复杂度</h2></div>
+  <div class="tabs" role="tablist" aria-label="语言">
+    <button type="button" role="tab" aria-selected="true" data-lang="py">Python</button>
+    <button type="button" role="tab" aria-selected="false" data-lang="java">Java</button>
+    <button type="button" role="tab" aria-selected="false" data-lang="cpp">C++</button>
+  </div>
+<pre class="code" data-lang="py" id="code-py">class Solution:
+    def isPalindrome(self, s: str) -&gt; bool:
+        l, r = 0, len(s) - 1                       # 左右指针
+
+        while l &lt; r:
+            while l &lt; r and not s[l].isalnum():    # 左指针跳过要忽略的字符
+                l += 1
+            while l &lt; r and not s[r].isalnum():    # 右指针跳过要忽略的字符
+                r -= 1
+            if s[l].lower() != s[r].lower():       # 不区分大小写比较
+                return False
+            l, r = l + 1, r - 1                    # 一起往中间走
+
+        return True</pre>
+<pre class="code" data-lang="java" id="code-java" hidden>class Solution {
+    public boolean isPalindrome(String s) {
+        int l = 0, r = s.length() - 1;
+
+        while (l &lt; r) {
+            while (l &lt; r &amp;&amp; !Character.isLetterOrDigit(s.charAt(l))) l++;
+            while (l &lt; r &amp;&amp; !Character.isLetterOrDigit(s.charAt(r))) r--;
+            if (Character.toLowerCase(s.charAt(l)) != Character.toLowerCase(s.charAt(r))) {
+                return false;
+            }
+            l++;
+            r--;
+        }
+        return true;
+    }
+}</pre>
+<pre class="code" data-lang="cpp" id="code-cpp" hidden>class Solution {
+public:
+    bool isPalindrome(string s) {
+        int l = 0, r = (int)s.size() - 1;
+
+        while (l &lt; r) {
+            while (l &lt; r &amp;&amp; !isalnum(s[l])) l++;
+            while (l &lt; r &amp;&amp; !isalnum(s[r])) r--;
+            if (tolower(s[l]) != tolower(s[r])) {
+                return false;
+            }
+            l++;
+            r--;
+        }
+        return true;
+    }
+};</pre>
+  <p style="font-size:14px;color:var(--muted)">第一行 <code>class Solution:</code> 和 <code>def isPalindrome(self, s: str) -&gt; bool:</code> 是 NeetCode 给定的外壳。<code>s: str</code> 表示参数 s 是字符串，<code>-&gt; bool</code> 表示返回 True 或 False，这些只是提示，不影响运行。如果面试要求不用 isalnum，把 <code>s[l].isalnum()</code> 换成第 03 章的 <code>alphaNum(s[l])</code> 即可。</p>
+  <h3>复杂度</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>解法</th><th>时间</th><th>额外空间</th><th>原因</th></tr>
+    <tr><td>清洗后反转</td><td>O(n)</td><td>O(n)</td><td>新建了 t 和 t[::-1]</td></tr>
+    <tr><td>双指针</td><td>O(n)</td><td class="ans">O(1)</td><td>只用了 l、r 两个变量</td></tr>
+  </table></div>
+  <p>双指针里有<strong>嵌套的 while</strong>，为什么不是 O(n²)？因为 l 只会增加、r 只会减少，而且两者永远不会越过对方。不管循环怎么嵌套，两个指针加起来<strong>最多一共走 n 步</strong>，每个字符最多被看一次。数复杂度时要看“总共做了多少事”，而不是数有几层循环。</p>
+  <h3>最容易写错的四个地方</h3>
+  <ul class="plain">
+    <li><strong>内层 while 没写守卫 <code>l &lt; r</code></strong>：<code>"!!!"</code>、<code>".,"</code> 这种全是标点的字符串会越界报 IndexError。</li>
+    <li><strong>忘了 lower()，或者只转了一边</strong>：<code>"Aa"</code>、<code>"aA"</code> 会被误判为不是回文。</li>
+    <li><strong>用 isalpha() 代替 isalnum()</strong>：isalpha 只认字母，数字被丢掉。<code>"0P"</code> 会只剩 "P"，误判为回文；正确答案是 False。</li>
+    <li><strong>比较完忘了移动指针</strong>：漏写 <code>l, r = l + 1, r - 1</code>，外层循环永远停不下来。</li>
+  </ul>
+</section>
+
+<!-- 10 -->
+<section id="quiz">
+  <div class="chap"><span class="num">10</span><h2>自测</h2></div>
+  <p>点选答案，立即判分。全部答对说明前置知识已经过关。</p>
+  <div class="quiz" id="quizBox"></div>
+  <p class="progress" id="quizScore"></p>
+
+  <h3 style="margin-top:12px">掌握清单</h3>
+  <ul class="checklist" id="checklist">
+    <li><label><input type="checkbox" id="ck1"><span>能说出回文的“镜像配对”定义，以及为什么空字符串也是回文。</span></label></li>
+    <li><label><input type="checkbox" id="ck2"><span>知道 <code>isalnum()</code> 保留哪些字符，并能用 <code>ord()</code> 手写一个判断函数。</span></label></li>
+    <li><label><input type="checkbox" id="ck3"><span>知道 <code>lower()</code> 返回新字符串，比较时两边都要转。</span></label></li>
+    <li><label><input type="checkbox" id="ck4"><span>能看懂 <code>t[::-1]</code> 和 <code>"".join(...)</code>，写出清洗后反转的解法。</span></label></li>
+    <li><label><input type="checkbox" id="ck5"><span>能解释内层 while 里的 <code>l &lt; r</code> 守卫在防什么。</span></label></li>
+    <li><label><input type="checkbox" id="ck6"><span>能手动模拟 <code>"race car"</code>，说出右指针在哪一步跳过了空格。</span></label></li>
+    <li><label><input type="checkbox" id="ck7"><span>不看本页，5 分钟内写出可以通过的双指针代码。</span></label></li>
+  </ul>
+</section>
+
+<footer>同类题型：验证回文串 II（Valid Palindrome II，最多删除一个字符）、两数之和 II（Two Sum II，有序数组）、盛最多水的容器（Container With Most Water）都用到“左右两个指针从两头往中间走”这个思想。</footer>
+</main>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  // 按 Python 字面量的样子显示字符串
+  const py = (s) => {
+    const b = s.replace(/\\/g, "\\\\");
+    return b.includes('"') && !b.includes("'") ? "'" + b + "'" : '"' + b.replace(/"/g, '\\"') + '"';
+  };
+  const isAN = (c) => /^[A-Za-z0-9]$/.test(c);
+  const show = (c) => (c === " " ? '<span class="sp">␣</span>' : esc(c));
+  const kind = (c) => /[A-Z]/.test(c) ? "大写字母" : /[a-z]/.test(c) ? "小写字母" : /[0-9]/.test(c) ? "数字"
+    : c === " " ? "空格" : c === "_" ? "下划线" : "标点符号";
+  const codeCh = (c) => "<code>" + esc(py(c)) + "</code>";
+
+  function checkInput(v, max) {
+    if (!v.length) return "至少输入 1 个字符（题目约束 s.length ≥ 1）";
+    if (/[^\x20-\x7E]/.test(v)) return "题目约束 s 只包含可打印的 ASCII 字符：英文字母、数字、空格和英文标点。中文和全角符号不在范围内";
+    if (v.length > max) return "演示里最多 " + max + " 个字符，方便看清";
+    return "";
+  }
+  function showErr(id, msg) { $(id).textContent = msg; $(id).hidden = !msg; return !!msg; }
+
+  /* ---------- 语法高亮 ---------- */
+  const KW = /\b(class|def|for|in|if|else|not|and|or|while|return|len|ord|self|str|bool|True|False|public|boolean|int|char|String|string|true|false)\b|\b(\d+)\b/g;
+  function hlCode(text, lang) {
+    const marker = lang === "py" ? "#" : "//";
+    const pos = text.indexOf(marker);
+    const codePart = pos >= 0 ? text.slice(0, pos) : text;
+    const comPart = pos >= 0 ? text.slice(pos) : "";
+    const body = esc(codePart).replace(KW, (m, k, n) => k ? '<span class="k">' + k + "</span>" : '<span class="n">' + n + "</span>");
+    return body + (comPart ? '<span class="c">' + esc(comPart) + "</span>" : "");
+  }
+  document.querySelectorAll("pre.code[data-lang]").forEach((pre) => {
+    const lang = pre.dataset.lang;
+    pre.innerHTML = pre.textContent.split("\n").map((l) => '<span class="ln">' + (hlCode(l, lang) || " ") + "</span>").join("");
+  });
+
+  function cellHTML(ch, idxLabel, cls) {
+    return '<div class="cell ' + (cls || "") + '"><span class="idx">' + idxLabel + "</span>" + show(ch) + "</div>";
+  }
+  function colHTML(inner, label, labelCls) {
+    return '<div class="col">' + inner + '<span class="ptr ' + (labelCls || "") + '">' + (label || "") + "</span></div>";
+  }
+  function presetBtns(el, list) {
+    el.innerHTML = list.map((p) => '<button type="button" class="mono" data-p="' + esc(p) + '">' + esc(py(p)) + "</button>").join("");
+  }
+  function bindPresets(el, input, fn) {
+    el.addEventListener("click", (e) => { const b = e.target.closest("[data-p]"); if (b) { input.value = b.dataset.p; fn(); } });
+  }
+  const PRESETS = ["Was it a car or a cat I saw?", "tab a cat", "race car", "0P", ".,", "A man, a plan, a canal: Panama"];
+
+  /* ---------- 01 字符串 ---------- */
+  const demo = "Race car!";
+  $("demoStr").innerHTML = demo.split("").map((c, i) =>
+    cellHTML(c, i + " / " + (i - demo.length), i === 0 ? "at-l" : i === demo.length - 1 ? "at-r" : "")).join("");
+
+  /* ---------- 02 镜像配对 ---------- */
+  function mrDraw() {
+    const v = $("mrInput").value;
+    if (showErr("mrErr", checkInput(v, 16))) return;
+    const n = v.length, lines = [];
+    let bad = -1;
+    for (let i = 0; i < Math.floor(n / 2); i++) {
+      const j = n - 1 - i, ok = v[i] === v[j];
+      if (!ok && bad < 0) bad = i;
+      lines.push("第 " + (i + 1) + " 对  s[" + i + "] " + esc(py(v[i])) + (ok ? " == " : " != ") + "s[" + j + "] " + esc(py(v[j])) +
+        "   " + (ok ? '<span class="out">相等</span>' : '<span class="ex">不相等</span>'));
+    }
+    if (n % 2 === 1) lines.push("正中间 s[" + (n - 1) / 2 + "] " + esc(py(v[(n - 1) / 2])) + " 和自己对称，不用比");
+    lines.push(bad < 0 ? '<span class="out">→ 每一对都相等，是回文</span>' : '<span class="ex">→ 第 ' + (bad + 1) + " 对就不相等，不是回文</span>");
+    $("mrLog").innerHTML = lines.join("\n");
+    $("mrCells").innerHTML = v.split("").map((c, i) => {
+      const j = n - 1 - i;
+      if (i === j) return colHTML(cellHTML(c, i, "mid"), "中", "ok");
+      const ok = v[i] === v[j];
+      return colHTML(cellHTML(c, i, ok ? "done" : "fail"), String(Math.min(i, j) + 1), ok ? "ok" : "no");
+    }).join("");
+  }
+  presetBtns($("mrPresets"), ["level", "abba", "abca", "Abba", "race car"]);
+  bindPresets($("mrPresets"), $("mrInput"), mrDraw);
+  $("mrInput").addEventListener("input", mrDraw);
+  mrDraw();
+
+  /* ---------- 03 isalnum 分类 ---------- */
+  const KIND_NOTE = {
+    大写字母: "大写字母，ASCII 65–90", 小写字母: "小写字母，ASCII 97–122", 数字: "数字，ASCII 48–57",
+    空格: "空格不是字母数字，要忽略", 下划线: "下划线既不是字母也不是数字，要忽略", 标点符号: "标点符号，要忽略"
+  };
+  let caSel = 0;
+  function caDraw() {
+    const v = $("caInput").value;
+    if (showErr("caErr", checkInput(v, 24))) return;
+    if (caSel >= v.length) caSel = 0;
+    $("caCells").innerHTML = v.split("").map((c, i) =>
+      '<button type="button" class="cell ' + (isAN(c) ? "done" : "skip") + (i === caSel ? " cur" : "") + '" data-ci="' + i +
+      '" aria-pressed="' + (i === caSel) + '" aria-label="下标 ' + i + "，" + (c === " " ? "空格" : esc(c)) + '"><span class="idx">' + i + "</span>" + show(c) + "</button>").join("");
+    const c = v[caSel], an = isAN(c);
+    $("caLog").innerHTML = "&gt;&gt;&gt; c = " + esc(py(c)) + "\n&gt;&gt;&gt; c.isalnum()\n" +
+      '<span class="' + (an ? "out" : "ex") + '">' + (an ? "True" : "False") + "</span>    # " + KIND_NOTE[kind(c)] +
+      "\n&gt;&gt;&gt; ord(c)\n" + '<span class="out">' + c.charCodeAt(0) + "</span>";
+    const kept = v.split("").filter(isAN);
+    $("caSum").innerHTML = "保留 <span class=\"ans\">" + kept.length + "</span> 个，忽略 " + (v.length - kept.length) +
+      " 个。只看保留下来的字符：" + codeCh(kept.join(""));
+  }
+  $("caCells").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-ci]"); if (!b) return;
+    caSel = +b.dataset.ci; caDraw();
+    const nb = $("caCells").querySelector('[data-ci="' + caSel + '"]'); if (nb) nb.focus();
+  });
+  $("caInput").addEventListener("input", () => { caSel = 0; caDraw(); });
+  caDraw();
+
+  /* ---------- 05 清洗后反转 ---------- */
+  function clDraw() {
+    const v = $("clInput").value;
+    if (showErr("clErr", checkInput(v, 40))) return;
+    const t = v.split("").filter(isAN).map((c) => c.toLowerCase()).join("");
+    const rv = t.split("").reverse().join("");
+    const ok = t === rv;
+    $("clS").innerHTML = v.split("").map((c, i) => cellHTML(c, i, isAN(c) ? "" : "skip")).join("");
+    const row = (str) => str.length
+      ? str.split("").map((c, i) => cellHTML(c, i, t[i] === rv[i] ? "done" : "fail")).join("")
+      : '<span class="empty-hint">空字符串 ""</span>';
+    $("clT").innerHTML = row(t);
+    $("clR").innerHTML = row(rv);
+    $("clLog").innerHTML = '&gt;&gt;&gt; t = "".join(c.lower() for c in s if c.isalnum())\n&gt;&gt;&gt; t\n<span class="out">' + esc(py(t)) +
+      '</span>\n&gt;&gt;&gt; t[::-1]\n<span class="out">' + esc(py(rv)) + '</span>\n&gt;&gt;&gt; t == t[::-1]\n<span class="' + (ok ? "out" : "ex") + '">' +
+      (ok ? "True" : "False") + "</span>" + (t.length ? "" : "    # 空字符串反过来还是空字符串");
+    const p = $("clRes"); p.className = "pill " + (ok ? "t" : "f"); p.textContent = ok ? "True" : "False";
+  }
+  presetBtns($("clPresets"), PRESETS);
+  bindPresets($("clPresets"), $("clInput"), clDraw);
+  $("clInput").addEventListener("input", clDraw);
+  clDraw();
+
+  /* ---------- 08 单步执行 ---------- */
+  const STEP_CODE = [
+    "l, r = 0, len(s) - 1",
+    "while l < r:",
+    "    while l < r and not s[l].isalnum():",
+    "        l += 1",
+    "    while l < r and not s[r].isalnum():",
+    "        r -= 1",
+    "    if s[l].lower() != s[r].lower():",
+    "        return False",
+    "    l, r = l + 1, r - 1",
+    "return True"
+  ];
+  $("stCode").innerHTML = STEP_CODE.map((l, k) => '<span class="ln" data-k="' + k + '">' + hlCode(l, "py") + "</span>").join("");
+
+  function buildFrames(s) {
+    // st: "" 未处理 / "skip" 被跳过 / "done" 配对相等 / "mid" 自己和自己 / "fail" 对不上
+    const n = s.length, F = [], st = Array(n).fill("");
+    let l = 0, r = n - 1, round = 0;
+    const push = (o) => F.push(Object.assign({ l, r, st: st.slice(), result: null, focus: "l" }, o));
+    push({ line: 0, hl: "hl0", msg: "左指针 l 放在最左边 0，右指针 r 放在最右边 <code>len(s) - 1</code> = " + (n - 1) + "。" });
+    for (;;) {
+      if (!(l < r)) {
+        push({ line: 1, hl: "hl0", msg: "l = " + l + "，r = " + r + "，<code>l &lt; r</code> 不成立，外层循环结束。" +
+          (l === r ? "两个指针相遇在同一个字符上。" : "两个指针已经交错，所有的对都比较完了。") });
+        let extra = "";
+        if (l === r && st[l] === "" && isAN(s[l])) { st[l] = "mid"; extra = "正中间的 " + codeCh(s[l]) + " 没有对手，不需要比较。"; }
+        push({ line: 9, hl: "hl4", result: true, msg: "没有发现对不上的字符，<code>return True</code>。" + extra + "这是<span class=\"ans\">回文</span>。" });
+        return F;
+      }
+      push({ line: 1, hl: "hl0", msg: "<code>l &lt; r</code>：" + l + " &lt; " + r + " 成立，开始第 " + (++round) + " 轮。先让两个指针各自找到下一个字母或数字。" });
+
+      while (l < r && !isAN(s[l])) {
+        const o = l; st[o] = "skip"; l++;
+        push({ line: 3, hl: "hl", focus: "l", msg: "s[" + o + "] 是" + kind(s[o]) + " " + codeCh(s[o]) + "，不是字母或数字，跳过：<code>l += 1</code>，l 变成 " + l + "。" });
+      }
+      push({ line: 2, hl: "hl", focus: "l", msg: l < r
+        ? "s[" + l + "] = " + codeCh(s[l]) + " 是" + kind(s[l]) + "，<code>not s[l].isalnum()</code> 为 False，左指针停在 " + l + "。"
+        : "l 追上了 r（都是 " + l + "），<code>l &lt; r</code> 为 False，and 短路，后半句不再检查，左指针停下。" });
+
+      while (l < r && !isAN(s[r])) {
+        const o = r; st[o] = "skip"; r--;
+        push({ line: 5, hl: "hl2", focus: "r", msg: "s[" + o + "] 是" + kind(s[o]) + " " + codeCh(s[o]) + "，不是字母或数字，跳过：<code>r -= 1</code>，r 变成 " + r + "。" });
+      }
+      push({ line: 4, hl: "hl2", focus: "r", msg: l < r
+        ? "s[" + r + "] = " + codeCh(s[r]) + " 是" + kind(s[r]) + "，<code>not s[r].isalnum()</code> 为 False，右指针停在 " + r + "。"
+        : "r 追上了 l（都是 " + r + "），<code>l &lt; r</code> 为 False，and 短路，右指针停下。" });
+
+      const a = s[l].toLowerCase(), b = s[r].toLowerCase();
+      if (l === r) {
+        st[l] = isAN(s[l]) ? "mid" : "skip";
+        push({ line: 6, hl: "hl4", msg: "l 和 r 指向同一个字符 " + codeCh(s[l]) + "，自己和自己比较一定相等，<code>!=</code> 为 False，不会 return。" +
+          (isAN(s[l]) ? "" : "（它其实是要忽略的字符，但和自己比较不影响结果。）") });
+      } else {
+        const cmp = "<code>s[" + l + "].lower()</code> 是 " + codeCh(a) + "，<code>s[" + r + "].lower()</code> 是 " + codeCh(b);
+        if (a !== b) {
+          st[l] = "fail"; st[r] = "fail";
+          push({ line: 6, hl: "hl3", msg: cmp + "，不相等，<code>!=</code> 为 True。" });
+          push({ line: 7, hl: "hl3", result: false, msg: "<code>return False</code>：找到一对对不上的字符，<span class=\"bad\">不是回文</span>，后面的不用再看了。" });
+          return F;
+        }
+        st[l] = "done"; st[r] = "done";
+        const caseNote = s[l] !== s[r] ? "（原字符 " + codeCh(s[l]) + " 和 " + codeCh(s[r]) + " 大小写不同，lower() 之后就一样了）" : "";
+        push({ line: 6, hl: "hl4", msg: cmp + "，相等" + caseNote + "，这一对通过。" });
+      }
+      l++; r--;
+      push({ line: 8, hl: "hl0", msg: "两个指针同时往中间走一步：l = " + l + "，r = " + r + "。" });
+    }
+  }
+
+  let frames = [], idx = 0, cur = "", timer = null;
+  // 字符串比框宽时（手机上）横向滚动：两个指针放得下就都露出来，放不下就只露出刚动的那个
+  function keepVisible(wrap, f) {
+    const cols = wrap.querySelectorAll(".col"), a = cols[f.l], b = cols[f.r];
+    const focus = (f.focus === "r" ? b : a) || a || b; if (!focus) return;
+    const els = [a, b].filter(Boolean), w = wrap.clientWidth;
+    let L = Math.min(...els.map((e) => e.offsetLeft)), R = Math.max(...els.map((e) => e.offsetLeft + e.offsetWidth));
+    if (R - L + 8 > w) { L = focus.offsetLeft; R = L + focus.offsetWidth; }
+    const pad = Math.max(4, Math.min(12, (w - (R - L)) / 2));
+    if (L - pad < wrap.scrollLeft) wrap.scrollLeft = L - pad;
+    else if (R + pad > wrap.scrollLeft + w) wrap.scrollLeft = R + pad - w;
+  }
+  function stLoad() {
+    const v = $("stInput").value;
+    if (showErr("stErr", checkInput(v, 40))) return;
+    cur = v; frames = buildFrames(v); idx = 0; stop(); stDraw();
+    $("stWrap").scrollLeft = 0;
+  }
+  function stDraw() {
+    const f = frames[idx], n = cur.length;
+    $("stStr").innerHTML = cur.split("").map((c, j) => {
+      let cls = f.st[j], lab = "";
+      if (j === f.l) { cls += " at-l"; lab += '<span class="pl">l</span>'; }
+      if (j === f.r) { cls += " at-r"; lab += '<span class="pr">r</span>'; }
+      return colHTML(cellHTML(c, j, cls), lab);
+    }).join("");
+    keepVisible($("stWrap"), f);
+    const inRange = (i) => i >= 0 && i < n;
+    $("stL").textContent = "l = " + f.l;
+    $("stR").textContent = "r = " + f.r;
+    $("stSL").textContent = "s[l] = " + (inRange(f.l) ? py(cur[f.l]) : "—");
+    $("stSR").textContent = "s[r] = " + (inRange(f.r) ? py(cur[f.r]) : "—");
+    const res = $("stRes");
+    res.className = "pill" + (f.result === true ? " t" : f.result === false ? " f" : "");
+    res.textContent = f.result === true ? "True" : f.result === false ? "False" : "运行中";
+    document.querySelectorAll("#stCode .ln").forEach((el) => {
+      el.classList.remove("hl0", "hl", "hl2", "hl3", "hl4");
+      if (+el.dataset.k === f.line) el.classList.add(f.hl);
+    });
+    $("stMsg").innerHTML = f.msg;
+    $("stProg").textContent = "第 " + (idx + 1) + " / " + frames.length + " 步";
+    $("stPrev").disabled = idx === 0;
+    $("stNext").disabled = idx === frames.length - 1;
+  }
+  function stop() { if (timer) { clearInterval(timer); timer = null; } $("stPlay").textContent = "自动播放"; }
+  $("stNext").addEventListener("click", () => { stop(); if (idx < frames.length - 1) { idx++; stDraw(); } });
+  $("stPrev").addEventListener("click", () => { stop(); if (idx > 0) { idx--; stDraw(); } });
+  $("stReset").addEventListener("click", () => { stop(); idx = 0; stDraw(); });
+  $("stPlay").addEventListener("click", () => {
+    if (timer) { stop(); return; }
+    if (idx === frames.length - 1) idx = 0;
+    $("stPlay").textContent = "暂停";
+    timer = setInterval(() => { if (idx < frames.length - 1) { idx++; stDraw(); } else stop(); }, 900);
+  });
+  $("stInput").addEventListener("input", stLoad);
+  presetBtns($("stPresets"), PRESETS);
+  bindPresets($("stPresets"), $("stInput"), stLoad);
+  stLoad();
+
+  /* ---------- 09 语言切换 ---------- */
+  document.querySelectorAll('.tabs [role="tab"]').forEach((t) => t.addEventListener("click", () => {
+    document.querySelectorAll('.tabs [role="tab"]').forEach((x) => x.setAttribute("aria-selected", x === t ? "true" : "false"));
+    ["py", "java", "cpp"].forEach((l) => { $("code-" + l).hidden = l !== t.dataset.lang; });
+  }));
+
+  /* ---------- 10 自测 ---------- */
+  const QUIZ = [
+    { q: "下面哪个字符在本题中会被忽略？", o: ['"_"', '"Z"', '"7"', '"q"'], a: 0,
+      e: "下划线既不是字母也不是数字，isalnum() 返回 False。数字要保留。" },
+    { q: 'c = "Q"，执行 c.lower() 之后，c 的值是？', o: ['"Q"', '"q"', "报错", '""'], a: 0,
+      e: "lower() 返回一个新字符串 \"q\"，c 本身不变。要写 c = c.lower() 才会改变 c。" },
+    { q: 't = "abcde"，t[::-1] 是？', o: ['"edcba"', '"abcde"', '"e"', '"bcd"'], a: 0,
+      e: "步长 -1 表示从后往前把整段取一遍。" },
+    { q: 's = ".,"，正确答案是？', o: ["True", "False", "报 IndexError", "取决于长度"], a: 0,
+      e: "清洗后是空字符串，正着读反着读都一样，是回文。双指针靠 l < r 守卫也不会越界。" },
+    { q: 's = "0P"，正确答案是？', o: ["False", "True", "报错", "取决于大小写"], a: 0,
+      e: "数字也要保留，比较的是 \"0\" 和 \"p\"，不相等。误用 isalpha() 丢掉数字才会得到 True。" },
+    { q: 's = "race car"，为什么不能直接比较原串的 s[i] 和 s[n-1-i]？', o: ["空格只在一边，镜像位置错开了，会把 e 和空格配成一对", "原串太长了", "Python 不允许负数下标", "因为里面有大写字母"], a: 0,
+      e: "s[3] 是 e，s[4] 是空格。必须让每个指针各自跳过要忽略的字符。" },
+    { q: '去掉内层守卫，写成 while not s[l].isalnum(): l += 1，对 s = "!!!" 会怎样？', o: ["报 IndexError", "返回 True", "返回 False", "死循环"], a: 0,
+      e: "l 一路走到 3，去读 s[3] 就越界了。" },
+    { q: "外层循环写 while l < r 就够了，原因是？", o: ["l == r 时两个指针指向同一个字符，自己和自己必然相等", "写 l <= r 会报错", "l < r 和 l <= r 会得出不同的答案", "两个指针永远不会相等"], a: 0,
+      e: "写 l <= r 结果也对，只是多比较一次。" },
+    { q: 's = "tab a cat"，双指针在第几次比较时返回 False？', o: ['第 3 次："b" 和 "c"', '第 1 次："t" 和 "t"', '第 2 次："a" 和 "a"', "不会返回 False"], a: 0,
+      e: "t 和 t、a 和 a 都相等，第三对 s[2] = b 和 s[6] = c 对不上。" },
+    { q: "双指针解法的时间和额外空间复杂度是？", o: ["时间 O(n)，空间 O(1)", "时间 O(n²)，空间 O(1)", "时间 O(n)，空间 O(n)", "时间 O(log n)，空间 O(1)"], a: 0,
+      e: "虽然有嵌套 while，但 l 只增、r 只减，两个指针加起来最多走 n 步；只用了 l、r 两个变量。" }
+  ];
+  const answered = {};
+  $("quizBox").innerHTML = QUIZ.map((it, qi) =>
+    '<div class="q"><div class="q-text">' + (qi + 1) + ". " + esc(it.q) + '</div><div class="opts">' +
+    it.o.map((o, oi) => ({ o, oi, r: (qi * 7 + oi * 5) % 4 })).sort((x, y) => x.r - y.r)
+      .map(({ o, oi }) => '<button type="button" class="opt" data-q="' + qi + '" data-o="' + oi + '">' + esc(o) + "</button>").join("") +
+    '</div><div class="explain" id="ex' + qi + '" hidden></div></div>').join("");
+  function score() {
+    const keys = Object.keys(answered), right = keys.filter((k) => answered[k]).length;
+    $("quizScore").textContent = keys.length ? "已作答 " + keys.length + " / " + QUIZ.length + "，答对 " + right + " 题" : "";
+  }
+  $("quizBox").addEventListener("click", (e) => {
+    const b = e.target.closest(".opt"); if (!b) return;
+    const qi = +b.dataset.q, oi = +b.dataset.o, it = QUIZ[qi], box = b.parentElement;
+    box.querySelectorAll(".opt").forEach((x) => x.classList.remove("right", "wrong"));
+    const ok = oi === it.a;
+    b.classList.add(ok ? "right" : "wrong");
+    if (!ok) box.querySelector('[data-o="' + it.a + '"]').classList.add("right");
+    if (!(qi in answered)) answered[qi] = ok;
+    const ex = $("ex" + qi); ex.hidden = false;
+    ex.textContent = (ok ? "答对了。" : "再想想。") + it.e;
+    score();
+  });
+
+  /* ---------- 掌握清单（仅保存在本浏览器） ---------- */
+  document.querySelectorAll("#checklist input").forEach((cb) => {
+    try { cb.checked = localStorage.getItem("vpal-" + cb.id) === "1"; } catch (e) {}
+    cb.addEventListener("change", () => { try { localStorage.setItem("vpal-" + cb.id, cb.checked ? "1" : "0"); } catch (e) {} });
+  });
+})();
+</script>
+</body>
+</html>
