@@ -1,0 +1,1384 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>盛最多水的容器</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* 版式：单栏教材，一章一个知识点；左指针 l 琥珀色，右指针 r 蓝色，三数之和里固定的 i 紫色，水是浅青色，最大值/正确用绿色，重复/漏掉/出错用红色，被排除的变淡，贯穿全页 */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --ink: #17202b;
+  --muted: #586372;
+  --line: #dce1e7;
+  --pre: #b86e0a;
+  --pre-soft: #fcefd8;
+  --suf: #1d6aa3;
+  --suf-soft: #e0edf8;
+  --fix: #7445b8;
+  --fix-soft: #efe7fa;
+  --ans: #2b7a4b;
+  --ans-soft: #e1f2e7;
+  --bad: #b3372f;
+  --bad-soft: #fbe5e3;
+  --water: #c4e4ef;
+  --bar: #3f4a58;
+  --code-bg: #eef1f5;
+  --font-display: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151b; --surface: #19202a; --ink: #e5e9ef; --muted: #9ba6b4; --line: #2b3441;
+    --pre: #f0a845; --pre-soft: #3a2b14; --suf: #6cb2e8; --suf-soft: #142b3e;
+    --fix: #b893f2; --fix-soft: #2a2140;
+    --ans: #5fcb8c; --ans-soft: #153223; --bad: #f08379; --bad-soft: #3d1c1a;
+    --water: #1d4252; --bar: #8794a6; --code-bg: #141a22;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151b; --surface: #19202a; --ink: #e5e9ef; --muted: #9ba6b4; --line: #2b3441;
+  --pre: #f0a845; --pre-soft: #3a2b14; --suf: #6cb2e8; --suf-soft: #142b3e;
+  --fix: #b893f2; --fix-soft: #2a2140;
+  --ans: #5fcb8c; --ans-soft: #153223; --bad: #f08379; --bad-soft: #3d1c1a;
+  --water: #1d4252; --bar: #8794a6; --code-bg: #141a22;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.75;
+  font-variant-ligatures: none; /* 等宽字体的连字会把 <= 显示成 ≤，初学者容易抄错 */
+}
+.wrap {
+  max-width: 760px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 80px;
+  display: flex; flex-direction: column; gap: 56px;
+}
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.3; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 44px); font-weight: 800; }
+h2 { font-size: clamp(22px, 4.2vw, 28px); font-weight: 800; }
+h3 { font-size: 18px; font-weight: 600; margin-top: 8px; }
+p { margin: 0; }
+section { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lead { font-size: 18px; color: var(--muted); }
+code, .mono { font-family: var(--font-mono); font-size: .92em; }
+:not(pre) > code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; }
+.pre { color: var(--pre); font-weight: 700; }
+.suf { color: var(--suf); font-weight: 700; }
+.fix { color: var(--fix); font-weight: 700; }
+.ans { color: var(--ans); font-weight: 700; }
+.bad { color: var(--bad); font-weight: 700; }
+a { color: var(--suf); }
+
+/* 题目卡 */
+.problem { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 99px; background: var(--ans-soft); color: var(--ans); }
+.example { font-family: var(--font-mono); font-size: 14px; background: var(--code-bg); border-radius: 6px; padding: 10px 12px; overflow-x: auto; white-space: pre; }
+
+/* 目录 */
+.toc { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; padding: 0; margin: 0; list-style: none; counter-reset: toc; }
+.toc li { counter-increment: toc; }
+.toc a { display: flex; gap: 10px; align-items: baseline; text-decoration: none; color: var(--ink); padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 15px; height: 100%; }
+.toc a::before { content: counter(toc, decimal-leading-zero); font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.toc a:hover, .toc a:focus-visible { border-color: var(--suf); }
+.toc a.key { border-color: var(--fix); }
+
+/* 章节编号 */
+.chap { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.chap .num { font-family: var(--font-mono); font-size: 14px; color: var(--muted); }
+
+/* 提示块 */
+.note { border-left: 3px solid var(--suf); padding: 4px 0 4px 14px; }
+.note.warn { border-color: var(--pre); }
+.note.ok { border-color: var(--ans); }
+.note.no { border-color: var(--bad); }
+
+/* 格子（去重一章的“段”） */
+.arr-wrap { overflow-x: auto; padding: 3px 3px 4px; position: relative; }
+.arr { display: inline-grid; grid-auto-flow: column; grid-auto-columns: minmax(40px, 1fr); gap: 6px; }
+.cell {
+  border: 1.5px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink);
+  text-align: center; font-family: var(--font-mono); padding: 6px 4px; font-size: 17px; font-weight: 600; line-height: 1.5;
+}
+.cell .idx { display: block; font-size: 11px; color: var(--muted); font-weight: 400; line-height: 1.4; }
+.cell.done { background: var(--ans-soft); border-color: var(--ans); }
+.cell.skip { opacity: .45; }
+.col { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ptr { font-family: var(--font-mono); font-size: 12px; font-weight: 700; text-align: center; line-height: 1.3; min-height: 1.3em; color: var(--muted); }
+.ptr.ok { color: var(--ans); }
+.empty-hint { font-size: 13px; color: var(--muted); font-family: var(--font-mono); padding: 2px 0; }
+
+/* 表格 */
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 13px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+td { font-variant-numeric: tabular-nums; }
+td code { white-space: nowrap; }
+tr:last-child td, tr:last-child th { border-bottom: 0; }
+
+/* 交互组件外壳 */
+.lab { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.lab-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lab-title { font-weight: 700; font-size: 15px; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button {
+  font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+}
+button:hover { border-color: var(--muted); }
+button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button.mono { font-family: var(--font-mono); font-size: 13px; }
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--suf); outline-offset: 2px; }
+input[type=text] {
+  font-family: var(--font-mono); font-size: 15px; padding: 6px 10px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink); min-width: 0; width: 100%;
+  font-variant-ligatures: none;
+}
+select {
+  font: inherit; font-size: 14px; padding: 6px 10px; border-radius: 6px; width: 100%; max-width: 100%;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+}
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field > label { font-size: 13px; color: var(--muted); }
+.inputs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+@media (min-width: 640px) { .inputs.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.toggle { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; cursor: pointer; }
+.toggle input { accent-color: var(--ink); width: 16px; height: 16px; margin: 0; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; padding: 5px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); cursor: pointer; }
+.seg input { accent-color: var(--ink); margin: 0; }
+.seg label:has(input:checked) { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.err { color: var(--bad); font-size: 14px; }
+
+/* 代码块 */
+pre.code { margin: 0; background: var(--code-bg); border-radius: 8px; padding: 12px 0; overflow-x: auto; font-family: var(--font-mono); font-size: 14px; line-height: 1.7; min-width: 0; }
+pre.code .ln { display: block; padding: 0 14px; border-left: 3px solid transparent; white-space: pre; }
+pre.code .ln.hl0 { background: var(--line); border-left-color: var(--ink); }
+pre.code .ln.hl { background: var(--pre-soft); border-left-color: var(--pre); }
+pre.code .ln.hl2 { background: var(--suf-soft); border-left-color: var(--suf); }
+pre.code .ln.hl3 { background: var(--bad-soft); border-left-color: var(--bad); }
+pre.code .ln.hl4 { background: var(--ans-soft); border-left-color: var(--ans); }
+.k { color: var(--suf); font-weight: 600; }
+.c { color: var(--muted); font-style: italic; }
+.n { color: var(--pre); }
+
+.console {
+  font-family: var(--font-mono); font-size: 14px; background: var(--code-bg); border-radius: 8px;
+  padding: 10px 14px; min-height: 3.2em; overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+}
+.console .out { color: var(--ans); }
+.console .ex { color: var(--bad); }
+.msg { min-height: 4.5em; padding: 10px 14px; border-radius: 8px; background: var(--bg); font-size: 15px; }
+.progress { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+.pill { display: inline-block; font-family: var(--font-mono); font-size: 14px; padding: 2px 12px; border-radius: 99px; border: 1.5px solid var(--line); }
+.pill.t { border-color: var(--ans); color: var(--ans); background: var(--ans-soft); }
+.pill.f { border-color: var(--bad); color: var(--bad); background: var(--bad-soft); }
+.formula { font-family: var(--font-mono); font-size: 15px; background: var(--surface); border: 1px dashed var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: pre; line-height: 1.8; }
+.formula .c { font-family: var(--font-body); font-size: 14px; }
+
+/* 单步执行 */
+.vars { display: flex; gap: 8px; flex-wrap: wrap; }
+.var { font-family: var(--font-mono); padding: 3px 12px; border-radius: 99px; font-size: 14px; border: 1.5px solid var(--line); white-space: pre; font-variant-numeric: tabular-nums; }
+.var.p { border-color: var(--pre); color: var(--pre); }
+.var.s { border-color: var(--suf); color: var(--suf); }
+.var.g { border-color: var(--ans); color: var(--ans); }
+.stepper-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+@media (min-width: 720px) { .stepper-grid { grid-template-columns: minmax(0, .8fr) minmax(0, 1.5fr); align-items: start; } }
+.duo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; }
+@media (min-width: 720px) { .duo { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); } }
+.viz { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.row-label { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+
+/* 柱状图 */
+svg.bars { display: block; width: 100%; height: auto; }
+.bars .bar { fill: var(--bar); }
+.bars .bar.bl { fill: var(--pre); }
+.bars .bar.br { fill: var(--suf); }
+.bars .faded { opacity: .22; }
+.bars .water { fill: var(--water); }
+.bars .bestbox { fill: none; stroke: var(--ans); stroke-width: 2.5; stroke-dasharray: 6 4; }
+.bars .axis { stroke: var(--ink); stroke-width: 1.5; }
+.bars text { font-family: var(--font-mono); text-anchor: middle; }
+.bars .tv, .bars .ti { font-size: 11px; fill: var(--muted); }
+.bars .tp { font-size: 13px; font-weight: 700; }
+.bars .tp.pl { fill: var(--pre); }
+.bars .tp.pr { fill: var(--suf); }
+.bars .hit { fill: transparent; cursor: pointer; }
+.bars .hit:hover { fill: var(--line); fill-opacity: .35; }
+.bars .hit:focus-visible { outline: none; stroke: var(--suf); stroke-width: 2; }
+
+/* 所有对的矩阵 */
+.mx { display: inline-grid; grid-template-columns: 22px repeat(var(--n), 34px); gap: 2px; font-family: var(--font-mono); font-size: 11px; font-variant-numeric: tabular-nums; }
+.mh { display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--muted); min-height: 20px; }
+.mh.rl { color: var(--pre); }
+.mh.cr { color: var(--suf); }
+.mc { position: relative; height: 30px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--ink); transition: background .2s, opacity .2s; }
+.mc.void { border-color: transparent; background: transparent; }
+.mc.seen { background: var(--code-bg); }
+.mc.best { background: var(--ans-soft); border-color: var(--ans); color: var(--ans); font-weight: 700; }
+.mc.cut { background: var(--code-bg); opacity: .3; }
+.mc.cut.new { opacity: 1; background: repeating-linear-gradient(135deg, var(--line) 0 3px, transparent 3px 7px); }
+.mc.opt { border: 1.5px dashed var(--ans); }
+.mc.lost { opacity: 1; background: var(--bad-soft); border: 1.5px solid var(--bad); color: var(--bad); font-weight: 700; }
+.mc.cur { outline: 2px solid var(--ink); outline-offset: 1px; z-index: 1; }
+.mc.path { outline: 2px solid var(--ink); outline-offset: -1px; }
+.mc.dim { opacity: .35; }
+.mc i { position: absolute; top: 0; left: 3px; font-style: normal; font-size: 8px; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--line); background: var(--surface); flex: none; }
+.sw.seen { background: var(--code-bg); }
+.sw.best { background: var(--ans-soft); border-color: var(--ans); }
+.sw.cut { background: var(--code-bg); opacity: .4; }
+.sw.new { background: repeating-linear-gradient(135deg, var(--line) 0 3px, transparent 3px 6px); }
+.sw.opt { border: 1.5px dashed var(--ans); }
+.sw.lost { background: var(--bad-soft); border-color: var(--bad); }
+.sw.water { background: var(--water); border-color: var(--water); }
+.sw.box { border: 2px dashed var(--ans); background: transparent; }
+
+/* 选择树 */
+svg.tree { display: block; }
+.tree text { font-family: var(--font-mono); text-anchor: middle; }
+.tree .edge { stroke: var(--muted); stroke-width: 1.2; }
+.tree .edge.off { stroke-dasharray: 3 3; opacity: .3; }
+.tree .tn rect { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+.tree .tn.l1 rect { stroke: var(--fix); }
+.tree .tn.l2 rect { stroke: var(--pre); }
+.tree .tn.l3 rect { stroke: var(--suf); }
+.tree .tn .tv { font-size: 13px; font-weight: 700; fill: var(--ink); }
+.tree .tn .tix { font-size: 9px; fill: var(--muted); }
+.tree .tn .tr { font-size: 12px; fill: var(--ink); font-family: var(--font-body); }
+.tree .tn.hit rect { fill: var(--ans-soft); stroke: var(--ans); }
+.tree .tn.dup rect { fill: var(--bad-soft); stroke: var(--bad); }
+.tree .tn.off { opacity: .28; }
+.tree .tn.cut { opacity: .6; }
+.tree .tn.cut rect { stroke-dasharray: 4 3; }
+.tree .tcut { font-size: 11px; font-weight: 700; font-family: var(--font-body); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; }
+.tree .tcut.sib { fill: var(--muted); }
+.tree .tcut.parent { fill: var(--bad); }
+.tree .lvl { font-size: 12px; fill: var(--muted); text-anchor: start; font-family: var(--font-body); }
+.tree .cap { font-size: 11px; fill: var(--muted); }
+.tree .cap.hit { fill: var(--ans); font-weight: 700; }
+.tree .cap.dup { fill: var(--bad); font-weight: 700; }
+.tree .cap.off { opacity: .3; }
+
+/* 结果小标签 */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 1.6em; }
+.chip { font-family: var(--font-mono); font-size: 13px; padding: 2px 10px; border-radius: 99px; border: 1.5px solid var(--line); white-space: nowrap; }
+.chip.ok { border-color: var(--ans); color: var(--ans); background: var(--ans-soft); }
+.chip.dup, .chip.bad, .chip.miss { border-color: var(--bad); color: var(--bad); background: var(--bad-soft); }
+.chip.miss { border-style: dashed; }
+.chip small { font-family: var(--font-body); font-size: 11px; margin-left: 6px; font-weight: 700; }
+.res-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+@media (min-width: 640px) { .res-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+
+/* 测验 */
+.quiz { display: flex; flex-direction: column; gap: 18px; }
+.q { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.q-text { font-weight: 500; }
+.opts { display: flex; flex-direction: column; gap: 6px; }
+.opt { text-align: left; background: var(--bg); }
+.opt.right { background: var(--ans-soft); border-color: var(--ans); }
+.opt.wrong { background: var(--bad-soft); border-color: var(--bad); }
+.explain { font-size: 14px; color: var(--muted); }
+
+/* 清单 */
+.checklist { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.checklist label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.checklist input { margin-top: 6px; accent-color: var(--ans); width: 16px; height: 16px; flex: none; }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+ul.plain, ol.plain { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
+footer { font-size: 13px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:14px">
+  <span class="eyebrow">NeetCode · Two Pointers · Medium</span>
+  <h1>盛最多水的容器</h1>
+  <p class="lead">Container With Most Water。前半部分讲这道题：面积怎么算，暴力解为什么慢，“每一步扔掉短板”为什么对，再用一张“所有组合的矩阵”说明双指针不会漏掉答案。后半部分跳出这道题，总结双指针的通用思路，用一整章讲清三数之和的去重到底在做什么，最后给一份边界检查清单。</p>
+</header>
+
+<section class="problem" aria-label="题目">
+  <div><span class="tag">题目</span></div>
+  <p>给你一个整数数组 <code>heights</code>，<code>heights[i]</code> 是第 i 根柱子的高度。</p>
+  <p>任选两根柱子，和底边一起组成一个容器。返回容器<strong>最多</strong>能装多少水。</p>
+  <div class="example">输入: heights = [1,7,2,5,4,7,3,6]
+输出: 36
+解释: 选下标 1（高 7）和下标 7（高 6），宽 7 - 1 = 6，
+      水面最高只能到矮的那根 6，面积 6 × 6 = 36
+
+输入: heights = [2,2,2]
+输出: 4</div>
+  <p style="font-size:14px;color:var(--muted)">约束：2 ≤ heights.length ≤ 1000，0 ≤ heights[i] ≤ 1000。</p>
+</section>
+
+<nav aria-label="目录" style="display:flex;flex-direction:column;gap:10px">
+  <span class="eyebrow">学习路线</span>
+  <ol class="toc">
+    <li><a href="#area">面积：宽 × 短板</a></li>
+    <li><a href="#brute">暴力解：试所有的对</a></li>
+    <li><a href="#twoptr">双指针：每次扔掉短板</a></li>
+    <li><a href="#matrix">矩阵视角：为什么不会漏</a></li>
+    <li><a href="#step">单步执行</a></li>
+    <li><a href="#code">完整代码与复杂度</a></li>
+    <li><a href="#general">双指针的通用思路</a></li>
+    <li><a href="#dedup" class="key">去重：只跟兄弟比</a></li>
+    <li><a href="#edge" class="key">边界检查清单</a></li>
+    <li><a href="#quiz">自测</a></li>
+  </ol>
+</nav>
+
+<!-- 01 -->
+<section id="area">
+  <div class="chap"><span class="num">01</span><h2>面积：宽 × 短板</h2></div>
+  <p>选定左边的下标 <span class="pre mono">l</span> 和右边的下标 <span class="suf mono">r</span>（l &lt; r）。水面不能高过矮的那根，否则水会从矮的那边漏出去。所以：</p>
+  <div class="formula">宽度 = r - l
+高度 = min(heights[l], heights[r])
+面积 = min(heights[l], heights[r]) × (r - l)</div>
+  <ul class="plain">
+    <li><strong>宽度是下标之差 <code>r - l</code></strong>。下标 1 和下标 7 之间是 6 个单位宽，不是 7。<code>r - l + 1</code> 是 [l, r] 这一段里有几个元素，是另一回事，第 09 章会再对比。</li>
+    <li><strong>高度由矮的那根决定</strong>，就像木桶的短板。高的那根再高也没用。下面把矮的那根叫“短板”。</li>
+    <li><strong>中间的柱子不影响结果</strong>。题目把柱子看成没有厚度的竖线，中间的柱子既不挡水也不占地方。这一点和“接雨水”（Trapping Rain Water）不一样。</li>
+    <li><code>min(a, b)</code> 返回较小的那个，<code>max(a, b)</code> 返回较大的那个，都是 Python 内置函数。</li>
+  </ul>
+  <p>点任意两根柱子，看它们组成的容器。也可以改数组：</p>
+  <div class="lab">
+    <label for="arInput" class="lab-title">heights =</label>
+    <input type="text" id="arInput" value="[1,7,2,5,4,7,3,6]" autocomplete="off" spellcheck="false" aria-describedby="arErr">
+    <div class="controls" id="arPresets"></div>
+    <span class="err" id="arErr" hidden></span>
+    <div class="arr-wrap" id="arChart"></div>
+    <div class="console" id="arLog" aria-live="polite"></div>
+  </div>
+  <p class="note">试试下标 1 和 5：两根都是 7，比 (1, 7) 高，但宽度只有 4，面积 28，反而更小。面积要同时看宽和高，只盯着最高的柱子是不行的。</p>
+</section>
+
+<!-- 02 -->
+<section id="brute">
+  <div class="chap"><span class="num">02</span><h2>暴力解：试所有的对</h2></div>
+<pre class="code" data-lang="py">res = 0
+for l in range(len(heights)):
+    for r in range(l + 1, len(heights)):
+        area = min(heights[l], heights[r]) * (r - l)
+        res = max(res, area)
+return res</pre>
+  <ul class="plain">
+    <li><code>range(l + 1, len(heights))</code> 依次产生 l + 1 到 n - 1。r 从 l + 1 开始，保证 l &lt; r，每一对只试一次。</li>
+    <li><code>res = max(res, area)</code> 是“打擂台”：res 记着目前见过的最大值，新来的比它大就换掉它。</li>
+  </ul>
+  <p>n 根柱子一共有 n(n-1)/2 对，时间 <strong>O(n²)</strong>。n = 1000 时约 50 万对，还能通过；LeetCode 原题 n 最多 10⁵，约 50 亿对，会超时。面试时写出暴力解之后，面试官会接着问能不能做到 O(n)。</p>
+  <p class="note warn">暴力解慢在它把每一对都老老实实算了一遍，可其中绝大多数一眼就能看出不可能最大。下一章的双指针每算一对，就能证明“某根柱子剩下的组合全都不用算了”，一次排除一大片。</p>
+</section>
+
+<!-- 03 -->
+<section id="twoptr">
+  <div class="chap"><span class="num">03</span><h2>双指针：每次扔掉短板</h2></div>
+  <p>从<strong>最宽的一对</strong>开始：<code>l = 0</code>，<code>r = n - 1</code>。宽度已经是最大了，之后不管怎么移动，宽度都只会变小。想让面积变大，只能指望高度变高。</p>
+  <p>算完 (l, r) 之后，假设左边是短板：<code>heights[l] ≤ heights[r]</code>。看 l 和 r 左边任何一根柱子 r'（l &lt; r' &lt; r）组成的容器：</p>
+  <div class="formula">面积(l, r') = min(heights[l], heights[r']) × (r' - l)
+           ≤ heights[l] × (r' - l)     <span class="c">高度不会超过短板 heights[l]</span>
+           &lt; heights[l] × (r - l)      <span class="c">宽度更小</span>
+           = 面积(l, r)                <span class="c">heights[l] 本来就是 (l, r) 的短板</span></div>
+  <p>也就是说，<strong>l 剩下的所有组合都不会比刚算出的 (l, r) 更大</strong>。l 已经“用完了”，可以放心扔掉：<code>l += 1</code>。右边是短板时同理，扔掉 r：<code>r -= 1</code>。</p>
+
+  <h3>用示例 1 验证第一步</h3>
+  <p><code>heights = [1,7,2,5,4,7,3,6]</code>，l = 0（高 1），r = 7（高 6），面积 min(1, 6) × 7 = 7，左边是短板。把下标 0 和其他柱子的组合全算出来：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>和谁配</th><th>宽</th><th>高 min(1, …)</th><th>面积</th></tr>
+    <tr><td>下标 1（高 7）</td><td>1</td><td>1</td><td>1</td></tr>
+    <tr><td>下标 2（高 2）</td><td>2</td><td>1</td><td>2</td></tr>
+    <tr><td>下标 3（高 5）</td><td>3</td><td>1</td><td>3</td></tr>
+    <tr><td>下标 4（高 4）</td><td>4</td><td>1</td><td>4</td></tr>
+    <tr><td>下标 5（高 7）</td><td>5</td><td>1</td><td>5</td></tr>
+    <tr><td>下标 6（高 3）</td><td>6</td><td>1</td><td>6</td></tr>
+    <tr><td>下标 7（高 6）</td><td>7</td><td>1</td><td class="ans">7，就是刚算的这一对</td></tr>
+  </table></div>
+  <p>高度被 1 卡死，宽度又在变小，下标 0 不可能出现在比 7 更大的容器里。</p>
+
+  <h3>为什么不能扔掉高的那根</h3>
+  <p>如果第一步扔掉的是 r = 7（高 6），它和下标 1（高 7）组成的 (1, 7) 面积是 36，正是答案，就再也算不到了。上面那串不等式只对短板成立：短板的高度卡住了它所有的组合；高板的组合里可能出现一根更高的新柱子，没法证明它们都更小。</p>
+  <p>换个角度看：扔掉高板之后，下一个容器的高度仍然不超过当前的短板，宽度还少了 1，面积一定更小。这一步纯属浪费。</p>
+
+  <h3>一样高的时候</h3>
+  <p><code>heights[l] == heights[r]</code> 时，两边都是短板，上面的推理对两边都成立：l 剩下的组合、r 剩下的组合都不会更大。所以<strong>扔哪边都行</strong>，两边一起扔也行。NeetCode 的写法是 <code>if heights[l] &lt;= heights[r]: l += 1</code>，相等时扔左边。</p>
+  <p class="note ok">每一步扔掉一根柱子，n 根柱子扔 n - 1 次就只剩一根，循环结束。所以一共只算了 n - 1 对，时间 <strong>O(n)</strong>。</p>
+</section>
+
+<!-- 04 -->
+<section id="matrix">
+  <div class="chap"><span class="num">04</span><h2>矩阵视角：为什么不会漏</h2></div>
+  <p>把所有的对排成一张表：第 <span class="pre mono">l</span> 行、第 <span class="suf mono">r</span> 列的格子就是 (l, r) 的面积。只有 l &lt; r 的右上半部分有意义。示例 1 一共 7 + 6 + … + 1 = 28 格，暴力解就是把这 28 格全算一遍，绿色是最大的 36。</p>
+  <div class="lab">
+    <div class="lab-head">
+      <span class="lab-title">heights = [1,7,2,5,4,7,3,6]，行是 l，列是 r</span>
+      <label class="toggle"><input type="checkbox" id="mxPath">标出双指针算过的格子</label>
+    </div>
+    <div class="arr-wrap"><div id="mxStatic"></div></div>
+    <p id="mxNote" style="font-size:14px;color:var(--muted)"></p>
+  </div>
+  <p>双指针从右上角 (0, 7) 出发。还没被排除的格子永远是一个三角形：<code>l ≤ 行 &lt; 列 ≤ r</code>，当前的 (l, r) 正好是这个三角形的右上角。</p>
+  <ul class="plain">
+    <li><code>l += 1</code> 等于删掉三角形<strong>最上面的一整行</strong>。第 l 行剩下的格子都在 (l, r) 的左边，宽度更小、高度被短板卡住，都不会更大。</li>
+    <li><code>r -= 1</code> 等于删掉<strong>最右边的一整列</strong>，道理相同。</li>
+    <li>每步删一行或一列，三角形越缩越小，路线像下楼梯一样从右上角走到对角线，一共 n - 1 步。</li>
+  </ul>
+  <p>打开上面的开关：双指针只算了 7 格，但这 7 格里有最大值。被删掉的每一格，都有“它不会比某个算过的格子更大”的证明，所以不会漏。</p>
+  <p class="note">这张表是理解所有“对撞双指针”的钥匙。两数之和 II 用的也是同一张表：和太大就删一列，和太小就删一行。不同的题只是“凭什么删”的理由不同，第 07 章会把它们放在一起比。</p>
+</section>
+
+<!-- 05 -->
+<section id="step">
+  <div class="chap"><span class="num">05</span><h2>单步执行</h2></div>
+  <p>输入任意数组，一步一步看。左边是柱子和当前的容器，右边是上一章的矩阵。也可以切换到错误的策略，看看最大值是怎么被删掉的。</p>
+  <div class="lab">
+    <label for="cmInput" class="lab-title">heights =</label>
+    <input type="text" id="cmInput" value="[1,7,2,5,4,7,3,6]" autocomplete="off" spellcheck="false" aria-describedby="cmErr">
+    <div class="controls" id="cmPresets"></div>
+    <span class="err" id="cmErr" hidden></span>
+    <div class="seg" role="radiogroup" aria-label="移动哪一边">
+      <label><input type="radio" name="cmMode" id="cmModeOk" value="ok" checked>移动短板（正确）</label>
+      <label><input type="radio" name="cmMode" id="cmModeBad" value="bad">移动高板（错误）</label>
+    </div>
+    <div class="duo">
+      <div class="viz">
+        <div class="row-label">柱子（<span class="pre">琥珀色是 l</span>，<span class="suf">蓝色是 r</span>）</div>
+        <div class="arr-wrap" id="cmWrap"></div>
+      </div>
+      <div class="viz">
+        <div class="row-label">所有的对（行 l，列 r）</div>
+        <div class="arr-wrap"><div id="cmMatrix"></div></div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i class="sw water"></i>当前容器的水</span>
+      <span><i class="sw box"></i>目前最大的容器</span>
+      <span><i class="sw seen"></i>算过的对</span>
+      <span><i class="sw new"></i>这一步删掉的</span>
+      <span><i class="sw cut"></i>早先删掉的</span>
+      <span><i class="sw opt"></i>真正的最大值所在格</span>
+      <span><i class="sw lost"></i>最大值被删了</span>
+    </div>
+    <div class="stepper-grid">
+      <div class="viz">
+        <div class="vars"><span class="var p" id="cmL"></span><span class="var s" id="cmR"></span></div>
+        <div class="vars"><span class="var p" id="cmHL"></span><span class="var s" id="cmHR"></span></div>
+        <div class="vars"><span class="var" id="cmArea"></span><span class="var g" id="cmRes"></span></div>
+        <span style="font-size:14px">结果：<span id="cmOut" class="pill">运行中</span></span>
+        <span style="font-size:13px;color:var(--muted)" id="cmTruth"></span>
+      </div>
+      <pre class="code" id="cmCode"></pre>
+    </div>
+    <div class="msg" id="cmMsg" aria-live="polite"></div>
+    <div class="lab-head">
+      <div class="controls">
+        <button type="button" id="cmReset">重来</button>
+        <button type="button" id="cmPrev">上一步</button>
+        <button type="button" id="cmNext" class="primary">下一步</button>
+        <button type="button" id="cmPlay">自动播放</button>
+      </div>
+      <span class="progress" id="cmProg"></span>
+    </div>
+  </div>
+  <p style="font-size:14px;color:var(--muted)">切到“移动高板”，在示例 1 上看第一步：(1, 7) 所在的第 7 列被整列删掉了，之后 l 一直卡在高度为 1 的下标 0 上，最后返回 7。</p>
+</section>
+
+<!-- 06 -->
+<section id="code">
+  <div class="chap"><span class="num">06</span><h2>完整代码与复杂度</h2></div>
+  <div class="tabs" role="tablist" aria-label="语言">
+    <button type="button" role="tab" aria-selected="true" data-lang="py">Python</button>
+    <button type="button" role="tab" aria-selected="false" data-lang="java">Java</button>
+    <button type="button" role="tab" aria-selected="false" data-lang="cpp">C++</button>
+  </div>
+<pre class="code" data-lang="py" id="code-py">class Solution:
+    def maxArea(self, heights: List[int]) -&gt; int:
+        l, r = 0, len(heights) - 1                        # 从最宽的一对开始
+        res = 0
+
+        while l &lt; r:
+            area = min(heights[l], heights[r]) * (r - l)  # 短板 × 宽度
+            res = max(res, area)
+            if heights[l] &lt;= heights[r]:                  # 左边是短板（或一样高）
+                l += 1                                    # 扔掉左边
+            else:
+                r -= 1                                    # 扔掉右边
+        return res</pre>
+<pre class="code" data-lang="java" id="code-java" hidden>class Solution {
+    public int maxArea(int[] heights) {
+        int l = 0, r = heights.length - 1;
+        int res = 0;
+        while (l &lt; r) {
+            int area = Math.min(heights[l], heights[r]) * (r - l);
+            res = Math.max(res, area);
+            if (heights[l] &lt;= heights[r]) {
+                l++;
+            } else {
+                r--;
+            }
+        }
+        return res;
+    }
+}</pre>
+<pre class="code" data-lang="cpp" id="code-cpp" hidden>class Solution {
+public:
+    int maxArea(vector&lt;int&gt;&amp; heights) {
+        int l = 0, r = (int)heights.size() - 1;
+        int res = 0;
+        while (l &lt; r) {
+            int area = min(heights[l], heights[r]) * (r - l);
+            res = max(res, area);
+            if (heights[l] &lt;= heights[r]) {
+                l++;
+            } else {
+                r--;
+            }
+        }
+        return res;
+    }
+};</pre>
+  <p style="font-size:14px;color:var(--muted)"><code>List[int]</code> 和 <code>-&gt; int</code> 是类型提示，表示参数是整数列表、返回整数，不影响运行。</p>
+  <h3>复杂度</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>解法</th><th>时间</th><th>额外空间</th><th>原因</th></tr>
+    <tr><td>暴力</td><td>O(n²)</td><td>O(1)</td><td>算了全部 n(n-1)/2 对</td></tr>
+    <tr><td>双指针</td><td class="ans">O(n)</td><td class="ans">O(1)</td><td>每步扔掉一根柱子，正好 n - 1 步；只用了 l、r、res</td></tr>
+  </table></div>
+  <h3>最容易写错的五个地方</h3>
+  <ul class="plain">
+    <li><strong>移动高的那边</strong>：示例 1 会返回 7，正确答案是 36。</li>
+    <li><strong>高度用了 max</strong>：水会从矮的那边漏出去，高度只能取 min。</li>
+    <li><strong>宽度写成 <code>r - l + 1</code></strong>：<code>[1, 1]</code> 会返回 2，正确答案是 1。</li>
+    <li><strong>r 的初值写成 <code>len(heights)</code></strong>：第一次读 <code>heights[r]</code> 就报 <code>IndexError</code>。</li>
+    <li><strong>用 <code>if &lt;</code> / <code>elif &gt;</code> 却没有 else</strong>：两边一样高时谁都不动，<code>[2, 2, 2]</code> 会死循环。</li>
+  </ul>
+</section>
+
+<!-- 07 -->
+<section id="general">
+  <div class="chap"><span class="num">07</span><h2>双指针的通用思路</h2></div>
+  <p><strong>双指针</strong>就是用两个下标变量在同一个数组（或字符串、链表）上移动。两个指针都<strong>只朝一个方向走、从不回头</strong>，加起来最多走 n 步，所以原本要两层循环才能看完的东西，一层循环就看完了。按两个指针怎么走，常见的有三类：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>类型</th><th>两个指针怎么走</th><th>典型题</th></tr>
+    <tr><td><strong>对撞指针</strong></td><td>一个从最左、一个从最右，相向往中间走，相遇就停</td><td>验证回文串、两数之和 II、三数之和、盛最多水的容器</td></tr>
+    <tr><td>快慢指针</td><td>都从左边出发、同向走：一个负责读一个负责写，或者一个走两步一个走一步</td><td>删除有序数组中的重复项、移动零、环形链表</td></tr>
+    <tr><td>滑动窗口</td><td>同向走，l 和 r 夹着一段连续区间，r 负责扩张，l 负责收缩</td><td>无重复字符的最长子串、买卖股票的最佳时机</td></tr>
+  </table></div>
+  <p>这一页和你做过的验证回文串、三数之和用的都是第一种，下面只讲对撞指针。</p>
+
+  <h3>核心：每一步排除一端</h3>
+  <p>对撞指针本质上是在第 04 章那张“所有对”的表上做排除法。下面是伪代码模板，if 里那句是要你自己想清楚的部分：</p>
+<pre class="code" data-lang="py">l, r = 0, len(nums) - 1
+while l &lt; r:
+    # 1. 看 (l, r) 这一对：记录答案，或者做判断
+    # 2. 想清楚：看完这一对之后，哪一端已经不可能出现在（更好的）答案里？
+    if 左端没用了:
+        l += 1        # 删掉一行
+    else:
+        r -= 1        # 删掉一列</pre>
+  <p>难点只有一个：<strong>看完 (l, r) 之后，凭什么能确定某一端没用了？</strong>能回答，就能用对撞指针；回答不了，就不能用。这个理由总是来自某种单调性：两数之和 II 来自“数组有序”，盛水来自“从最宽开始，宽度只减不增”。</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>题</th><th>看 (l, r) 时比较什么</th><th>什么时候扔 l</th><th>凭什么</th></tr>
+    <tr><td>验证回文串</td><td><code>s[l]</code> 和 <code>s[r]</code></td><td>相等时两端一起扔</td><td>这一对已经配好，不会再用；不相等直接返回 False</td></tr>
+    <tr><td>两数之和 II</td><td><code>nums[l] + nums[r]</code> 和 target</td><td>和 &lt; target</td><td>数组有序，nums[l] 和最大的 nums[r] 配都不够，和谁配都不够</td></tr>
+    <tr><td>三数之和</td><td>固定 nums[i]，其余同上</td><td>和 &lt; 0</td><td>同上</td></tr>
+    <tr><td>盛最多水的容器</td><td>两根柱子的高度</td><td><code>heights[l] ≤ heights[r]</code></td><td>l 剩下的组合宽度更小、高度被它卡住，不会更大</td></tr>
+  </table></div>
+  <p class="note warn">盛水这道题<strong>不能排序</strong>：排序会打乱柱子的位置，宽度就全错了。它的单调性来自宽度，不来自数值大小。看到“对撞指针”不要条件反射先 sort，先想清楚单调性从哪来。</p>
+
+  <h3>动手前问自己三个问题</h3>
+  <ol class="plain">
+    <li><strong>两个指针分别代表什么？</strong>盛水里是容器的左壁和右壁；回文里是一对镜像位置；两数之和里是两个加数。</li>
+    <li><strong>从哪里出发？</strong>对撞指针几乎总是 <code>0</code> 和 <code>n - 1</code>，因为最外面那一对是矩阵的右上角，从这里出发每一步都能删一整行或一整列。</li>
+    <li><strong>每一步扔哪一端，理由是什么？</strong>最好能写成一个不等式，像第 03 章那样。</li>
+  </ol>
+  <p>三个问题都答得出来，代码基本就是上面的模板。剩下的两件麻烦事，去重和边界，分别在下面两章讲。</p>
+</section>
+
+<!-- 08 -->
+<section id="dedup">
+  <div class="chap"><span class="num">08</span><h2>去重：只跟兄弟比</h2></div>
+  <p>先说结论：盛最多水的容器<strong>不需要去重</strong>，它只返回一个数，同一个最大值算两次也还是它。只有“返回所有组合，组合按值算、不能重复”的题才要去重。这一章用三数之和来讲。</p>
+
+  <h3>什么时候需要去重</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>题</th><th>返回什么</th><th>要去重吗</th></tr>
+    <tr><td>盛最多水的容器</td><td>一个数（最大面积）</td><td>不需要</td></tr>
+    <tr><td>验证回文串</td><td>True / False</td><td>不需要</td></tr>
+    <tr><td>两数之和 II</td><td>一对下标，题目保证只有一个解</td><td>不需要</td></tr>
+    <tr><td>三数之和</td><td>所有<strong>值不同</strong>的三元组</td><td class="bad">需要</td></tr>
+    <tr><td>四数之和</td><td>所有值不同的四元组</td><td class="bad">需要，每一层都套同一条规则</td></tr>
+  </table></div>
+
+  <h3>一层的去重：每段相同值只派一个代表</h3>
+  <p>排好序之后，相同的值一定挨在一起，形成一段一段。要让每个值只出现一次，就让<strong>每一段只派第一个当代表</strong>，其余的跳过。怎么认出“这一段的第一个”？它和左边的邻居不同，或者它左边根本没有邻居：</p>
+<pre class="code" data-lang="py">for p in range(len(nums)):
+    if p &gt; 0 and nums[p] == nums[p - 1]:
+        continue            # 和左边同值：这一段已经派过代表了
+    print(nums[p])          # 每个值只打印一次</pre>
+  <div class="arr-wrap"><div class="arr" id="rnCells"></div></div>
+  <p><code>p &gt; 0</code> 的意思是：<strong>p 不是第一个候选时，才拿它和左边比</strong>。p = 0 左边没有东西，不需要比。在 Python 里漏写它，程序不会报错：<code>nums[-1]</code> 会读到最后一个数，然后悄悄算错。后面会看到，这个“不是第一个候选”的条件，正是三数之和去重的关键。</p>
+
+  <h3>三层的去重：把三数之和画成一棵树</h3>
+  <p>三数之和要选三个数，可以看成依次做三次选择：第 1 层选第一个数，第 2 层在它右边选第二个，第 3 层再往右选第三个。从根走到叶子的每一条路，就是一组下标 i &lt; j &lt; k。下面的树默认是排好序的 <code>[-1, -1, 0, 1, 2]</code>，先看“不去重”：</p>
+  <div class="lab">
+    <label for="trInput" class="lab-title">nums =</label>
+    <input type="text" id="trInput" value="[-1,-1,0,1,2]" autocomplete="off" spellcheck="false" aria-describedby="trErr">
+    <div class="controls" id="trPresets"></div>
+    <span class="err" id="trErr" hidden></span>
+    <div class="seg" role="radiogroup" aria-label="去重方式">
+      <label><input type="radio" name="trMode" id="trNone" value="none" checked>不去重</label>
+      <label><input type="radio" name="trMode" id="trLevel" value="level">只跟兄弟比（正确）</label>
+      <label><input type="radio" name="trMode" id="trBranch" value="branch">连父亲一起比（错误）</label>
+    </div>
+    <div class="arr-wrap" id="trWrap"></div>
+    <p id="trSum" style="font-size:15px" aria-live="polite"></p>
+  </div>
+  <p style="font-size:14px;color:var(--muted)">节点里大的数字是值，小的 [ ] 是下标。<span class="fix">紫框是第 1 个数（i）</span>，<span class="pre">琥珀框是第 2 个数（l）</span>，<span class="suf">蓝框是第 3 个数（r）</span>。叶子下面写着这条路选出的三个数和它们的和：绿色是和为 0 的答案，红色是重复的答案。树里最多 6 个数，每个数在 -9 到 9 之间，方便画得下。</p>
+  <p>“不去重”时，两个 -1 都在第 1 层当了第一个数，它们下面长出了一样的分支，于是 <code>[-1, 0, 1]</code> 出现了两次。</p>
+
+  <h3>关键：只跟兄弟比，不跟父亲比</h3>
+  <p>树里有两种“相邻的同值”，处理方式正好相反：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>关系</th><th>例子（[-1, -1, 0, 1, 2]）</th><th>能不能剪</th></tr>
+    <tr><td><strong>兄弟</strong>：同一层、同一个父节点下</td><td>第 1 层的 -1[0] 和 -1[1]</td><td class="ans">剪掉后面那个。两个兄弟下面的分支一模一样，后一个只会造出重复</td></tr>
+    <tr><td><strong>父子</strong>：上一层和下一层</td><td>第 1 层选 -1[0]，第 2 层选 -1[1]</td><td class="bad">不能剪。<code>[-1, -1, 2]</code> 就需要它，两个 -1 用在了不同的位置上</td></tr>
+  </table></div>
+  <p>所以完整的规则是：每一层有自己的起点 <code>start</code>（这一层第一个候选的下标），位置 p 只在<strong>不是本层第一个候选</strong>时，才和左边比：</p>
+  <div class="formula">跳过 p   ⇔   p &gt; start  并且  nums[p] == nums[p - 1]</div>
+  <p><code>p &gt; start</code> 保证了 nums[p - 1] 是同一层的兄弟。<code>p == start</code> 时，左边的 nums[p - 1] 正好是上一层选中的父亲，不能拿来比。把上面的开关切到“连父亲一起比”，<code>[-1, -1, 2]</code> 就被误剪掉了。</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>树的第几层</th><th>start</th><th>在 [-1, -1, 2] 上</th></tr>
+    <tr><td>第 1 层（选 i）</td><td><code>0</code></td><td>p = 0 是本层第一个，不比，选第一个 -1；p = 1 和左边同值，跳过</td></tr>
+    <tr><td>第 2 层（i = 0 下面）</td><td><code>i + 1 = 1</code></td><td>p = 1 是本层第一个，不比。左边的 nums[0] 是它的父亲，不是兄弟。选第二个 -1，凑出 [-1, -1, 2]</td></tr>
+  </table></div>
+
+  <h3>为什么留第一个，而不是留最后一个</h3>
+  <p>同一层里两个同值的兄弟 p &lt; q。q 的分支只能从 q 右边选数；p 的分支能从 p 右边选，范围更大，还包含 q 本身。所以 <strong>q 能凑出的每一种值组合，p 都能凑出来</strong>；反过来不成立，因为 p 的分支可以把 q 当成下一个数用。留下范围最大的第一个，扔掉的只会造出重复，一个答案都不会少。</p>
+  <p>如果改成和后一个比（<code>nums[i] == nums[i + 1]</code> 就跳过），留下的就是每段的最后一个，范围最小。<code>[-1, -1, 2]</code> 里第一个 -1 被跳过，第二个 -1 右边只剩一个 2，凑不出答案。</p>
+
+  <h3>对应回三数之和的代码</h3>
+  <p>双指针版本没有真的把树画全，但去重用的是同一条规则：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>层</th><th>选的是</th><th>start</th><th>代码里怎么写</th></tr>
+    <tr><td>第 1 层</td><td class="fix">nums[i]</td><td>0</td><td><code>if i &gt; 0 and nums[i] == nums[i - 1]: continue</code>，就是 p &gt; start 那条规则</td></tr>
+    <tr><td>第 2 层</td><td class="pre">nums[l]</td><td>i + 1</td><td>找到一组后先 <code>l += 1</code>，再 <code>while l &lt; r and nums[l] == nums[l - 1]: l += 1</code></td></tr>
+    <tr><td>第 3 层</td><td class="suf">nums[r]</td><td>n - 1</td><td>不用写：前两个数定了，第三个数的值也就定了</td></tr>
+  </table></div>
+  <ul class="plain">
+    <li><strong>第 2 层为什么写在 append 之后？</strong>双指针里 l 只往右走。和不等于 0 时遇到重复的 l，只是多比一次，不会记下答案；只有刚记下一组答案之后，下一个同值的 l 才会把同一组再记一次。所以只在找到之后跳。这时 l 已经加过 1，一定满足 l &gt; i + 1，nums[l - 1] 是刚用过的兄弟，不是父亲 nums[i]。</li>
+    <li><strong>第 3 层为什么不用写？</strong>i 和 l 定了，第三个数必须等于 -(nums[i] + nums[l])，同值的 r 只是同一个值的不同位置。l 跳到新的值之后，旧的 r 会因为和大于 0 被正常流程挪走。对称地也给 r 写一个跳过，结果一样。</li>
+  </ul>
+
+  <h3>动手拆：把去重写错会怎样</h3>
+  <p>下面的代码可以把两处去重换成常见的错误写法。先用默认输入跑，再点 <code>[0,0,0]</code>、<code>[-1,-1,2]</code>、<code>[-2,0,0,2,2]</code>。<strong>很多错误写法在示例 1 上看起来是对的</strong>，换成这些小输入才暴露。</p>
+  <div class="lab">
+    <div class="field"><label for="lbInput">nums =</label>
+      <input type="text" id="lbInput" value="[-1,0,1,2,-1,-4]" autocomplete="off" spellcheck="false" aria-describedby="lbErr"></div>
+    <div class="controls" id="lbPresets"></div>
+    <span class="err" id="lbErr" hidden></span>
+    <div class="inputs two">
+      <div class="field"><label for="lbB">第 1 层：跳过重复的 i</label>
+        <select id="lbB">
+          <option value="ok">i &gt; 0 and 和前一个比（正确）</option>
+          <option value="none">不写</option>
+          <option value="noguard">去掉 i &gt; 0</option>
+          <option value="next">改成和后一个比</option>
+        </select></div>
+      <div class="field"><label for="lbC">第 2 层：跳过重复的 l</label>
+        <select id="lbC">
+          <option value="ok">找到之后跳，带 l &lt; r（正确）</option>
+          <option value="none">不写</option>
+          <option value="noguard">找到之后跳，去掉 l &lt; r</option>
+          <option value="top">每轮开头跳，没写 l &gt; i + 1</option>
+          <option value="topok">每轮开头跳，写了 l &gt; i + 1（也正确）</option>
+        </select></div>
+    </div>
+    <pre class="code" id="lbCode"></pre>
+    <div class="lab-head">
+      <span class="progress" id="lbSorted"></span>
+      <span id="lbVerdict" class="pill">—</span>
+    </div>
+    <div class="res-grid">
+      <div class="viz"><div class="row-label">你的代码返回</div><div class="chips" id="lbOut"></div></div>
+      <div class="viz"><div class="row-label">正确答案</div><div class="chips" id="lbTruth"></div></div>
+    </div>
+    <div class="console" id="lbLog" aria-live="polite"></div>
+  </div>
+  <p class="note ok">一句话总结：<strong>排序让相同的值挨在一起；每一层，每段相同的值只让第一个出场；“第一个”指的是本层的第一个，所以要 p &gt; start 才去和左边比。</strong>四数之和、组合总和 II、子集 II 用的都是这同一条规则。</p>
+</section>
+
+<!-- 09 -->
+<section id="edge">
+  <div class="chap"><span class="num">09</span><h2>边界检查清单</h2></div>
+  <p>边界问题看起来五花八门，在双指针题里反复出现的其实就是下面七条。写完代码，对着这张表逐条过一遍。</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>#</th><th>规则</th><th>写错时会怎样</th><th>例子</th></tr>
+    <tr><td>1</td><td>右指针从最后一个下标开始：<code>r = len(nums) - 1</code></td><td>写成 <code>len(nums)</code>，第一次读 nums[r] 就 IndexError</td><td>长度为 n 的列表，下标是 0 到 n - 1</td></tr>
+    <tr><td>2</td><td>两个指针必须指向不同位置时，用 <code>while l &lt; r</code></td><td>写成 <code>l &lt;= r</code>，同一个位置被用两次</td><td>三数之和 l == r 时会把同一个数当两个数用。盛水 l == r 时宽度是 0，多算一次虽然无害，但没有意义。二分查找这种单个位置也要检查的题才用 &lt;=</td></tr>
+    <tr><td>3</td><td>每一轮至少移动一个指针</td><td>某个分支谁都不动，死循环</td><td>盛水写成 <code>if &lt;</code> / <code>elif &gt;</code> 没有 else，<code>[2, 2, 2]</code> 卡在相等上</td></tr>
+    <tr><td>4</td><td>内层 while 要带上外层的条件 <code>l &lt; r</code></td><td>内层循环一路走过头，越界或指针交错</td><td>验证回文串的 <code>"!!!"</code>；三数之和找到后跳重复时的 <code>[0, 0, 0]</code></td></tr>
+    <tr><td>5</td><td>读 <code>nums[p - 1]</code> 之前，确认它是你想比的那个</td><td>Python 的 nums[-1] 不报错，悄悄读到最后一个数；或者把父亲当成了兄弟</td><td>去掉 <code>i &gt; 0</code>，<code>[0, 0, 0]</code> 返回 <code>[]</code></td></tr>
+    <tr><td>6</td><td>想清楚“先用、再移、再跳”的顺序</td><td>跳重复写在 append 前面，或者移动之前就比较，会漏答案或者出重复</td><td>三数之和：append → <code>l, r = l + 1, r - 1</code> → 拿新的 nums[l] 和刚用过的 nums[l - 1] 比</td></tr>
+    <tr><td>7</td><td>距离是 <code>r - l</code>，个数是 <code>r - l + 1</code></td><td>结果多 1</td><td>盛水 <code>[1, 1]</code> 的答案是 1；区间 [l, r] 里有 r - l + 1 个元素</td></tr>
+  </table></div>
+
+  <h3>用小输入过一遍</h3>
+  <p>示例能过不代表边界对：上一章的实验里，去掉 <code>i &gt; 0</code> 在示例 1 上照样能过。每道双指针题至少用这几类输入试一下：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>类别</th><th>盛最多水的容器</th><th>三数之和</th></tr>
+    <tr><td>最短的输入</td><td><code>[1, 1]</code> → 1</td><td><code>[0, 0, 0]</code> → <code>[[0, 0, 0]]</code></td></tr>
+    <tr><td>全部相同</td><td><code>[2, 2, 2]</code> → 4</td><td><code>[0, 0, 0, 0]</code> → <code>[[0, 0, 0]]</code></td></tr>
+    <tr><td>单调</td><td><code>[1, 2, 3, 4, 5]</code> → 6</td><td><code>[1, 2, 3]</code> → <code>[]</code></td></tr>
+    <tr><td>答案在两端 / 要用两个同值</td><td><code>[4, 1, 1, 1, 4]</code> → 16</td><td><code>[-1, -1, 2]</code> → <code>[[-1, -1, 2]]</code></td></tr>
+    <tr><td>成段的重复</td><td><code>[1, 7, 2, 5, 4, 7, 3, 6]</code> → 36</td><td><code>[-2, 0, 0, 2, 2]</code> → <code>[[-2, 0, 2]]</code></td></tr>
+  </table></div>
+  <p class="note">这些输入都可以直接贴进第 05 章的单步执行和第 08 章的实验里跑。</p>
+</section>
+
+<!-- 10 -->
+<section id="quiz">
+  <div class="chap"><span class="num">10</span><h2>自测</h2></div>
+  <p>点选答案，立即判分。</p>
+  <div class="quiz" id="quizBox"></div>
+  <p class="progress" id="quizScore"></p>
+
+  <h3 style="margin-top:12px">掌握清单</h3>
+  <ul class="checklist" id="checklist">
+    <li><label><input type="checkbox" id="ck1"><span>能写出面积公式，并解释为什么宽度是 <code>r - l</code>、高度取 <code>min</code>。</span></label></li>
+    <li><label><input type="checkbox" id="ck2"><span>能用不等式说明：短板剩下的组合都不会比当前更大。</span></label></li>
+    <li><label><input type="checkbox" id="ck3"><span>能说出移动高板的反例（示例 1 的第一步）。</span></label></li>
+    <li><label><input type="checkbox" id="ck4"><span>能在“所有对”的矩阵上解释 <code>l += 1</code> 和 <code>r -= 1</code> 分别删掉了什么。</span></label></li>
+    <li><label><input type="checkbox" id="ck5"><span>对任意一道对撞指针题，能回答“凭什么扔掉这一端”。</span></label></li>
+    <li><label><input type="checkbox" id="ck6"><span>能用“兄弟和父子”解释三数之和的去重，说清 <code>i &gt; 0</code> 和“和前一个比”的原因。</span></label></li>
+    <li><label><input type="checkbox" id="ck7"><span>不看本页，5 分钟内写出盛最多水的容器。</span></label></li>
+  </ul>
+</section>
+
+<footer>同类题型：两数之和 II（有序数组，和太大删一列、太小删一行）、三数之和（固定一个数，剩下的就是两数之和 II，需要去重）、四数之和（再套一层，每层都用同一条去重规则）、接雨水（Trapping Rain Water，也能用双指针，但中间的柱子会挡水，移动的理由不同）。</footer>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const L = (a) => "[" + a.join(", ") + "]";
+  const Lc = (a) => "[" + a.join(",") + "]";
+
+  /* ---------- 语法高亮 ---------- */
+  const KW = /\b(class|def|for|in|if|elif|else|not|and|or|while|return|len|min|max|range|print|continue|break|self|int|List|True|False|public|vector|Math|true|false)\b|\b(\d+)\b/g;
+  function hlCode(text, lang) {
+    const marker = lang === "py" ? "#" : "//";
+    const pos = text.indexOf(marker);
+    const codePart = pos >= 0 ? text.slice(0, pos) : text;
+    const comPart = pos >= 0 ? text.slice(pos) : "";
+    const body = esc(codePart).replace(KW, (m, k, n) => k ? '<span class="k">' + k + "</span>" : '<span class="n">' + n + "</span>");
+    return body + (comPart ? '<span class="c">' + esc(comPart) + "</span>" : "");
+  }
+  document.querySelectorAll("pre.code[data-lang]").forEach((pre) => {
+    const lang = pre.dataset.lang;
+    pre.innerHTML = pre.textContent.split("\n").map((l) => '<span class="ln">' + (hlCode(l, lang) || " ") + "</span>").join("");
+  });
+
+  /* ---------- 输入 ---------- */
+  function parseInts(v, o) {
+    const t = v.trim().replace(/^\[/, "").replace(/\]$/, "").trim();
+    if (!t) return { err: "请输入至少 " + o.min + " 个整数，格式像 [1,7,2,5]" };
+    const parts = t.split(/[\s,，]+/).filter(Boolean);
+    for (const p of parts) if (!/^-?\d+$/.test(p)) return { err: "“" + p + "” 不是整数。格式像 [1,7,2,5]，数之间用逗号分隔" };
+    const a = parts.map(Number);
+    if (a.length < o.min) return { err: "至少需要 " + o.min + " 个数" };
+    if (a.length > o.max) return { err: "演示里最多 " + o.max + " 个数，方便看清" };
+    if (a.some((x) => x < o.lo || x > o.hi)) return { err: "每个数要在 " + o.lo + " 到 " + o.hi + " 之间" };
+    return { arr: a };
+  }
+  function showErr(id, msg) { $(id).textContent = msg || ""; $(id).hidden = !msg; return !!msg; }
+  function presetBtns(el, list) {
+    el.innerHTML = list.map((p) => '<button type="button" class="mono" data-p="' + esc(Lc(p)) + '">' + esc(Lc(p)) + "</button>").join("");
+  }
+  function bindPresets(el, input, fn) {
+    el.addEventListener("click", (e) => { const b = e.target.closest("[data-p]"); if (b) { input.value = b.dataset.p; fn(); } });
+  }
+
+  /* ---------- 公共计算 ---------- */
+  const areaOf = (h, i, j) => Math.min(h[i], h[j]) * (j - i);
+  const K = (i, j) => i * 100 + j;
+  function brute(h) {
+    let max = -1, cnt = 0; const opt = [];
+    for (let i = 0; i < h.length; i++) for (let j = i + 1; j < h.length; j++) {
+      const a = areaOf(h, i, j); cnt++;
+      if (a > max) { max = a; opt.length = 0; opt.push([i, j]); } else if (a === max) opt.push([i, j]);
+    }
+    return { max, cnt, opt };
+  }
+  function ptrPath(h) {
+    const out = []; let l = 0, r = h.length - 1;
+    while (l < r) { out.push([l, r]); if (h[l] <= h[r]) l++; else r--; }
+    return out;
+  }
+
+  /* ---------- 柱状图 ---------- */
+  function barsSVG(h, o) {
+    const n = h.length, slot = 44, bw = 26, px = 8, top = 22, plot = 150, bot = 40;
+    const W = px * 2 + n * slot, H = top + plot + bot, base = top + plot;
+    const mx = Math.max(1, ...h);
+    const X = (i) => px + i * slot + (slot - bw) / 2;
+    const Y = (v) => base - (v / mx) * plot;
+    const box = (a, b, cls) => {
+      const wh = Math.min(h[a], h[b]), x0 = X(a) + bw, x1 = X(b);
+      return '<rect class="' + cls + '" x="' + x0 + '" y="' + Y(wh) + '" width="' + Math.max(0, x1 - x0) + '" height="' + (base - Y(wh)) + '"/>';
+    };
+    let s = '<svg class="bars" viewBox="0 0 ' + W + " " + H + '" style="min-width:' + n * 34 + "px;max-width:" + Math.round(W * 1.5) + 'px" role="img" aria-label="' + esc(o.label || "柱状图") + '">';
+    if (o.water) s += box(o.water[0], o.water[1], "water");
+    for (let i = 0; i < n; i++) {
+      let cls = "bar";
+      if (i === o.l) cls += " bl"; else if (i === o.r) cls += " br";
+      const fade = o.fade && o.fade(i);
+      s += "<g" + (fade ? ' class="faded"' : "") + ">" +
+        '<rect class="' + cls + '" x="' + X(i) + '" y="' + Y(h[i]) + '" width="' + bw + '" height="' + (base - Y(h[i])) + '" rx="2"/>' +
+        '<text class="tv" x="' + (X(i) + bw / 2) + '" y="' + (Y(h[i]) - 6) + '">' + h[i] + "</text>" +
+        '<text class="ti" x="' + (X(i) + bw / 2) + '" y="' + (base + 15) + '">' + i + "</text>";
+      if (o.labels !== false && (i === o.l || i === o.r)) {
+        s += '<text class="tp ' + (i === o.l ? "pl" : "pr") + '" x="' + (X(i) + bw / 2) + '" y="' + (base + 33) + '">' + (i === o.l ? "l" : "r") + "</text>";
+      }
+      s += "</g>";
+    }
+    if (o.best) s += box(o.best[0], o.best[1], "bestbox");
+    s += '<line class="axis" x1="' + px / 2 + '" x2="' + (W - px / 2) + '" y1="' + base + '" y2="' + base + '"/>';
+    if (o.hit) for (let i = 0; i < n; i++) {
+      s += '<rect class="hit" data-i="' + i + '" x="' + (px + i * slot) + '" y="0" width="' + slot + '" height="' + (base + 4) + '" tabindex="0" role="button" aria-label="下标 ' + i + "，高 " + h[i] + '"/>';
+    }
+    return s + "</svg>";
+  }
+
+  /* ---------- 所有对的矩阵 ---------- */
+  function matrixHTML(n, cellFn) {
+    let s = '<div class="mx" style="--n:' + (n - 1) + '"><div class="mh" aria-hidden="true"></div>';
+    for (let j = 1; j < n; j++) s += '<div class="mh cr">' + j + "</div>";
+    for (let i = 0; i < n - 1; i++) {
+      s += '<div class="mh rl">' + i + "</div>";
+      for (let j = 1; j < n; j++) {
+        if (j <= i) { s += '<div class="mc void"></div>'; continue; }
+        const c = cellFn(i, j);
+        s += '<div class="mc ' + c.cls + '" title="l = ' + i + "，r = " + j + '">' + (c.text === undefined ? "" : c.text) + "</div>";
+      }
+    }
+    return s + "</div>";
+  }
+
+  const LIM_H = { min: 2, max: 12, lo: 0, hi: 1000 };
+  const H_PRESETS = [[1, 7, 2, 5, 4, 7, 3, 6], [2, 2, 2], [1, 8, 6, 2, 5, 4, 8, 3, 7], [1, 2, 3, 4, 5], [4, 1, 1, 1, 4], [1, 1]];
+
+  /* ---------- 01 任选两根 ---------- */
+  let arH = [], arSel = [1, 7];
+  function arDraw(focusI) {
+    const p = parseInts($("arInput").value, LIM_H);
+    if (showErr("arErr", p.err)) return;
+    if (Lc(p.arr) !== Lc(arH)) { if (arH.length) arSel = []; arH = p.arr; }
+    const h = arH, s = arSel, two = s.length === 2;
+    $("arChart").innerHTML = barsSVG(h, { l: s[0], r: two ? s[1] : undefined, water: two ? s : null, hit: true, labels: two, label: "heights = " + Lc(h) + "，点柱子来选" });
+    const bf = brute(h);
+    let t;
+    if (two) {
+      const l = s[0], r = s[1], w = r - l, ht = Math.min(h[l], h[r]), a = w * ht;
+      t = "l, r = " + l + ", " + r +
+        "\n宽度  r - l = " + r + " - " + l + " = " + w +
+        "\n高度  min(heights[" + l + "], heights[" + r + "]) = min(" + h[l] + ", " + h[r] + ") = " + ht +
+        "\n面积  " + ht + " × " + w + " = " + '<span class="out">' + a + "</span>\n" +
+        (a === bf.max ? '<span class="out">这就是全部 ' + bf.cnt + " 对里最大的面积。</span>" : "全部 " + bf.cnt + " 对里最大的面积是 " + bf.max + "，换一对试试。");
+    } else if (s.length === 1) t = "已选下标 " + s[0] + "（高 " + h[s[0]] + "），再点一根柱子。";
+    else t = "点一根柱子开始。";
+    $("arLog").innerHTML = t;
+    if (focusI !== undefined) { const el = $("arChart").querySelector('.hit[data-i="' + focusI + '"]'); if (el) el.focus(); }
+  }
+  function arPick(i) {
+    if (arSel.length !== 1) arSel = [i];
+    else if (arSel[0] === i) arSel = [];
+    else arSel = [Math.min(arSel[0], i), Math.max(arSel[0], i)];
+  }
+  $("arChart").addEventListener("click", (e) => { const b = e.target.closest(".hit"); if (b) { arPick(+b.dataset.i); arDraw(); } });
+  $("arChart").addEventListener("keydown", (e) => {
+    const b = e.target.closest(".hit");
+    if (b && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); arPick(+b.dataset.i); arDraw(+b.dataset.i); }
+  });
+  presetBtns($("arPresets"), H_PRESETS);
+  bindPresets($("arPresets"), $("arInput"), () => arDraw());
+  $("arInput").addEventListener("input", () => arDraw());
+  arDraw();
+
+  /* ---------- 04 静态矩阵 ---------- */
+  function mxDraw() {
+    const h = [1, 7, 2, 5, 4, 7, 3, 6], bf = brute(h), show = $("mxPath").checked, path = ptrPath(h);
+    const step = new Map(path.map(([a, b], k) => [K(a, b), k + 1]));
+    $("mxStatic").innerHTML = matrixHTML(h.length, (i, j) => {
+      const a = areaOf(h, i, j), on = step.has(K(i, j));
+      let cls = a === bf.max ? "best" : "seen";
+      if (show) cls += on ? " path" : " dim";
+      return { cls, text: (show && on ? "<i>" + step.get(K(i, j)) + "</i>" : "") + a };
+    });
+    $("mxNote").innerHTML = show
+      ? "楼梯路线（格子左上角的小数字是第几步）：" + path.map(([a, b]) => "(" + a + ", " + b + ")").join(" → ") + "。只算了 " + path.length + " 格，其中有最大值 36。"
+      : "全部 " + bf.cnt + " 格，最大值 36 在 (1, 7)。";
+  }
+  $("mxPath").addEventListener("change", mxDraw);
+  mxDraw();
+
+  /* ---------- 05 单步执行 ---------- */
+  const CM_CODE = (wrong) => [
+    "l, r = 0, len(heights) - 1",
+    "res = 0",
+    "while l < r:",
+    "    area = min(heights[l], heights[r]) * (r - l)",
+    "    res = max(res, area)",
+    wrong ? "    if heights[l] > heights[r]:     # 错：扔掉高的那边" : "    if heights[l] <= heights[r]:    # 左边是短板",
+    "        l += 1",
+    "    else:",
+    "        r -= 1",
+    "return res"
+  ];
+  function buildCM(h, wrong) {
+    const n = h.length, bf = brute(h), optSet = new Set(bf.opt.map(([a, b]) => K(a, b)));
+    const F = [], seen = [];
+    let l = 0, r = n - 1, res = 0, best = null, lost = false;
+    const push = (o) => F.push(Object.assign({ l, r, res, best: best && best.slice(), seen: seen.slice(), area: null, cut: null, result: null }, o));
+    const where = (type, idx, cnt) => (type === "row" ? "第 " + idx + " 行" : "第 " + idx + " 列") + (cnt ? "剩下的 " + cnt + " 格一起删掉" : "已经没有剩下的格子");
+    push({ line: 0, hl: "hl0", msg: "l 放在最左边 0，r 放在最右边 <code>len(heights) - 1</code> = " + (n - 1) + "。先看最宽的一对，宽度 " + (n - 1) + " 是所有组合里最大的，它是矩阵最右上角的那一格。" });
+    push({ line: 1, hl: "hl0", msg: "<code>res</code> 记着目前见过的最大面积，先设成 0。" });
+    for (;;) {
+      if (!(l < r)) {
+        push({ line: 2, hl: "hl0", msg: "l = r = " + l + "，<code>l &lt; r</code> 不成立，循环结束。只剩一根柱子，组不成容器了。一共算了 " + seen.length + " 对，矩阵里其余的格子都是被成批删掉的。" });
+        const ok = res === bf.max;
+        push({ line: 9, hl: ok ? "hl4" : "hl3", result: res, msg: ok
+          ? "<code>return res</code>，返回 " + res + "。和暴力枚举全部 " + bf.cnt + " 对得到的最大值一致。"
+          : "<code>return res</code>，返回 " + res + '。<span class="bad">错了</span>：暴力枚举的最大值是 ' + bf.max + "。移动高板时，最大值所在的格子被删掉了。" });
+        return { F, bf, optSet };
+      }
+      const w = r - l, ht = Math.min(h[l], h[r]), area = ht * w;
+      seen.push([l, r, area]);
+      push({ line: 3, hl: "hl0", area, msg: "<code>l &lt; r</code>（" + l + " &lt; " + r + "）成立。宽 <code>r - l</code> = " + w + "，高 <code>min(" + h[l] + ", " + h[r] + ")</code> = " + ht + "，面积 " + ht + " × " + w + " = <strong>" + area + "</strong>。" });
+      if (area > res) {
+        const old = res; res = area; best = [l, r];
+        push({ line: 4, hl: "hl4", area, msg: "area = " + area + " 比 res = " + old + " 大，更新 <code>res = " + area + "</code>。绿色虚线框移到这个容器。" });
+      } else push({ line: 4, hl: "hl0", area, msg: "area = " + area + " 不比 res = " + res + " 大，res 不变。" });
+
+      const moveL = wrong ? h[l] > h[r] : h[l] <= h[r];
+      const cut = [];
+      if (moveL) for (let j = l + 1; j < r; j++) cut.push(K(l, j));
+      else for (let i = l + 1; i < r; i++) cut.push(K(i, r));
+      const ol = l, or = r, eq = h[ol] === h[or];
+      if (moveL) l++; else r--;
+      const alive = bf.opt.some(([a, b]) => seen.some(([x, y]) => x === a && y === b) || (a >= l && b <= r));
+      const lostNow = !alive && !lost;
+      if (!alive) lost = true;
+      let msg;
+      if (!wrong || eq) {
+        if (moveL) {
+          msg = (eq ? "两边一样高（都是 " + h[ol] + "），两边都是短板，扔哪边都行。代码用的是 <code>&lt;=</code>，所以扔左边。" : "heights[l] = " + h[ol] + " &lt; heights[r] = " + h[or] + "，左边是短板。") +
+            "下标 " + ol + " 和 r 左边的任何柱子配，高度不超过 " + h[ol] + "，宽度小于 " + w + "，面积都不会超过 " + area + "。<code>l += 1</code>，矩阵" + where("row", ol, cut.length) + "。";
+        } else {
+          msg = (eq ? "两边一样高（都是 " + h[or] + "），扔右边也没问题，两边都是短板。" : "heights[r] = " + h[or] + " &lt; heights[l] = " + h[ol] + "，右边是短板。") +
+            "下标 " + or + " 和 l 右边的任何柱子配，高度不超过 " + h[or] + "，宽度小于 " + w + "，面积都不会超过 " + area + "。<code>r -= 1</code>，矩阵" + where("col", or, cut.length) + "。";
+        }
+      } else {
+        const gone = moveL ? ol : or;
+        msg = "错误策略：扔掉了高的那根，下标 " + gone + "（高 " + h[gone] + "）。" + (moveL ? "<code>l += 1</code>，矩阵" + where("row", ol, cut.length) : "<code>r -= 1</code>，矩阵" + where("col", or, cut.length)) +
+          "。可是没有任何理由能保证这些格子都不超过 " + area + "。";
+        if (lostNow) {
+          const o = bf.opt.find(([a, b]) => cut.indexOf(K(a, b)) >= 0) || bf.opt[0];
+          msg += ' <span class="bad">最大面积 ' + bf.max + " 所在的 (" + o[0] + ", " + o[1] + ") 就在这次删掉的格子里，之后再也算不到了。</span>";
+        }
+      }
+      push({ line: moveL ? 6 : 8, hl: moveL ? "hl" : "hl2", cut: new Set(cut), msg });
+    }
+  }
+
+  const cm = { h: [], F: [], bf: null, optSet: null, idx: 0, timer: null, wrong: false };
+  function cmLoad() {
+    const p = parseInts($("cmInput").value, LIM_H);
+    if (showErr("cmErr", p.err)) return;
+    cm.h = p.arr; cm.wrong = $("cmModeBad").checked;
+    const b = buildCM(cm.h, cm.wrong);
+    cm.F = b.F; cm.bf = b.bf; cm.optSet = b.optSet; cm.idx = 0;
+    $("cmCode").innerHTML = CM_CODE(cm.wrong).map((l, k) => '<span class="ln" data-k="' + k + '">' + hlCode(l, "py") + "</span>").join("");
+    $("cmTruth").textContent = "暴力枚举的正确答案：" + cm.bf.max;
+    cmStop(); cmDraw();
+  }
+  function cmDraw() {
+    const f = cm.F[cm.idx], h = cm.h, n = h.length;
+    $("cmWrap").innerHTML = barsSVG(h, {
+      l: f.l, r: f.r, water: f.l < f.r ? [f.l, f.r] : null, best: f.best,
+      fade: (i) => i < f.l || i > f.r, label: "柱子，l = " + f.l + "，r = " + f.r
+    });
+    const wrap = $("cmWrap"), over = wrap.scrollWidth - wrap.clientWidth;
+    if (over > 0) wrap.scrollLeft = Math.max(0, Math.min(over, ((f.l + f.r) / 2 + 0.5) / n * wrap.scrollWidth - wrap.clientWidth / 2));
+    const seenMap = new Map(f.seen.map(([i, j, a]) => [K(i, j), a]));
+    const optSeen = cm.bf.opt.some(([a, b]) => seenMap.has(K(a, b)));
+    $("cmMatrix").innerHTML = matrixHTML(n, (i, j) => {
+      const k = K(i, j); let cls, text = "";
+      if (seenMap.has(k)) { text = seenMap.get(k); cls = f.best && f.best[0] === i && f.best[1] === j ? "best" : "seen"; }
+      else if (i >= f.l && j <= f.r) cls = "open";
+      else cls = "cut" + (f.cut && f.cut.has(k) ? " new" : "");
+      if (cm.optSet.has(k)) {
+        if (cls.indexOf("cut") === 0 && !optSeen) { cls += " lost"; text = areaOf(h, i, j); }
+        else cls += " opt";
+      }
+      if (i === f.l && j === f.r && f.result === null) cls += " cur";
+      return { cls, text };
+    });
+    const inR = (i) => i >= 0 && i < n;
+    $("cmL").textContent = "l = " + f.l;
+    $("cmR").textContent = "r = " + f.r;
+    $("cmHL").textContent = "heights[l] = " + (inR(f.l) ? h[f.l] : "—");
+    $("cmHR").textContent = "heights[r] = " + (inR(f.r) ? h[f.r] : "—");
+    $("cmArea").textContent = "area = " + (f.area === null ? "—" : f.area);
+    $("cmRes").textContent = "res = " + f.res;
+    const out = $("cmOut");
+    if (f.result === null) { out.className = "pill"; out.textContent = "运行中"; }
+    else { const ok = f.result === cm.bf.max; out.className = "pill " + (ok ? "t" : "f"); out.textContent = "返回 " + f.result; }
+    document.querySelectorAll("#cmCode .ln").forEach((el) => {
+      el.classList.remove("hl0", "hl", "hl2", "hl3", "hl4");
+      if (+el.dataset.k === f.line) el.classList.add(f.hl);
+    });
+    $("cmMsg").innerHTML = f.msg;
+    $("cmProg").textContent = "第 " + (cm.idx + 1) + " / " + cm.F.length + " 步";
+    $("cmPrev").disabled = cm.idx === 0;
+    $("cmNext").disabled = cm.idx === cm.F.length - 1;
+  }
+  function cmStop() { if (cm.timer) { clearInterval(cm.timer); cm.timer = null; } $("cmPlay").textContent = "自动播放"; }
+  $("cmNext").addEventListener("click", () => { cmStop(); if (cm.idx < cm.F.length - 1) { cm.idx++; cmDraw(); } });
+  $("cmPrev").addEventListener("click", () => { cmStop(); if (cm.idx > 0) { cm.idx--; cmDraw(); } });
+  $("cmReset").addEventListener("click", () => { cmStop(); cm.idx = 0; cmDraw(); });
+  $("cmPlay").addEventListener("click", () => {
+    if (cm.timer) { cmStop(); return; }
+    if (cm.idx === cm.F.length - 1) cm.idx = 0;
+    $("cmPlay").textContent = "暂停";
+    cm.timer = setInterval(() => { if (cm.idx < cm.F.length - 1) { cm.idx++; cmDraw(); } else cmStop(); }, 1100);
+  });
+  $("cmInput").addEventListener("input", cmLoad);
+  document.querySelectorAll('input[name="cmMode"]').forEach((el) => el.addEventListener("change", cmLoad));
+  presetBtns($("cmPresets"), H_PRESETS);
+  bindPresets($("cmPresets"), $("cmInput"), cmLoad);
+  cmLoad();
+
+  /* ---------- 06 语言切换 ---------- */
+  document.querySelectorAll('.tabs [role="tab"]').forEach((t) => t.addEventListener("click", () => {
+    document.querySelectorAll('.tabs [role="tab"]').forEach((x) => x.setAttribute("aria-selected", x === t ? "true" : "false"));
+    ["py", "java", "cpp"].forEach((l) => { $("code-" + l).hidden = l !== t.dataset.lang; });
+  }));
+
+  /* ---------- 08 一层去重：段 ---------- */
+  (function () {
+    const a = [-2, -1, -1, 0, 0, 0, 1, 2, 2];
+    $("rnCells").innerHTML = a.map((v, p) => {
+      const keep = p === 0 || a[p] !== a[p - 1];
+      return '<div class="col"><div class="cell ' + (keep ? "done" : "skip") + '"><span class="idx">' + p + "</span>" + v + '</div><span class="ptr' + (keep ? " ok" : "") + '">' + (keep ? "打印" : "跳过") + "</span></div>";
+    }).join("");
+  })();
+
+  /* ---------- 08 选择树 ---------- */
+  const LIM_T = { min: 3, max: 6, lo: -9, hi: 9 };
+  const T_PRESETS = [[-1, -1, 0, 1, 2], [-1, 0, 0, 1], [0, 0, 0, 0], [-2, 0, 0, 2, 2], [-1, -1, 2]];
+  function buildTree(nums, mode) {
+    const n = nums.length, leaves = [];
+    let leafX = 0;
+    function rec(lvl, start, path, dead) {
+      const kids = [];
+      for (let p = start; p <= n - 1 - (3 - lvl); p++) {
+        let prune = null;
+        if (mode !== "none" && p > start && nums[p] === nums[p - 1]) prune = "sib";
+        else if (mode === "branch" && p === start && p > 0 && nums[p] === nums[p - 1]) prune = "parent";
+        const nd = { lvl, p, v: nums[p], prune, dead: dead || !!prune, kids: [] };
+        const np = path.concat(p);
+        if (lvl === 3) {
+          nd.x = leafX++; nd.leaf = np; nd.vals = np.map((q) => nums[q]);
+          nd.sum = nd.vals[0] + nd.vals[1] + nd.vals[2];
+          leaves.push(nd);
+        } else {
+          nd.kids = rec(lvl + 1, p + 1, np, nd.dead);
+          nd.x = (nd.kids[0].x + nd.kids[nd.kids.length - 1].x) / 2;
+        }
+        kids.push(nd);
+      }
+      return kids;
+    }
+    const roots = rec(1, 0, [], false);
+    const firstSeen = new Set();
+    leaves.forEach((Lf) => {
+      if (Lf.dead) Lf.st = "off";
+      else if (Lf.sum === 0) { const k = Lf.vals.join(","); Lf.st = firstSeen.has(k) ? "dup" : "hit"; firstSeen.add(k); }
+      else Lf.st = "miss";
+    });
+    return { roots, leaves };
+  }
+  function treeSVG(T) {
+    const sp = 54, padL = 74, W = padL + T.leaves.length * sp + 8, H = 264;
+    const Y = [22, 82, 142, 202];
+    const X = (x) => padL + x * sp + sp / 2;
+    let e = "", g = "";
+    ["", "第 1 个数", "第 2 个数", "第 3 个数"].forEach((t, k) => { if (t) g += '<text class="lvl" x="2" y="' + (Y[k] + 4) + '">' + t + "</text>"; });
+    const rx = X((T.roots[0].x + T.roots[T.roots.length - 1].x) / 2);
+    g += '<g class="tn root"><rect x="' + (rx - 22) + '" y="' + (Y[0] - 13) + '" width="44" height="26" rx="7"/><text class="tr" x="' + rx + '" y="' + (Y[0] + 4) + '">开始</text></g>';
+    function draw(nd, px, py, half) {
+      const cx = X(nd.x), cy = Y[nd.lvl];
+      e += '<line class="edge' + (nd.dead ? " off" : "") + '" x1="' + px + '" y1="' + (py + half) + '" x2="' + cx + '" y2="' + (cy - 15) + '"/>';
+      const cls = "tn l" + nd.lvl + (nd.dead ? " off" : "") + (nd.prune ? " cut" : "") + (nd.st === "hit" || nd.st === "dup" ? " " + nd.st : "");
+      g += '<g class="' + cls + '"><rect x="' + (cx - 17) + '" y="' + (cy - 15) + '" width="34" height="30" rx="7"/>' +
+        '<text class="tv" x="' + cx + '" y="' + (cy + 1) + '">' + nd.v + '</text><text class="tix" x="' + cx + '" y="' + (cy + 11) + '">[' + nd.p + "]</text></g>";
+      if (nd.prune) g += '<text class="tcut ' + nd.prune + '" x="' + cx + '" y="' + (cy - 20) + '">' + (nd.prune === "sib" ? "剪" : "误剪") + "</text>";
+      if (nd.leaf) {
+        g += '<text class="cap ' + nd.st + '" x="' + cx + '" y="' + (cy + 33) + '">' + nd.vals.join(",") + "</text>" +
+          '<text class="cap ' + nd.st + '" x="' + cx + '" y="' + (cy + 49) + '">和 ' + nd.sum + "</text>";
+      }
+      nd.kids.forEach((k) => draw(k, cx, cy, 15));
+    }
+    T.roots.forEach((nd) => draw(nd, rx, Y[0], 13));
+    return '<svg class="tree" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="三数之和的选择树">' + e + g + "</svg>";
+  }
+  function trDraw() {
+    const p = parseInts($("trInput").value, LIM_T);
+    if (showErr("trErr", p.err)) return;
+    const nums = p.arr.slice().sort((a, b) => a - b), n = nums.length;
+    const mode = document.querySelector('input[name="trMode"]:checked').value;
+    const T = buildTree(nums, mode);
+    $("trWrap").innerHTML = treeSVG(T);
+    const zeros = T.leaves.filter((x) => x.sum === 0);
+    const truth = [], tset = new Set();
+    zeros.forEach((x) => { const k = x.vals.join(","); if (!tset.has(k)) { tset.add(k); truth.push(x.vals); } });
+    const act = T.leaves.filter((x) => !x.dead), actZ = act.filter((x) => x.sum === 0);
+    const fset = new Set(actZ.map((x) => x.vals.join(",")));
+    const dupN = actZ.length - fset.size;
+    const miss = truth.filter((t) => !fset.has(t.join(",")));
+    const list = (arr) => arr.map((t) => "<code>" + L(t) + "</code>").join("、");
+    let msg = Lc(nums) !== Lc(p.arr) ? "已自动排序为 <code>" + L(nums) + "</code>。" : "";
+    if (mode === "none") {
+      msg += "一共 " + T.leaves.length + " 个叶子，就是从 " + n + " 个位置里选 3 个的 C(" + n + ", 3) = " + T.leaves.length + " 种选法。";
+      msg += zeros.length
+        ? "其中和为 0 的有 " + zeros.length + " 个，但不同的三元组只有 " + truth.length + " 种：" + list(truth) + "。" + (dupN ? '多出来的 <span class="bad">' + dupN + " 个红色叶子</span>都是重复。" : "这个输入恰好没有重复。")
+        : "没有和为 0 的叶子。";
+    } else {
+      msg += "剪枝后剩 " + act.length + " 个叶子（原来 " + T.leaves.length + " 个），其中和为 0 的有 " + actZ.length + " 个。";
+      if (mode === "level") {
+        msg += truth.length ? '<span class="ans">每种三元组正好一个</span>：' + list(truth) + "。被剪掉的分支里只有重复，一个答案也没少。" : "这个输入没有和为 0 的组合。";
+      } else if (miss.length) {
+        msg += '<span class="bad">漏掉了 ' + list(miss) + "</span>。标着“误剪”的节点和左边的数同值，可左边那个是它的父亲，不是兄弟。两个同值的数用在不同的层，正是这个答案需要的。";
+      } else {
+        msg += "这个输入里误剪恰好没有造成损失。换 <code>[-1,-1,0,1,2]</code> 或 <code>[0,0,0,0]</code> 试试。";
+      }
+    }
+    $("trSum").innerHTML = msg;
+  }
+  presetBtns($("trPresets"), T_PRESETS);
+  bindPresets($("trPresets"), $("trInput"), trDraw);
+  $("trInput").addEventListener("input", trDraw);
+  document.querySelectorAll('input[name="trMode"]').forEach((el) => el.addEventListener("change", trDraw));
+  trDraw();
+
+  /* ---------- 08 去重实验 ---------- */
+  const LIM_3 = { min: 3, max: 12, lo: -100000, hi: 100000 };
+  const S_PRESETS = [[-1, 0, 1, 2, -1, -4], [0, 0, 0], [0, 0, 0, 0], [-1, -1, 2], [-2, 0, 0, 2, 2], [-2, -1, -1, 0, 1, 1, 2], [1, 2, 3]];
+  const B_VARS = {
+    ok: { ok: true, lines: ["    if i > 0 and nums[i] == nums[i - 1]:", "        continue"] },
+    none: { ok: false, lines: ["    # （没有跳过重复的 i）"] },
+    noguard: { ok: false, lines: ["    if nums[i] == nums[i - 1]:          # i = 0 时读的是 nums[-1]", "        continue"] },
+    next: { ok: false, lines: ["    if i + 1 < len(nums) and nums[i] == nums[i + 1]:", "        continue"] }
+  };
+  const C_VARS = {
+    ok: { ok: true, top: [], after: ["            while l < r and nums[l] == nums[l - 1]:", "                l += 1"] },
+    none: { ok: false, top: [], after: ["            # （没有跳过重复的 l）"] },
+    noguard: { ok: false, top: [], after: ["            while nums[l] == nums[l - 1]:", "                l += 1"] },
+    top: { ok: false, top: ["        if nums[l] == nums[l - 1]:          # l == i + 1 时比到了 nums[i]", "            l += 1", "            continue"], after: [] },
+    topok: { ok: true, top: ["        if l > i + 1 and nums[l] == nums[l - 1]:", "            l += 1", "            continue"], after: [] }
+  };
+  function labLines(vb, vc) {
+    const B = B_VARS[vb], C = C_VARS[vc], out = [];
+    const add = (t, cls) => out.push({ t, cls: cls || "" });
+    add("nums.sort()"); add("res = []"); add("for i in range(len(nums)):");
+    B.lines.forEach((t) => add(t, B.ok ? "hl4" : "hl3"));
+    add("    l, r = i + 1, len(nums) - 1"); add("    while l < r:");
+    C.top.forEach((t) => add(t, C.ok ? "hl4" : "hl3"));
+    add("        total = nums[i] + nums[l] + nums[r]");
+    add("        if total > 0:"); add("            r -= 1");
+    add("        elif total < 0:"); add("            l += 1");
+    add("        else:");
+    add("            res.append([nums[i], nums[l], nums[r]])");
+    add("            l, r = l + 1, r - 1");
+    C.after.forEach((t) => add(t, C.ok ? "hl4" : "hl3"));
+    add("return res");
+    return out;
+  }
+  function run3(input, vb, vc) {
+    const nums = input.slice().sort((a, b) => a - b), n = nums.length;
+    const res = [], log = [], notes = [];
+    let i = 0, l = 0, r = 0, steps = 0;
+    const at = (p) => { if (p < -n || p >= n) throw { idx: p }; return nums[p < 0 ? p + n : p]; };
+    const tick = () => { if (++steps > 20000) throw { loop: true }; };
+    try {
+      for (i = 0; i < n; i++) {
+        l = undefined; r = undefined;
+        if (vb === "ok") { if (i > 0 && at(i) === at(i - 1)) continue; }
+        else if (vb === "noguard") {
+          if (at(i) === at(i - 1)) {
+            if (i === 0) notes.push("i = 0 时，nums[i - 1] 是 nums[-1]，也就是最后一个数 " + at(-1) + "。它和 nums[0] 相等，于是 i = 0 被跳过了，Python 不会报错。");
+            continue;
+          }
+        } else if (vb === "next") { if (i + 1 < n && at(i) === at(i + 1)) continue; }
+        l = i + 1; r = n - 1;
+        while (l < r) {
+          tick();
+          if ((vc === "top" || vc === "topok") && (vc === "top" || l > i + 1) && at(l) === at(l - 1)) {
+            if (l === i + 1) notes.push("i = " + i + "、l = " + l + " 时，nums[l - 1] 就是 nums[i]，是第 1 层选中的父亲。两个都是 " + at(l) + "，于是 l = " + l + " 被误跳过了。");
+            l++; continue;
+          }
+          const total = at(i) + at(l) + at(r);
+          if (total > 0) r--;
+          else if (total < 0) l++;
+          else {
+            const t = [at(i), at(l), at(r)];
+            res.push(t);
+            log.push("i = " + i + ", l = " + l + ", r = " + r + "  →  append " + L(t));
+            l++; r--;
+            if (vc === "ok") { while (l < r && at(l) === at(l - 1)) { tick(); l++; } }
+            else if (vc === "noguard") { while (at(l) === at(l - 1)) { tick(); l++; } }
+          }
+        }
+      }
+    } catch (e) {
+      if (e && e.loop) return { nums, res, log, notes, loop: true };
+      if (e && e.idx !== undefined) return { nums, res, log, notes, err: { idx: e.idx, i, l, r } };
+      throw e;
+    }
+    return { nums, res, log, notes };
+  }
+  function truth3(a) {
+    const s = a.slice().sort((x, y) => x - y), n = s.length, seen = new Set(), out = [];
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) for (let k = j + 1; k < n; k++) {
+      if (s[i] + s[j] + s[k] === 0) { const key = s[i] + "," + s[j] + "," + s[k]; if (!seen.has(key)) { seen.add(key); out.push([s[i], s[j], s[k]]); } }
+    }
+    return out;
+  }
+  function labRun() {
+    const vb = $("lbB").value, vc = $("lbC").value;
+    $("lbCode").innerHTML = labLines(vb, vc).map((o) => '<span class="ln ' + o.cls + '">' + (hlCode(o.t, "py") || " ") + "</span>").join("");
+    const p = parseInts($("lbInput").value, LIM_3);
+    if (showErr("lbErr", p.err)) return;
+    const out = run3(p.arr, vb, vc), truth = truth3(p.arr);
+    const tk = new Set(truth.map((t) => t.join(","))), cnt = new Map();
+    const chip = (t, cls, tag) => '<span class="chip ' + cls + '">' + esc(L(t)) + (tag ? "<small>" + tag + "</small>" : "") + "</span>";
+    const mine = out.res.map((t) => {
+      const k = t.join(","), c = (cnt.get(k) || 0) + 1; cnt.set(k, c);
+      return !tk.has(k) ? chip(t, "bad", "不对") : c > 1 ? chip(t, "dup", "重复") : chip(t, "ok", "");
+    });
+    const missing = truth.filter((t) => !cnt.has(t.join(",")));
+    const dupN = out.res.length - cnt.size;
+    $("lbSorted").textContent = "排序后 nums = " + L(out.nums);
+    $("lbOut").innerHTML = out.err || out.loop
+      ? '<span class="chip bad">' + (out.loop ? "死循环" : "IndexError") + "</span>" + (mine.length ? mine.join("") : "")
+      : mine.length ? mine.join("") : '<span class="empty-hint">[]（空列表）</span>';
+    $("lbTruth").innerHTML = truth.length
+      ? truth.map((t) => cnt.has(t.join(",")) ? chip(t, "ok", "") : chip(t, "miss", "漏了")).join("")
+      : '<span class="empty-hint">[]，没有和为 0 的三元组</span>';
+    const v = $("lbVerdict");
+    let verdict, good = false;
+    if (out.err) verdict = "报错";
+    else if (out.loop) verdict = "死循环";
+    else if (dupN && missing.length) verdict = "有重复，也漏了";
+    else if (dupN) verdict = "有重复";
+    else if (missing.length) verdict = "漏了答案";
+    else { verdict = "通过"; good = true; }
+    v.className = "pill " + (good ? "t" : "f"); v.textContent = verdict;
+    const lines = [];
+    if (out.log.length) lines.push(...out.log.map(esc));
+    else lines.push("一次 append 都没有执行。");
+    Array.from(new Set(out.notes)).slice(0, 3).forEach((s) => lines.push('<span class="ex">' + esc(s) + "</span>"));
+    if (out.err) {
+      const e = out.err;
+      lines.push('<span class="ex">IndexError: list index out of range\n读 nums[' + e.idx + "] 时越界：nums 只有 " + out.nums.length + " 个数，下标最多到 " + (out.nums.length - 1) +
+        "（当时 i = " + e.i + (e.l !== undefined ? "，l = " + e.l + "，r = " + e.r : "") + "）。内层 while 少了 l &lt; r 的守卫。</span>");
+    }
+    if (out.loop) lines.push('<span class="ex">运行超过 20000 步，判定为死循环。</span>');
+    const correctCode = B_VARS[vb].ok && C_VARS[vc].ok;
+    if (good) lines.push(correctCode
+      ? '<span class="out">每组答案只出现一次，一个不少。</span>'
+      : '<span class="out">这个输入恰好没暴露问题，换一个输入试试。</span>');
+    $("lbLog").innerHTML = lines.join("\n");
+  }
+  presetBtns($("lbPresets"), S_PRESETS);
+  bindPresets($("lbPresets"), $("lbInput"), labRun);
+  $("lbInput").addEventListener("input", labRun);
+  $("lbB").addEventListener("change", labRun);
+  $("lbC").addEventListener("change", labRun);
+  labRun();
+
+  /* ---------- 10 自测 ---------- */
+  const QUIZ = [
+    { q: "heights = [1,7,2,5,4,7,3,6]，l = 0、r = 7 时容器的面积是？", o: ["7", "42", "6", "48"], a: 0,
+      e: "宽 7 - 0 = 7，高 min(1, 6) = 1，面积 7。42 是把高度错取成了 max，48 是宽度错写成了 r - l + 1。" },
+    { q: "当前 heights[l] = 3，heights[r] = 8，下一步应该？", o: ["l += 1", "r -= 1", "l 和 r 都动", "结束循环"], a: 0,
+      e: "左边是短板。l 和更近的任何柱子配，高度不超过 3、宽度更小，不可能更大，所以扔掉 l。" },
+    { q: "为什么不能扔掉高的那一边？", o: ["高板剩下的组合里可能有更大的容器，没法证明它们都更小", "会导致下标越界", "会让循环变成死循环", "其实也可以，只是慢一点"], a: 0,
+      e: "示例 1 第一步如果扔掉 r = 7，(1, 7) = 36 就再也算不到了，最后返回 7。" },
+    { q: "heights[l] == heights[r] 时，应该？", o: ["移动哪一边都可以", "必须移动左边", "必须移动右边", "必须两边同时移动"], a: 0,
+      e: "两边都是短板，各自剩下的组合都不会更大。NeetCode 用 <=，相等时移动左边。" },
+    { q: "双指针解法一共计算了多少对？", o: ["n - 1 对", "n 对", "n(n-1)/2 对", "log n 对"], a: 0,
+      e: "每一步扔掉一根柱子，从 n 根扔到只剩 1 根，正好 n - 1 步，每步算一对。" },
+    { q: "盛最多水的容器需要去重吗？", o: ["不需要，它只返回一个最大值", "需要，heights 里可能有相同的高度", "需要先排序再去重", "只有 heights 全部相同时需要"], a: 0,
+      e: "只有“返回所有值不同的组合”的题才去重。这道题也不能排序，排序会打乱柱子的位置。" },
+    { q: "三数之和里的 [-1, -1, 2]：第一个 -1 当 nums[i]，第二个 -1 当 nums[l]，为什么不算重复？", o: ["两个 -1 是父子关系（不同层），只有同一层的兄弟同值才会造出重复", "因为 2 是正数", "因为数组已经排好序", "它其实是重复，只是题目允许"], a: 0,
+      e: "第 2 层的起点是 i + 1。l = i + 1 是本层第一个候选，不拿它和左边的 nums[i] 比。" },
+    { q: "去掉 i > 0，写成 if nums[i] == nums[i - 1]: continue，对 nums = [0, 0, 0] 返回什么？", o: ["[]", "[[0, 0, 0]]", "[[0, 0, 0], [0, 0, 0]]", "IndexError"], a: 0,
+      e: "i = 0 时 nums[-1] 是最后一个 0，Python 不报错，i = 0 被误跳过；i = 1、2 和前一个相同，也被跳过。" },
+    { q: "把 i 的去重改成和后一个比（nums[i] == nums[i + 1] 就跳过），会出什么问题？", o: ["每段只留最后一个，漏掉 [-1, -1, 2] 这种要用两个同值的组合", "会产生重复的三元组", "没有问题", "时间复杂度变成 O(n³)"], a: 0,
+      e: "最后一个 -1 右边已经没有 -1 了。留第一个，它的分支才能覆盖后面所有同值兄弟能凑出的组合。" },
+    { q: "三数之和找到一组之后，如果把 while l < r and nums[l] == nums[l - 1] 里的 l < r 去掉，对 [0, 0, 0] 会怎样？", o: ["IndexError", "返回 []", "返回两个 [0, 0, 0]", "死循环"], a: 0,
+      e: "找到后 l = 2、r = 1，nums[2] == nums[1]，l 变成 3，再读 nums[3] 就越界了。" }
+  ];
+  const answered = {};
+  $("quizBox").innerHTML = QUIZ.map((it, qi) =>
+    '<div class="q"><div class="q-text">' + (qi + 1) + ". " + esc(it.q) + '</div><div class="opts">' +
+    it.o.map((o, oi) => ({ o, oi, r: (qi * 7 + oi * 5) % 4 })).sort((x, y) => x.r - y.r)
+      .map(({ o, oi }) => '<button type="button" class="opt" data-q="' + qi + '" data-o="' + oi + '">' + esc(o) + "</button>").join("") +
+    '</div><div class="explain" id="ex' + qi + '" hidden></div></div>').join("");
+  function score() {
+    const keys = Object.keys(answered), right = keys.filter((k) => answered[k]).length;
+    $("quizScore").textContent = keys.length ? "已作答 " + keys.length + " / " + QUIZ.length + "，答对 " + right + " 题" : "";
+  }
+  $("quizBox").addEventListener("click", (e) => {
+    const b = e.target.closest(".opt"); if (!b) return;
+    const qi = +b.dataset.q, oi = +b.dataset.o, it = QUIZ[qi], box = b.parentElement;
+    box.querySelectorAll(".opt").forEach((x) => x.classList.remove("right", "wrong"));
+    const ok = oi === it.a;
+    b.classList.add(ok ? "right" : "wrong");
+    if (!ok) box.querySelector('[data-o="' + it.a + '"]').classList.add("right");
+    if (!(qi in answered)) answered[qi] = ok;
+    const ex = $("ex" + qi); ex.hidden = false;
+    ex.textContent = (ok ? "答对了。" : "再想想。") + it.e;
+    score();
+  });
+
+  /* ---------- 掌握清单（仅保存在本浏览器） ---------- */
+  document.querySelectorAll("#checklist input").forEach((cb) => {
+    try { cb.checked = localStorage.getItem("cmw-" + cb.id) === "1"; } catch (e) {}
+    cb.addEventListener("change", () => { try { localStorage.setItem("cmw-" + cb.id, cb.checked ? "1" : "0"); } catch (e) {} });
+  });
+})();
+</script>
+</body>
+</html>
