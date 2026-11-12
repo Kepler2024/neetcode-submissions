@@ -1,0 +1,1232 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>三数之和</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* 版式：单栏教材，一章一个前置知识；固定的 i 用紫色，左指针 l 用琥珀色，右指针 r 用蓝色，凑成 0 用绿色，重复或出错用红色，被排除的格子变淡，贯穿全页 */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --ink: #17202b;
+  --muted: #586372;
+  --line: #dce1e7;
+  --pre: #b86e0a;
+  --pre-soft: #fcefd8;
+  --suf: #1d6aa3;
+  --suf-soft: #e0edf8;
+  --fix: #7445b8;
+  --fix-soft: #efe7fa;
+  --ans: #2b7a4b;
+  --ans-soft: #e1f2e7;
+  --bad: #b3372f;
+  --bad-soft: #fbe5e3;
+  --code-bg: #eef1f5;
+  --font-display: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151b; --surface: #19202a; --ink: #e5e9ef; --muted: #9ba6b4; --line: #2b3441;
+    --pre: #f0a845; --pre-soft: #3a2b14; --suf: #6cb2e8; --suf-soft: #142b3e;
+    --fix: #b893f2; --fix-soft: #2a2140;
+    --ans: #5fcb8c; --ans-soft: #153223; --bad: #f08379; --bad-soft: #3d1c1a; --code-bg: #141a22;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151b; --surface: #19202a; --ink: #e5e9ef; --muted: #9ba6b4; --line: #2b3441;
+  --pre: #f0a845; --pre-soft: #3a2b14; --suf: #6cb2e8; --suf-soft: #142b3e;
+  --fix: #b893f2; --fix-soft: #2a2140;
+  --ans: #5fcb8c; --ans-soft: #153223; --bad: #f08379; --bad-soft: #3d1c1a; --code-bg: #141a22;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.75;
+  font-variant-ligatures: none; /* 等宽字体的连字会把 != 显示成 ≠，初学者容易抄错 */
+}
+.wrap {
+  max-width: 760px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 80px;
+  display: flex; flex-direction: column; gap: 56px;
+}
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.3; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 44px); font-weight: 800; }
+h2 { font-size: clamp(22px, 4.2vw, 28px); font-weight: 800; }
+h3 { font-size: 18px; font-weight: 600; }
+p { margin: 0; }
+section { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lead { font-size: 18px; color: var(--muted); }
+code, .mono { font-family: var(--font-mono); font-size: .92em; }
+:not(pre) > code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; }
+.pre { color: var(--pre); font-weight: 700; }
+.suf { color: var(--suf); font-weight: 700; }
+.fix { color: var(--fix); font-weight: 700; }
+.ans { color: var(--ans); font-weight: 700; }
+.bad { color: var(--bad); font-weight: 700; }
+a { color: var(--suf); }
+
+/* 题目卡 */
+.problem { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 99px; background: var(--ans-soft); color: var(--ans); }
+.example { font-family: var(--font-mono); font-size: 14px; background: var(--code-bg); border-radius: 6px; padding: 10px 12px; overflow-x: auto; white-space: pre; }
+
+/* 目录 */
+.toc { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; padding: 0; margin: 0; list-style: none; counter-reset: toc; }
+.toc li { counter-increment: toc; }
+.toc a { display: flex; gap: 10px; align-items: baseline; text-decoration: none; color: var(--ink); padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 15px; }
+.toc a::before { content: counter(toc, decimal-leading-zero); font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.toc a:hover, .toc a:focus-visible { border-color: var(--suf); }
+
+/* 章节编号 */
+.chap { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.chap .num { font-family: var(--font-mono); font-size: 14px; color: var(--muted); }
+
+/* 提示块 */
+.note { border-left: 3px solid var(--suf); padding: 4px 0 4px 14px; }
+.note.warn { border-color: var(--pre); }
+.note.ok { border-color: var(--ans); }
+.note.no { border-color: var(--bad); }
+
+/* 数组格子 */
+.arr-wrap { overflow-x: auto; padding: 3px 3px 4px; position: relative; }
+.arr { display: inline-grid; grid-auto-flow: column; grid-auto-columns: minmax(40px, 1fr); gap: 6px; }
+.row-label { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.cell {
+  border: 1.5px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink);
+  text-align: center; font-family: var(--font-mono); padding: 6px 4px; font-size: 18px; font-weight: 600; line-height: 1.5;
+  transition: background .2s, border-color .2s, opacity .2s;
+}
+.cell .idx { display: block; font-size: 11px; color: var(--muted); font-weight: 400; line-height: 1.4; }
+.cell.at-i, .cell.pick { outline: 2px solid var(--fix); outline-offset: 0; background: var(--fix-soft); }
+.cell.at-l { outline: 2px solid var(--pre); outline-offset: 0; background: var(--pre-soft); }
+.cell.at-r { outline: 2px solid var(--suf); outline-offset: 0; background: var(--suf-soft); }
+.cell.at-l.at-r { outline-color: var(--ink); }
+.cell.done { background: var(--ans-soft); border-color: var(--ans); }
+.cell.fail { background: var(--bad-soft); border-color: var(--bad); }
+.cell.gone { opacity: .35; }
+.cell.skip { text-decoration: line-through; border-style: dashed; }
+.col { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ptr { font-family: var(--font-mono); font-size: 12px; font-weight: 700; text-align: center; line-height: 1.3; min-height: 1.3em; color: var(--muted); }
+.ptr .pi { color: var(--fix); }
+.ptr .pl { color: var(--pre); }
+.ptr .pr { color: var(--suf); }
+.empty-hint { font-size: 13px; color: var(--muted); font-family: var(--font-mono); padding: 6px 0; }
+@media (max-width: 480px) {
+  .arr { grid-auto-columns: minmax(28px, 1fr); gap: 3px; }
+  .cell { font-size: 15px; padding: 4px 1px; }
+  .cell .idx { font-size: 10px; }
+}
+
+/* 表格 */
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.tbl-wrap.scroll { max-height: 340px; overflow: auto; }
+.tbl-wrap.scroll th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); }
+th { font-size: 13px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+td code { white-space: nowrap; }
+tr:last-child td, tr:last-child th { border-bottom: 0; }
+tbody tr[data-r] { cursor: pointer; }
+tr.sel td { background: var(--fix-soft); }
+.rowbtn { font-family: var(--font-mono); font-size: 14px; padding: 2px 8px; background: transparent; white-space: nowrap; }
+
+/* 交互组件外壳 */
+.lab { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.lab-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lab-title { font-weight: 700; font-size: 15px; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button {
+  font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+}
+button:hover { border-color: var(--muted); }
+button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button.mono { font-family: var(--font-mono); }
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--suf); outline-offset: 2px; }
+.controls button[aria-pressed="true"], .tabs button[aria-selected="true"], .tabs button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+input[type=text] {
+  font-family: var(--font-mono); font-size: 15px; padding: 6px 10px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink); min-width: 0; width: 100%;
+  font-variant-ligatures: none;
+}
+.inputs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+@media (min-width: 560px) { .inputs.two { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); } }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-size: 14px; font-weight: 700; }
+.toggle { display: inline-flex; gap: 8px; align-items: center; font-size: 15px; cursor: pointer; }
+.toggle input { accent-color: var(--ans); width: 16px; height: 16px; flex: none; margin: 0; }
+.err { color: var(--bad); font-size: 14px; }
+
+/* 代码块 */
+pre.code { margin: 0; background: var(--code-bg); border-radius: 8px; padding: 12px 0; overflow-x: auto; font-family: var(--font-mono); font-size: 14px; line-height: 1.7; }
+pre.code .ln { display: block; padding: 0 14px; border-left: 3px solid transparent; white-space: pre; }
+pre.code .ln.hl0 { background: var(--line); border-left-color: var(--ink); }
+pre.code .ln.hl { background: var(--pre-soft); border-left-color: var(--pre); }
+pre.code .ln.hl2 { background: var(--suf-soft); border-left-color: var(--suf); }
+pre.code .ln.hl3 { background: var(--bad-soft); border-left-color: var(--bad); }
+pre.code .ln.hl4 { background: var(--ans-soft); border-left-color: var(--ans); }
+pre.code .ln.hl5 { background: var(--fix-soft); border-left-color: var(--fix); }
+pre.code .ln.off { opacity: .4; text-decoration: line-through; }
+.k { color: var(--suf); font-weight: 600; }
+.c { color: var(--muted); font-style: italic; }
+.n { color: var(--pre); }
+
+.console {
+  font-family: var(--font-mono); font-size: 14px; background: var(--code-bg); border-radius: 8px;
+  padding: 10px 14px; min-height: 3.2em; overflow-x: auto; white-space: pre-wrap; word-break: break-all;
+}
+.console .out { color: var(--ans); }
+.console .ex { color: var(--bad); }
+.msg { min-height: 3.5em; padding: 10px 14px; border-radius: 8px; background: var(--bg); font-size: 15px; }
+.progress { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+.pill { display: inline-block; font-family: var(--font-mono); font-size: 14px; padding: 2px 12px; border-radius: 99px; border: 1.5px solid var(--line); white-space: nowrap; }
+.pill.t { border-color: var(--ans); color: var(--ans); background: var(--ans-soft); }
+.pill.f { border-color: var(--bad); color: var(--bad); background: var(--bad-soft); }
+.pill.fresh { outline: 2px solid currentColor; outline-offset: 1px; }
+.res-list { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-family: var(--font-mono); font-size: 14px; }
+
+/* 单步执行 */
+.vars { display: flex; gap: 8px; flex-wrap: wrap; }
+.var { font-family: var(--font-mono); padding: 3px 12px; border-radius: 99px; font-size: 14px; border: 1.5px solid var(--line); white-space: pre; }
+.var.i { border-color: var(--fix); color: var(--fix); }
+.var.p { border-color: var(--pre); color: var(--pre); }
+.var.s { border-color: var(--suf); color: var(--suf); }
+.stepper-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+@media (min-width: 720px) { .stepper-grid { grid-template-columns: minmax(0, .7fr) minmax(0, 1.6fr); align-items: start; } }
+.viz { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+.formula { font-family: var(--font-mono); font-size: 15px; background: var(--surface); border: 1px dashed var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: pre; }
+
+/* 测验 */
+.quiz { display: flex; flex-direction: column; gap: 18px; }
+.q { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.q-text { font-weight: 500; }
+.opts { display: flex; flex-direction: column; gap: 6px; }
+.opt { text-align: left; background: var(--bg); }
+.opt.right { background: var(--ans-soft); border-color: var(--ans); }
+.opt.wrong { background: var(--bad-soft); border-color: var(--bad); }
+.explain { font-size: 14px; color: var(--muted); }
+
+/* 清单 */
+.checklist { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.checklist label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.checklist input { margin-top: 6px; accent-color: var(--ans); width: 16px; height: 16px; flex: none; }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+ul.plain, ol.plain { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
+footer { font-size: 13px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:14px">
+  <span class="eyebrow">NeetCode · Two Pointers · Medium</span>
+  <h1>三数之和</h1>
+  <p class="lead">3Sum。这一页从“列表和下标”讲起，先写出三重循环的暴力解，再讲排序和集合去重、有序数组上的双指针，然后把三数之和拆成“固定一个数 + 两数之和”，最后处理最容易写错的去重，走到 O(n²) 的标准解法。每一章只讲一个前置知识，所有 Python 语法都会单独解释。</p>
+</header>
+
+<section class="problem" aria-label="题目">
+  <div><span class="tag">题目</span></div>
+  <p>给你一个整数数组 <code>nums</code>，返回所有满足 <code>nums[i] + nums[j] + nums[k] == 0</code> 的三元组 <code>[nums[i], nums[j], nums[k]]</code>，其中下标 <code>i</code>、<code>j</code>、<code>k</code> <strong>互不相同</strong>。</p>
+  <p>答案中<strong>不能包含重复的三元组</strong>。三元组之间的顺序、每个三元组内部的顺序都可以任意。</p>
+  <div class="example">输入: nums = [-1,0,1,2,-1,-4]
+输出: [[-1,-1,2],[-1,0,1]]
+解释:
+nums[0] + nums[1] + nums[2] = (-1) + 0 + 1 = 0
+nums[1] + nums[2] + nums[4] = 0 + 1 + (-1) = 0
+nums[0] + nums[3] + nums[4] = (-1) + 2 + (-1) = 0
+不同的三元组是 [-1,0,1] 和 [-1,-1,2]
+
+输入: nums = [0,1,1]
+输出: []
+解释: 唯一的三元组加起来不等于 0</div>
+  <p style="font-size:14px;color:var(--muted)">约束：3 ≤ nums.length ≤ 1000，-10⁵ ≤ nums[i] ≤ 10⁵。</p>
+</section>
+
+<nav aria-label="目录" style="display:flex;flex-direction:column;gap:10px">
+  <span class="eyebrow">学习路线</span>
+  <ol class="toc">
+    <li><a href="#list">列表、下标与三元组</a></li>
+    <li><a href="#brute">暴力解：三重循环</a></li>
+    <li><a href="#set">排序与集合去重</a></li>
+    <li><a href="#twosum">有序数组的两数之和</a></li>
+    <li><a href="#reduce">固定一个数，剩下两个用双指针</a></li>
+    <li><a href="#dedup">跳过重复值</a></li>
+    <li><a href="#step">单步执行</a></li>
+    <li><a href="#code">完整代码与复杂度</a></li>
+    <li><a href="#quiz">自测</a></li>
+  </ol>
+</nav>
+
+<!-- 01 -->
+<section id="list">
+  <div class="chap"><span class="num">01</span><h2>列表、下标与三元组</h2></div>
+  <p>Python 的<strong>列表</strong>（list）是一串按顺序排好的值，用方括号写。每个位置有一个<strong>下标</strong>，从 0 开始：</p>
+<pre class="code" data-lang="py">nums = [-1, 0, 1, 2, -1, -4]
+len(nums)      # 6，一共 6 个数
+nums[0]        # -1
+nums[4]        # -1，值和 nums[0] 一样，但它是另一个位置
+nums[-1]       # -4，负数下标从后往前数，-1 是最后一个</pre>
+  <ul class="plain">
+    <li><strong>三元组</strong>就是三个数组成的小列表，比如 <code>[-1, 0, 1]</code>。本题的答案是“装着若干个三元组的列表”，也就是列表里套列表：<code>[[-1, -1, 2], [-1, 0, 1]]</code>。一个都找不到时返回空列表 <code>[]</code>。</li>
+    <li><code>res = []</code> 创建一个空列表；<code>res.append(x)</code> 把 x 加到末尾。<code>res.append([1, 2, 3])</code> 加进去的是一整个小列表，res 的长度只加 1。</li>
+  </ul>
+
+  <h3>题目里的两个“不同”，意思不一样</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>题目的说法</th><th>指的是</th><th>例子</th></tr>
+    <tr><td>下标 i、j、k 互不相同</td><td><strong>位置</strong>不同，值可以相同</td><td>nums[0] 和 nums[4] 都是 -1，是两个位置，可以一起用，得到 <code>[-1, -1, 2]</code></td></tr>
+    <tr><td>不能有重复的三元组</td><td>只看<strong>值</strong>，不看位置，也不看顺序</td><td>下标 (0, 1, 2) 和 (1, 2, 4) 选出来的都是 -1、0、1，只能算一组</td></tr>
+  </table></div>
+  <p>点一组下标 (i, j, k)，看它在示例 1 里选中了哪三个格子：</p>
+  <div class="lab">
+    <div class="controls" id="idPicks" role="group" aria-label="选一组下标"></div>
+    <div class="arr-wrap"><div class="arr" id="idCells"></div></div>
+    <div class="console" id="idLog" aria-live="polite"></div>
+  </div>
+  <p class="note">同理，<code>nums = [0, 0, 0]</code> 的答案是 <code>[[0, 0, 0]]</code>：三个 0 在三个不同的位置上，可以一起用。</p>
+</section>
+
+<!-- 02 -->
+<section id="brute">
+  <div class="chap"><span class="num">02</span><h2>暴力解：三重循环</h2></div>
+  <p>最直接的想法：把“选三个不同位置”的所有方式都试一遍，加起来等于 0 就记下来。</p>
+<pre class="code" data-lang="py">n = len(nums)
+for i in range(n):
+    for j in range(i + 1, n):
+        for k in range(j + 1, n):
+            if nums[i] + nums[j] + nums[k] == 0:
+                print(i, j, k)</pre>
+  <ul class="plain">
+    <li><code>range(n)</code> 依次产生 0, 1, …, n-1；<code>range(a, n)</code> 从 a 开始，同样到 n-1 为止，<strong>不包含 n</strong>。比如 <code>list(range(2, 5))</code> 是 <code>[2, 3, 4]</code>。</li>
+    <li><code>for x in range(...):</code> 让 x 依次取这些值，每取一个，就把下面缩进的代码执行一遍。三层 for 套在一起时，外层每走一步，里面两层都要从头完整走一遍。</li>
+    <li><strong>j 从 i + 1 开始，k 从 j + 1 开始</strong>，保证了 i &lt; j &lt; k。这样三个下标一定互不相同，而且同一组位置只会被试一次：(0, 1, 2) 和 (1, 0, 2) 是同样三个位置，只试前一种就够。</li>
+  </ul>
+  <p>以 n = 4 为例，三重循环依次试的是：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>第几次</th><th>i</th><th>j</th><th>k</th></tr>
+    <tr><td>1</td><td>0</td><td>1</td><td>2</td></tr>
+    <tr><td>2</td><td>0</td><td>1</td><td>3</td></tr>
+    <tr><td>3</td><td>0</td><td>2</td><td>3</td></tr>
+    <tr><td>4</td><td>1</td><td>2</td><td>3</td></tr>
+  </table></div>
+  <p>一共 4 组，正好是“从 4 个里选 3 个”的组合数 C(4, 3)。</p>
+
+  <h3>问题一：太慢</h3>
+  <p>n 个数里选 3 个，一共 C(n, 3) = n(n-1)(n-2) / 6 种，大约 n³ / 6，时间复杂度 <strong>O(n³)</strong>。n = 1000 时约 1.66 亿种组合，Python 一秒大约只能做几千万次这样的简单运算，会超时。</p>
+
+  <h3>问题二：重复</h3>
+  <p>在示例 1 上跑，和为 0 的有三组：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>(i, j, k)</th><th>选出的值</th><th>和</th></tr>
+    <tr><td><code>(0, 1, 2)</code></td><td><code>[-1, 0, 1]</code></td><td class="ans">0</td></tr>
+    <tr><td><code>(0, 3, 4)</code></td><td><code>[-1, 2, -1]</code></td><td class="ans">0</td></tr>
+    <tr><td><code>(1, 2, 4)</code></td><td><code>[0, 1, -1]</code></td><td class="ans">0</td></tr>
+  </table></div>
+  <p>第一组和第三组是同样三个数，只是顺序不同。题目要求不重复，只能留一个。下一章先用排序和集合解决重复，第 04 章开始解决慢。</p>
+</section>
+
+<!-- 03 -->
+<section id="set">
+  <div class="chap"><span class="num">03</span><h2>排序与集合去重</h2></div>
+  <h3>排序：sort 和 sorted</h3>
+<pre class="code" data-lang="py">nums = [-1, 0, 1, 2, -1, -4]
+nums.sort()            # 原地排序，nums 本身被改掉了
+nums                   # [-4, -1, -1, 0, 1, 2]
+
+b = sorted([3, 1, 2])  # 返回一个新的有序列表，原来的列表不变
+b                      # [1, 2, 3]</pre>
+  <ul class="plain">
+    <li><code>nums.sort()</code> 直接修改 nums，返回值是 <code>None</code>（Python 里表示“没有值”）。常见错误是写成 <code>nums = nums.sort()</code>，结果 nums 变成了 None。</li>
+    <li>排序花 O(n log n) 时间。后面的算法是 O(n²)，n log n 比 n² 小，排序不影响总复杂度。</li>
+    <li>排好序之后，i &lt; j &lt; k 就意味着 nums[i] ≤ nums[j] ≤ nums[k]：<strong>每个三元组都按从小到大的顺序被选出来</strong>。同样三个数，写出来的样子就完全一样了。上一章的 <code>[-1, 0, 1]</code> 和 <code>[0, 1, -1]</code> 都会变成 <code>[-1, 0, 1]</code>。</li>
+  </ul>
+
+  <h3>集合 set 与元组 tuple</h3>
+  <p><strong>集合</strong>（set）是一种不允许重复的容器：同一个值放两次，里面也只有一个。</p>
+<pre class="code" data-lang="py">seen = set()             # 空集合。注意 {} 是空字典，不是空集合
+seen.add((-1, 0, 1))
+seen.add((-1, 0, 1))     # 已经有了，不会再多一个
+len(seen)                # 1
+
+seen.add([-1, 0, 1])     # TypeError: unhashable type: 'list'</pre>
+  <ul class="plain">
+    <li><code>(-1, 0, 1)</code> 用圆括号，叫<strong>元组</strong>（tuple）。它和列表很像，区别是创建之后不能修改。set 只能装不能修改的值，所以列表要先用 <code>tuple(lst)</code> 转成元组再放进去。反过来，<code>list(t)</code> 把元组转回列表。</li>
+    <li>set 判断“重复”是逐个位置比较：<code>(-1, 0, 1)</code> 和 <code>(0, 1, -1)</code> 在它眼里是两个不同的元组。所以<strong>必须先排序</strong>，set 去重才有效。</li>
+    <li><code>[list(t) for t in seen]</code> 叫<strong>列表推导式</strong>，读作“对 seen 里的每个 t，取 list(t)，收集成一个新列表”。</li>
+  </ul>
+
+  <h3>暴力解完整代码</h3>
+<pre class="code" data-lang="py">res = set()
+nums.sort()
+for i in range(len(nums)):
+    for j in range(i + 1, len(nums)):
+        for k in range(j + 1, len(nums)):
+            if nums[i] + nums[j] + nums[k] == 0:
+                res.add((nums[i], nums[j], nums[k]))
+return [list(t) for t in res]</pre>
+  <p>在下面输入数组，看三重循环试过的每一组。先<strong>不勾选</strong>“先排序”，看 set 为什么会去重失败，再勾上对比。点表格的一行，上方会标出这一组选中的格子：</p>
+  <div class="lab">
+    <div class="field"><label for="enInput">nums =</label>
+      <input type="text" id="enInput" value="[-1,0,1,2,-1,-4]" autocomplete="off" spellcheck="false" aria-describedby="enErr"></div>
+    <div class="controls" id="enPresets"></div>
+    <span class="err" id="enErr" hidden></span>
+    <label class="toggle"><input type="checkbox" id="enSort">先排序（三重循环前执行 <code>nums.sort()</code>）</label>
+    <div class="arr-wrap"><div class="arr" id="enCells"></div></div>
+    <p id="enSum" style="font-size:15px"></p>
+    <div class="tabs" id="enFilter" role="group" aria-label="表格筛选">
+      <button type="button" data-f="all" aria-pressed="true">全部</button>
+      <button type="button" data-f="zero" aria-pressed="false">只看和为 0</button>
+    </div>
+    <div class="tbl-wrap scroll"><table>
+      <thead><tr><th>#</th><th>(i, j, k)</th><th>三个数</th><th>和</th><th>说明</th></tr></thead>
+      <tbody id="enBody"></tbody>
+    </table></div>
+    <div class="console" id="enLog" aria-live="polite"></div>
+  </div>
+  <p class="note warn">暴力解是对的，但 O(n³) 太慢，set 还要额外的空间。接下来三章把它降到 O(n²)：先学有序数组上找两个数的双指针（第 04 章），再把三数之和拆成“固定一个数 + 两数之和”（第 05 章），最后不靠 set 去重（第 06 章）。</p>
+</section>
+
+<!-- 04 -->
+<section id="twosum">
+  <div class="chap"><span class="num">04</span><h2>有序数组的两数之和</h2></div>
+  <p>先放下三数之和，看一个更简单的问题：数组已经<strong>从小到大排好</strong>，找出所有和等于 <code>target</code> 的两个数（两个下标不同）。</p>
+  <p>用<strong>双指针</strong>：左指针 <span class="pre mono">l</span> 从最左边（最小的数）出发，右指针 <span class="suf mono">r</span> 从最右边（最大的数）出发，每次看 <code>nums[l] + nums[r]</code>：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>情况</th><th>做法</th><th>原因</th></tr>
+    <tr><td>和 &lt; target</td><td><code>l += 1</code></td><td>和太小，要换一个更大的数。只有 l 往右挪，和才会变大</td></tr>
+    <tr><td>和 &gt; target</td><td><code>r -= 1</code></td><td>和太大，要换一个更小的数。只有 r 往左挪，和才会变小</td></tr>
+    <tr><td>和 == target</td><td>记下来，<code>l += 1</code> 且 <code>r -= 1</code></td><td>这两个数都用过了，同时往中间走，继续找</td></tr>
+  </table></div>
+<pre class="code" data-lang="py">l, r = 0, len(nums) - 1
+while l &lt; r:
+    s = nums[l] + nums[r]
+    if s &gt; target:
+        r -= 1
+    elif s &lt; target:
+        l += 1
+    else:
+        pairs.append([nums[l], nums[r]])
+        l, r = l + 1, r - 1</pre>
+  <ul class="plain">
+    <li><code>while 条件:</code> 只要条件为真，就一直重复下面缩进的代码，每一轮开始前都会重新检查条件。</li>
+    <li><code>if / elif / else</code> 从上往下检查，<strong>第一个成立的</strong>分支执行，其余的跳过。<code>elif</code> 是 “else if” 的缩写。这里三种情况互不重叠，每轮必定执行其中恰好一个。</li>
+    <li><code>l, r = 0, len(nums) - 1</code> 是同时赋值：先把右边的值都算好，再依次交给左边的变量。<code>l, r = l + 1, r - 1</code> 就是“l 加一、r 减一”。</li>
+    <li>条件是 <code>l &lt; r</code> 而不是 <code>l &lt;= r</code>：l == r 时两个指针在同一个位置，同一个数不能用两次。</li>
+  </ul>
+
+  <h3>为什么挪指针不会漏掉答案</h3>
+  <p>以 <code>nums = [-4, -2, 0, 1, 3, 6]</code>、<code>target = 1</code> 为例。一开始 <code>nums[l] + nums[r] = (-4) + 6 = 2</code>，太大了。</p>
+  <p>6 是当前范围里<strong>最大</strong>的数，-4 是<strong>最小</strong>的数。6 和最小的 -4 配都已经超过 1 了，和范围里任何别的数配只会更大。所以 6 不可能出现在任何一个答案里，可以放心扔掉，<code>r -= 1</code>。</p>
+  <p>反过来也一样：和太小时，nums[l] 和最大的 nums[r] 配都不够，和谁配都不够，扔掉 nums[l]。</p>
+  <p class="note ok">每一步至少扔掉一个数，范围从 n 个一路缩到不足两个，所以最多走 n 步，时间 <strong>O(n)</strong>，比两层循环试所有的对（O(n²)）快得多。这一切都靠数组<strong>有序</strong>。</p>
+  <p>输入一个数组和 target，一步一步看（数组会自动排序；变淡的格子是已经扔掉的数）：</p>
+  <div class="lab">
+    <div class="inputs two">
+      <div class="field"><label for="tsArr">nums =</label>
+        <input type="text" id="tsArr" value="[-4,-2,0,1,3,6]" autocomplete="off" spellcheck="false" aria-describedby="tsErr"></div>
+      <div class="field"><label for="tsTarget">target =</label>
+        <input type="text" id="tsTarget" value="1" autocomplete="off" spellcheck="false" aria-describedby="tsErr"></div>
+    </div>
+    <div class="controls" id="tsPresets"></div>
+    <span class="err" id="tsErr" hidden></span>
+    <div>
+      <div class="row-label" id="tsNote"></div>
+      <div class="arr-wrap" id="tsWrap"><div class="arr" id="tsCells"></div></div>
+    </div>
+    <div class="stepper-grid">
+      <div class="viz">
+        <div class="vars"><span class="var p" id="tsL"></span><span class="var s" id="tsR"></span></div>
+        <div class="vars"><span class="var" id="tsS"></span></div>
+        <div class="res-list" id="tsPairs"></div>
+      </div>
+      <pre class="code" id="tsCode"></pre>
+    </div>
+    <div class="msg" id="tsMsg" aria-live="polite"></div>
+    <div class="lab-head">
+      <div class="controls">
+        <button type="button" id="tsReset">重来</button>
+        <button type="button" id="tsPrev">上一步</button>
+        <button type="button" id="tsNext" class="primary">下一步</button>
+        <button type="button" id="tsPlay">自动播放</button>
+      </div>
+      <span class="progress" id="tsProg"></span>
+    </div>
+  </div>
+</section>
+
+<!-- 05 -->
+<section id="reduce">
+  <div class="chap"><span class="num">05</span><h2>固定一个数，剩下两个用双指针</h2></div>
+  <p>回到三数之和。<code>a + b + c = 0</code> 可以改写成 <code>b + c = -a</code>。如果先固定第一个数 <code>a = nums[i]</code>，问题就变成：在剩下的数里找两个数，和等于 <code>-nums[i]</code>。这正是上一章的问题。</p>
+  <div class="formula">三数之和  =  对每个 i：在 nums[i] 右边找两个数，和为 -nums[i]</div>
+  <p>先排序，再让 nums[i] 当三元组里<strong>最小</strong>的那个（位置最靠左），另外两个只从 i 的右边找：<code>l = i + 1</code>，<code>r = len(nums) - 1</code>。以排好序的示例 1、i = 1 为例：</p>
+  <div>
+    <div class="row-label">固定 <span class="fix">i = 1</span>（nums[i] = -1），在右边 [-1, 0, 1, 2] 里找两个数，和为 1</div>
+    <div class="arr-wrap"><div class="arr" id="rdCells"></div></div>
+  </div>
+<pre class="code" data-lang="py">nums.sort()
+for i in range(len(nums)):
+    l, r = i + 1, len(nums) - 1
+    while l &lt; r:
+        total = nums[i] + nums[l] + nums[r]
+        if total &gt; 0:            # 太大：右指针左移
+            r -= 1
+        elif total &lt; 0:          # 太小：左指针右移
+            l += 1
+        else:                    # 找到一组
+            res.append([nums[i], nums[l], nums[r]])
+            l, r = l + 1, r - 1</pre>
+  <ul class="plain">
+    <li>拿 total 和 0 比，与拿 <code>nums[l] + nums[r]</code> 和 <code>-nums[i]</code> 比完全等价（两边同时加 nums[i]），写起来更省事。</li>
+    <li><strong>为什么只往右找</strong>：i 左边的数都已经当过“第一个数”了，包含它们的三元组在前面的轮次里都找过。只往右找也保证了 i &lt; l &lt; r，三个下标一定不同。</li>
+    <li>外层 n 轮，每轮双指针最多走 n 步，总共 <strong>O(n²)</strong>。</li>
+  </ul>
+  <p>在排好序的示例 1 <code>[-4, -1, -1, 0, 1, 2]</code> 上，每一轮找到的是：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>i</th><th>nums[i]</th><th>要找的和</th><th>在哪里找</th><th>找到的三元组</th></tr>
+    <tr><td>0</td><td>-4</td><td>4</td><td><code>[-1, -1, 0, 1, 2]</code></td><td>没有，最大的两个 1 + 2 也才 3</td></tr>
+    <tr><td>1</td><td>-1</td><td>1</td><td><code>[-1, 0, 1, 2]</code></td><td class="ans"><code>[-1, -1, 2]</code>、<code>[-1, 0, 1]</code></td></tr>
+    <tr><td>2</td><td>-1</td><td>1</td><td><code>[0, 1, 2]</code></td><td class="bad"><code>[-1, 0, 1]</code>，重复了</td></tr>
+    <tr><td>3</td><td>0</td><td>0</td><td><code>[1, 2]</code></td><td>没有</td></tr>
+    <tr><td>4</td><td>1</td><td>-1</td><td><code>[2]</code></td><td>没有，只剩一个数</td></tr>
+    <tr><td>5</td><td>2</td><td>-2</td><td><code>[]</code></td><td>没有</td></tr>
+  </table></div>
+  <p class="note warn">i = 2 又找到了一次 <code>[-1, 0, 1]</code>。不用 set，怎么在找的过程中就避免重复？下一章。</p>
+</section>
+
+<!-- 06 -->
+<section id="dedup">
+  <div class="chap"><span class="num">06</span><h2>跳过重复值</h2></div>
+  <p>排好序后，相同的值都挨在一起。重复的三元组只会从两个地方来：<strong>nums[i] 和上一轮相同</strong>，或者<strong>找到一组之后 nums[l] 还是同一个值</strong>。</p>
+
+  <h3>来源一：nums[i] 和上一个相同</h3>
+<pre class="code" data-lang="py">if i &gt; 0 and nums[i] == nums[i - 1]:
+    continue</pre>
+  <ul class="plain">
+    <li><code>continue</code>：立刻结束<strong>这一轮</strong>循环，直接进入下一轮（i 加一），下面的代码这一轮都不执行。</li>
+    <li>为什么可以跳过：nums[i] 和 nums[i - 1] 值相同，而 nums[i - 1] 当第一个数时，可以挑的范围（i - 1 右边）比 nums[i] 的还多一个位置。nums[i] 能找到的组合，上一轮全都找过了。</li>
+    <li><strong><code>i &gt; 0</code> 不能省</strong>：i = 0 时 <code>nums[i - 1]</code> 就是 <code>nums[-1]</code>，也就是最后一个数，Python 不会报错。<code>nums = [0, 0, 0]</code> 时，i = 0 会拿第一个 0 和最后一个 0 比，误以为重复而跳过，最后返回 <code>[]</code>。</li>
+    <li><code>A and B</code> 两边都真才是真，Python 从左往右算，A 为假时<strong>根本不会去算 B</strong>，这叫<strong>短路</strong>。写了 <code>i &gt; 0</code>，i = 0 时就不会去读 nums[-1]。</li>
+  </ul>
+
+  <h3>为什么和前一个比，而不是和后一个比</h3>
+  <p>看 <code>nums = [-1, -1, 2]</code>：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>写法</th><th>过程</th><th>结果</th></tr>
+    <tr><td><code>nums[i] == nums[i - 1]</code></td><td>i = 0 不检查，固定第一个 -1，l 用第二个 -1，找到 [-1, -1, 2]；i = 1 和前一个相同，跳过</td><td class="ans">[[-1, -1, 2]]</td></tr>
+    <tr><td><code>nums[i] == nums[i + 1]</code></td><td>i = 0 时第一个 -1 和后一个相同，被跳过；i = 1 时右边只剩一个 2，凑不出</td><td class="bad">[]，漏了</td></tr>
+  </table></div>
+  <p>和前一个比的意思是：每个值<strong>只在第一次出现时</strong>当 nums[i]，这时它右边还能用上和它相同的数。和后一个比恰好反过来，留下的是最后一次出现，右边已经没有同值的数了（而且 i 走到最后一个时，nums[i + 1] 还会越界）。</p>
+
+  <h3>来源二：找到一组后，nums[l] 还是同一个值</h3>
+  <p>看 <code>nums = [-2, 0, 0, 2, 2]</code>，i = 0：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>l</th><th>r</th><th>total</th><th>发生了什么</th></tr>
+    <tr><td>1</td><td>4</td><td>(-2) + 0 + 2 = 0</td><td class="ans">找到 [-2, 0, 2]，l、r 变成 2、3</td></tr>
+    <tr><td>2</td><td>3</td><td>(-2) + 0 + 2 = 0</td><td class="bad">又是 [-2, 0, 2]，重复了</td></tr>
+  </table></div>
+  <p>办法：找到一组、两个指针往中间走之后，如果新的 nums[l] 和刚用过的 nums[l - 1] 相同，就继续往右跳：</p>
+<pre class="code" data-lang="py">res.append([nums[i], nums[l], nums[r]])
+l, r = l + 1, r - 1
+while l &lt; r and nums[l] == nums[l - 1]:
+    l += 1</pre>
+  <ul class="plain">
+    <li>这里用 <code>while</code> 而不是 <code>if</code>：可能连着好几个相同的值，要一直跳到不同为止。上面的例子里，l 从 2 跳到 3，这时 l == r，循环结束，不会再找到第二次。</li>
+    <li><strong>守卫 <code>l &lt; r</code> 写在前面</strong>，和外层的 <code>i &gt; 0</code> 是一个道理。不写它，<code>[0, 0, 0]</code> 找到一组后 l = 2、r = 1，nums[2] 和 nums[1] 相同，l 变成 3，再去读 nums[3] 就报 <code>IndexError: list index out of range</code>。</li>
+    <li><strong>r 不用跳</strong>：l 跳到一个更大的值之后，如果 nums[r] 还是旧值，total = nums[i] + 更大的 nums[l] + nums[r] 一定大于 0，下一轮自然会执行 <code>r -= 1</code>。重复的 r 会被正常流程挪走，凑不出同一组。（对称地也写一个跳过 r 的 while，结果一样。）</li>
+    <li>只在<strong>找到答案之后</strong>才需要跳。total 不等于 0 时，就算遇到重复值也只是多比较一次，不会产生重复答案。</li>
+  </ul>
+
+  <h3>提前结束：nums[i] &gt; 0 就 break</h3>
+<pre class="code" data-lang="py">if nums[i] &gt; 0:
+    break</pre>
+  <p>排序后 nums[i] 右边的数都 ≥ nums[i]。如果 nums[i] 已经大于 0，三个数都是正数，加起来不可能等于 0，后面的 i 只会更大。这一句不写也对，但能省时间。</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>语句</th><th>作用</th><th>本题里用在哪</th></tr>
+    <tr><td><code>continue</code></td><td>结束这一轮，进入下一轮</td><td>nums[i] 是重复值：这个 i 不用看，下一个 i 可能有用</td></tr>
+    <tr><td><code>break</code></td><td>结束整个循环</td><td>nums[i] &gt; 0：这个 i 和后面所有的 i 都不可能</td></tr>
+  </table></div>
+  <p class="note ok">拼起来就是最终解法：先排序；外层 for 固定 nums[i]，用 break 提前结束、用 continue 跳过重复值；内层双指针找另外两个数，找到一组后跳过重复的 nums[l]。下一章逐行单步看。</p>
+</section>
+
+<!-- 07 -->
+<section id="step">
+  <div class="chap"><span class="num">07</span><h2>单步执行</h2></div>
+  <p>输入任意整数数组，一步一步看代码怎么走。上方是数组和三个指针，左边是变量和答案，右边高亮当前执行的代码行。取消勾选“去重”，可以看到不去重时哪些答案会重复。</p>
+  <div class="lab">
+    <div class="field"><label for="stInput">nums =</label>
+      <input type="text" id="stInput" value="[-1,0,1,2,-1,-4]" autocomplete="off" spellcheck="false" aria-describedby="stErr"></div>
+    <div class="controls" id="stPresets"></div>
+    <span class="err" id="stErr" hidden></span>
+    <label class="toggle"><input type="checkbox" id="stDedupe" checked>去重（执行代码里的两处跳过重复）</label>
+    <div>
+      <div class="row-label">数组 nums（<span class="fix">紫色是 <span class="mono">i</span></span>，<span class="pre">琥珀色是 <span class="mono">l</span></span>，<span class="suf">蓝色是 <span class="mono">r</span></span>）</div>
+      <div class="arr-wrap" id="stWrap"><div class="arr" id="stCells"></div></div>
+    </div>
+    <div class="stepper-grid">
+      <div class="viz">
+        <div class="vars"><span class="var i" id="stI"></span><span class="var p" id="stL"></span><span class="var s" id="stR"></span></div>
+        <div class="vars"><span class="var" id="stT"></span></div>
+        <div class="res-list" id="stRes"></div>
+      </div>
+      <pre class="code" id="stCode"></pre>
+    </div>
+    <div class="msg" id="stMsg" aria-live="polite"></div>
+    <div class="lab-head">
+      <div class="controls">
+        <button type="button" id="stReset">重来</button>
+        <button type="button" id="stPrev">上一步</button>
+        <button type="button" id="stNext" class="primary">下一步</button>
+        <button type="button" id="stPlay">自动播放</button>
+      </div>
+      <span class="progress" id="stProg"></span>
+    </div>
+  </div>
+  <p style="font-size:14px;color:var(--muted)">颜色说明：变淡的格子已经排除，不会再被用到；虚线划掉的是因为重复被跳过的值；绿色是刚凑成 0 的三个数；答案里红色的三元组是重复的（只有关掉去重时才会出现）。</p>
+</section>
+
+<!-- 08 -->
+<section id="code">
+  <div class="chap"><span class="num">08</span><h2>完整代码与复杂度</h2></div>
+  <div class="tabs" role="tablist" aria-label="语言">
+    <button type="button" role="tab" aria-selected="true" data-lang="py">Python</button>
+    <button type="button" role="tab" aria-selected="false" data-lang="java">Java</button>
+    <button type="button" role="tab" aria-selected="false" data-lang="cpp">C++</button>
+  </div>
+<pre class="code" data-lang="py" id="code-py">class Solution:
+    def threeSum(self, nums: List[int]) -&gt; List[List[int]]:
+        res = []
+        nums.sort()                                    # 排序：双指针和去重的前提
+
+        for i in range(len(nums)):
+            if nums[i] &gt; 0:                            # 最小的数都大于 0，不可能凑出 0
+                break
+            if i &gt; 0 and nums[i] == nums[i - 1]:       # 和上一个固定的数相同，跳过
+                continue
+
+            l, r = i + 1, len(nums) - 1
+            while l &lt; r:
+                total = nums[i] + nums[l] + nums[r]
+                if total &gt; 0:                          # 太大：右指针左移
+                    r -= 1
+                elif total &lt; 0:                        # 太小：左指针右移
+                    l += 1
+                else:                                  # 找到一组
+                    res.append([nums[i], nums[l], nums[r]])
+                    l, r = l + 1, r - 1
+                    while l &lt; r and nums[l] == nums[l - 1]:  # 跳过重复的 nums[l]
+                        l += 1
+
+        return res</pre>
+<pre class="code" data-lang="java" id="code-java" hidden>class Solution {
+    public List&lt;List&lt;Integer&gt;&gt; threeSum(int[] nums) {
+        Arrays.sort(nums);
+        List&lt;List&lt;Integer&gt;&gt; res = new ArrayList&lt;&gt;();
+
+        for (int i = 0; i &lt; nums.length; i++) {
+            if (nums[i] &gt; 0) break;
+            if (i &gt; 0 &amp;&amp; nums[i] == nums[i - 1]) continue;
+
+            int l = i + 1, r = nums.length - 1;
+            while (l &lt; r) {
+                int total = nums[i] + nums[l] + nums[r];
+                if (total &gt; 0) {
+                    r--;
+                } else if (total &lt; 0) {
+                    l++;
+                } else {
+                    res.add(Arrays.asList(nums[i], nums[l], nums[r]));
+                    l++;
+                    r--;
+                    while (l &lt; r &amp;&amp; nums[l] == nums[l - 1]) l++;
+                }
+            }
+        }
+        return res;
+    }
+}</pre>
+<pre class="code" data-lang="cpp" id="code-cpp" hidden>class Solution {
+public:
+    vector&lt;vector&lt;int&gt;&gt; threeSum(vector&lt;int&gt;&amp; nums) {
+        sort(nums.begin(), nums.end());
+        vector&lt;vector&lt;int&gt;&gt; res;
+
+        for (int i = 0; i &lt; (int)nums.size(); i++) {
+            if (nums[i] &gt; 0) break;
+            if (i &gt; 0 &amp;&amp; nums[i] == nums[i - 1]) continue;
+
+            int l = i + 1, r = (int)nums.size() - 1;
+            while (l &lt; r) {
+                int total = nums[i] + nums[l] + nums[r];
+                if (total &gt; 0) {
+                    r--;
+                } else if (total &lt; 0) {
+                    l++;
+                } else {
+                    res.push_back({nums[i], nums[l], nums[r]});
+                    l++;
+                    r--;
+                    while (l &lt; r &amp;&amp; nums[l] == nums[l - 1]) l++;
+                }
+            }
+        }
+        return res;
+    }
+};</pre>
+  <p style="font-size:14px;color:var(--muted)"><code>class Solution:</code> 和 <code>def threeSum(self, nums: List[int]) -&gt; List[List[int]]:</code> 是 NeetCode 给定的外壳。<code>List[int]</code> 表示整数列表，<code>List[List[int]]</code> 表示“列表的列表”，这些只是类型提示，不影响运行。NeetCode 官方题解写的是 <code>for i, a in enumerate(nums):</code>，<code>enumerate</code> 每次同时给出下标 i 和值 a（也就是 nums[i]），和本页的写法等价。</p>
+  <h3>复杂度</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>解法</th><th>时间</th><th>额外空间</th><th>说明</th></tr>
+    <tr><td>三重循环 + set</td><td>O(n³)</td><td>O(m)</td><td>m 是答案个数，set 要存下所有三元组</td></tr>
+    <tr><td>固定一个数 + 哈希表</td><td>O(n²)</td><td>O(n)</td><td>用 Two Sum 的哈希表找另外两个数，去重更麻烦</td></tr>
+    <tr><td>排序 + 双指针</td><td>O(n²)</td><td class="ans">O(1)</td><td>不计排序和答案本身，只用了 i、l、r 几个变量</td></tr>
+  </table></div>
+  <p>时间：排序 O(n log n)，外层 n 轮、每轮双指针最多 n 步是 O(n²)，n² 比 n log n 大，所以总的是 <strong>O(n²)</strong>。n = 1000 时双指针大约走 50 万步，而暴力解要试 1.66 亿组。</p>
+  <p>空间：排序本身可能用到额外空间，Python 的 sort 最坏要 O(n)，Java、C++ 对整数排序一般是 O(log n)。所以很多题解会写“O(1) 或 O(n)，取决于排序算法”。</p>
+  <h3>最容易写错的六个地方</h3>
+  <ul class="plain">
+    <li><strong>写成 <code>nums = nums.sort()</code></strong>：sort() 返回 None，nums 变成 None，下一行就报错。</li>
+    <li><strong>外层去重漏了 <code>i &gt; 0</code></strong>：<code>[0, 0, 0]</code> 在 i = 0 时就拿 nums[-1] 比较，返回 <code>[]</code>。</li>
+    <li><strong>写成 <code>nums[i] == nums[i + 1]</code></strong>：<code>[-1, -1, 2]</code> 会漏掉 [-1, -1, 2]。</li>
+    <li><strong>找到一组后忘了移动指针</strong>：total 一直是 0，同一组被反复加进 res，死循环。</li>
+    <li><strong>内层写成 <code>while l &lt;= r</code></strong>：l == r 时同一个数被用了两次。<code>[-2, 1, 3]</code> 会错误地得到 [[-2, 1, 1]]。</li>
+    <li><strong>跳过重复的 while 没写 <code>l &lt; r</code></strong>：<code>[0, 0, 0]</code> 报 IndexError。</li>
+  </ul>
+</section>
+
+<!-- 09 -->
+<section id="quiz">
+  <div class="chap"><span class="num">09</span><h2>自测</h2></div>
+  <p>点选答案，立即判分。全部答对说明前置知识已经过关。</p>
+  <div class="quiz" id="quizBox"></div>
+  <p class="progress" id="quizScore"></p>
+
+  <h3 style="margin-top:12px">掌握清单</h3>
+  <ul class="checklist" id="checklist">
+    <li><label><input type="checkbox" id="ck1"><span>能说清“下标互不相同”和“三元组不重复”分别指什么。</span></label></li>
+    <li><label><input type="checkbox" id="ck2"><span>能写出三重循环，解释 j 从 i + 1、k 从 j + 1 开始的原因。</span></label></li>
+    <li><label><input type="checkbox" id="ck3"><span>知道 <code>sort()</code> 原地排序、返回 None；知道 set 里要放 tuple，而且要先排序。</span></label></li>
+    <li><label><input type="checkbox" id="ck4"><span>能解释有序数组的双指针里“太小挪 l、太大挪 r”为什么不会漏掉答案。</span></label></li>
+    <li><label><input type="checkbox" id="ck5"><span>能说出外层去重为什么和 <code>nums[i - 1]</code> 比，以及 <code>i &gt; 0</code> 在防什么。</span></label></li>
+    <li><label><input type="checkbox" id="ck6"><span>能手动模拟 <code>[-2, 0, 0, 2, 2]</code>，说出内层去重在哪一步起作用，以及为什么 r 不用跳。</span></label></li>
+    <li><label><input type="checkbox" id="ck7"><span>不看本页，10 分钟内写出可以通过的排序 + 双指针代码。</span></label></li>
+  </ul>
+</section>
+
+<footer>同类题型：两数之和 II（Two Sum II，有序数组）、最接近的三数之和（3Sum Closest）、四数之和（4Sum，再多固定一个数）、盛最多水的容器（Container With Most Water）都用到“排序后左右两个指针往中间走”这个思想。</footer>
+</main>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const fmt = (a) => "[" + a.join(", ") + "]";
+  const tup = (a) => "(" + a.join(", ") + ")";
+  const num = (v) => (v < 0 ? "(" + v + ")" : String(v));
+  const sumStr = (vals) => vals.map(num).join(" + ");
+  const asc = (x, y) => x - y;
+  const sameArr = (a, b) => a.length === b.length && a.every((v, k) => v === b[k]);
+  function showErr(id, msg) { $(id).textContent = msg || ""; $(id).hidden = !msg; return !!msg; }
+
+  // 接受 [-1,0,1] 或 -1 0 1 这类写法
+  function parseArr(text, minLen, maxLen) {
+    const t = text.trim().replace(/[−–]/g, "-").replace(/^\[/, "").replace(/\]$/, "");
+    const parts = t.split(/[\s,，]+/).filter(Boolean);
+    if (!parts.length) return { err: "请输入整数，用逗号分隔，例如 [-1,0,1,2,-1,-4]" };
+    const bad = parts.find((p) => !/^-?\d+$/.test(p));
+    if (bad !== undefined) return { err: "“" + bad + "” 不是整数。请用逗号或空格分隔整数，例如 [-1,0,1,2,-1,-4]" };
+    const arr = parts.map((p) => Number(p) || 0);
+    if (arr.some((v) => v < -99 || v > 99)) return { err: "演示里每个数限制在 -99 到 99，方便看清" };
+    if (arr.length < minLen) return { err: "至少需要 " + minLen + " 个数" + (minLen === 3 ? "（题目约束 nums.length ≥ 3）" : "") };
+    if (arr.length > maxLen) return { err: "演示里最多 " + maxLen + " 个数，方便看清" };
+    return { arr };
+  }
+  function parseTarget(text) {
+    const t = text.trim().replace(/[−–]/g, "-");
+    if (!/^-?\d+$/.test(t)) return { err: "target 要是一个整数" };
+    const v = Number(t) || 0;
+    if (v < -199 || v > 199) return { err: "演示里 target 限制在 -199 到 199" };
+    return { v };
+  }
+
+  /* ---------- 语法高亮 ---------- */
+  const KW = /\b(class|def|for|in|range|if|elif|else|not|and|or|while|return|break|continue|len|set|tuple|list|sorted|print|self|None|True|False|List|public|int|new|true|false|Integer|ArrayList|Arrays|vector)\b|\b(\d+)\b/g;
+  function hlCode(text, lang) {
+    const marker = lang === "py" ? "#" : "//";
+    const pos = text.indexOf(marker);
+    const codePart = pos >= 0 ? text.slice(0, pos) : text;
+    const comPart = pos >= 0 ? text.slice(pos) : "";
+    const body = esc(codePart).replace(KW, (m, k, n) => k ? '<span class="k">' + k + "</span>" : '<span class="n">' + n + "</span>");
+    return body + (comPart ? '<span class="c">' + esc(comPart) + "</span>" : "");
+  }
+  document.querySelectorAll("pre.code[data-lang]").forEach((pre) => {
+    const lang = pre.dataset.lang;
+    pre.innerHTML = pre.textContent.split("\n").map((l) => '<span class="ln">' + (hlCode(l, lang) || " ") + "</span>").join("");
+  });
+  function renderCode(el, lines) {
+    el.innerHTML = lines.map((l, k) => '<span class="ln" data-k="' + k + '">' + (hlCode(l, "py") || " ") + "</span>").join("");
+  }
+  function markLine(el, line, hl) {
+    el.querySelectorAll(".ln").forEach((x) => {
+      x.classList.remove("hl0", "hl", "hl2", "hl3", "hl4", "hl5");
+      if (+x.dataset.k === line) x.classList.add(hl);
+    });
+  }
+
+  /* ---------- 公用：格子、指针标签、预设按钮、播放器 ---------- */
+  const cellHTML = (v, idx, cls) => '<div class="cell ' + (cls || "") + '"><span class="idx">' + idx + "</span>" + esc(v) + "</div>";
+  const colHTML = (inner, label) => '<div class="col">' + inner + '<span class="ptr">' + (label || "") + "</span></div>";
+  const PL = { i: '<span class="pi">i</span>', j: '<span class="pi">j</span>', k: '<span class="pi">k</span>', l: '<span class="pl">l</span>', r: '<span class="pr">r</span>' };
+
+  function presets(el, list, label, apply) {
+    el.innerHTML = list.map((p, k) => '<button type="button" class="mono" data-k="' + k + '">' + esc(label(p)) + "</button>").join("");
+    el.addEventListener("click", (e) => { const b = e.target.closest("[data-k]"); if (b) apply(list[+b.dataset.k]); });
+  }
+
+  // 数组比框宽时（手机上）横向滚动：几个指针放得下就都露出来，放不下就只露出刚动的那个
+  function keepVisible(wrap, idxs, focusIdx) {
+    const cols = wrap.querySelectorAll(".col");
+    const els = idxs.map((x) => cols[x]).filter(Boolean);
+    const focus = cols[focusIdx] || els[0];
+    if (!focus) { wrap.scrollLeft = 0; return; }
+    const w = wrap.clientWidth;
+    let L = Math.min(...els.map((e) => e.offsetLeft)), R = Math.max(...els.map((e) => e.offsetLeft + e.offsetWidth));
+    if (R - L + 8 > w) { L = focus.offsetLeft; R = L + focus.offsetWidth; }
+    const pad = Math.max(4, Math.min(12, (w - (R - L)) / 2));
+    if (L - pad < wrap.scrollLeft) wrap.scrollLeft = L - pad;
+    else if (R + pad > wrap.scrollLeft + w) wrap.scrollLeft = R + pad - w;
+  }
+
+  function makePlayer(p, draw) {
+    const S = { frames: [], idx: 0, timer: null };
+    const el = (s) => $(p + s);
+    function render() {
+      draw(S.frames[S.idx]);
+      el("Prog").textContent = "第 " + (S.idx + 1) + " / " + S.frames.length + " 步";
+      el("Prev").disabled = S.idx === 0;
+      el("Next").disabled = S.idx === S.frames.length - 1;
+    }
+    function stop() { if (S.timer) { clearInterval(S.timer); S.timer = null; } el("Play").textContent = "自动播放"; }
+    el("Next").addEventListener("click", () => { stop(); if (S.idx < S.frames.length - 1) { S.idx++; render(); } });
+    el("Prev").addEventListener("click", () => { stop(); if (S.idx > 0) { S.idx--; render(); } });
+    el("Reset").addEventListener("click", () => { stop(); S.idx = 0; render(); });
+    el("Play").addEventListener("click", () => {
+      if (S.timer) { stop(); return; }
+      if (S.idx === S.frames.length - 1) { S.idx = 0; render(); }
+      el("Play").textContent = "暂停";
+      S.timer = setInterval(() => { if (S.idx < S.frames.length - 1) { S.idx++; render(); } else stop(); }, 900);
+    });
+    return { load(frames) { stop(); S.frames = frames; S.idx = 0; render(); } };
+  }
+
+  // 答案列表：重复的标红，刚加进去的加外框
+  function listHTML(name, items, fresh) {
+    return "<span>" + name + " =</span>" + (items.length
+      ? items.map((it, k) => '<span class="pill ' + (it.dup ? "f" : "t") + (k === fresh ? " fresh" : "") + '">' + fmt(it.v) + (it.dup ? " 重复" : "") + "</span>").join("")
+      : "<span>[]</span>");
+  }
+
+  /* ---------- 01 两个“不同” ---------- */
+  const EX = [-1, 0, 1, 2, -1, -4];
+  const PICKS = [
+    { p: [0, 1, 2], note: "三元组 [-1, 0, 1]" },
+    { p: [1, 2, 4], note: "选出的值还是 -1、0、1，和 (0, 1, 2) 是同一个三元组，只能输出一次" },
+    { p: [0, 3, 4], note: "用了两个不同位置上的 -1（下标 0 和 4），允许。三元组 [-1, -1, 2]" },
+    { p: [0, 0, 3], bad: true, note: "i 和 j 都是 0，同一个位置用了两次，不允许。虽然和也是 0，但这两个 -1 其实是同一个格子" }
+  ];
+  let idSel = 0;
+  function idDraw() {
+    const pk = PICKS[idSel], p = pk.p;
+    $("idPicks").querySelectorAll("button").forEach((b, k) => b.setAttribute("aria-pressed", String(k === idSel)));
+    $("idCells").innerHTML = EX.map((v, x) => {
+      const who = ["i", "j", "k"].filter((_, m) => p[m] === x);
+      const cls = !who.length ? "" : pk.bad ? (who.length > 1 ? "fail" : "pick") : "done";
+      return colHTML(cellHTML(v, x, cls), who.map((w) => PL[w]).join(""));
+    }).join("");
+    const vals = p.map((x) => EX[x]), s = vals.reduce((a, b) => a + b, 0);
+    $("idLog").innerHTML = "i, j, k = " + p.join(", ") + "\nnums[" + p[0] + "] + nums[" + p[1] + "] + nums[" + p[2] + "] = " + sumStr(vals) + " = " + s +
+      "\n" + '<span class="' + (pk.bad ? "ex" : "out") + '">→ ' + pk.note + "</span>";
+  }
+  $("idPicks").innerHTML = PICKS.map((pk, k) => '<button type="button" class="mono" data-k="' + k + '" aria-pressed="false">' + tup(pk.p) + "</button>").join("");
+  $("idPicks").addEventListener("click", (e) => { const b = e.target.closest("[data-k]"); if (b) { idSel = +b.dataset.k; idDraw(); } });
+  idDraw();
+
+  /* ---------- 03 三重循环枚举 + set ---------- */
+  let enFilter = "all", enSel = 0, enKey = "";
+  function enDraw() {
+    const p = parseArr($("enInput").value, 3, 8);
+    if (showErr("enErr", p.err)) return;
+    const sortFirst = $("enSort").checked;
+    const arr = sortFirst ? p.arr.slice().sort(asc) : p.arr.slice();
+    const n = arr.length, rows = [];
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) for (let k = j + 1; k < n; k++) {
+      const v = [arr[i], arr[j], arr[k]];
+      rows.push({ i, j, k, v, s: v[0] + v[1] + v[2] });
+    }
+    // exact：set 眼里的元组；multi：按题意的“同一组数”
+    const exact = new Map(), multi = new Map(), inSet = [], zero = [];
+    rows.forEach((r, ri) => {
+      if (r.s !== 0) return;
+      zero.push(ri);
+      const ek = r.v.join(","), mk = r.v.slice().sort(asc).join(",");
+      r.note = exact.has(ek) ? { kind: "same", ref: exact.get(ek) } : multi.has(mk) ? { kind: "perm", ref: multi.get(mk) } : { kind: "new" };
+      if (!exact.has(ek)) { exact.set(ek, ri); inSet.push(r.v); }
+      if (!multi.has(mk)) multi.set(mk, ri);
+    });
+    const key = arr.join(",") + "|" + sortFirst;
+    if (key !== enKey) { enKey = key; enSel = zero.length ? zero[0] : 0; }
+    const visible = enFilter === "zero" ? zero : rows.map((_, ri) => ri);
+    if (visible.length && !visible.includes(enSel)) enSel = visible[0];
+    const sel = visible.includes(enSel) ? rows[enSel] : null;
+
+    $("enCells").innerHTML = arr.map((v, x) => {
+      const who = sel ? ["i", "j", "k"].filter((w) => sel[w] === x) : [];
+      return colHTML(cellHTML(v, x, who.length ? (sel.s === 0 ? "done" : "pick") : ""), who.map((w) => PL[w]).join(""));
+    }).join("");
+    $("enSum").innerHTML = "n = " + n + "，三重循环一共试了 C(" + n + ", 3) = " + rows.length + " 组 (i, j, k)，其中和为 0 的有 <span class=\"ans\">" + zero.length + "</span> 组。";
+
+    const noteHTML = (r) => r.s !== 0 ? ""
+      : r.note.kind === "new" ? '<span class="ans">新的一组，加入 set</span>'
+      : r.note.kind === "same" ? "和第 " + (r.note.ref + 1) + " 行的 tuple 完全一样，set 里不会多出一个"
+      : '<span class="bad">和第 ' + (r.note.ref + 1) + " 行是同样三个数，只是顺序不同，set 当成两个</span>";
+    $("enBody").innerHTML = visible.length ? visible.map((ri) => {
+      const r = rows[ri], on = ri === enSel;
+      return '<tr data-r="' + ri + '"' + (on ? ' class="sel"' : "") + '><td class="mono">' + (ri + 1) + '</td><td><button type="button" class="rowbtn" data-r="' + ri +
+        '" aria-pressed="' + on + '">' + tup([r.i, r.j, r.k]) + "</button></td><td><code>" + fmt(r.v) + '</code></td><td class="mono' + (r.s === 0 ? " ans" : "") + '">' + r.s +
+        "</td><td>" + noteHTML(r) + "</td></tr>";
+    }).join("") : '<tr><td colspan="5" class="empty-hint">没有和为 0 的组合</td></tr>';
+
+    const ok = inSet.length === multi.size;
+    $("enLog").innerHTML = "&gt;&gt;&gt; res        # set 里存的是 tuple，打印顺序不固定\n" + (inSet.length ? "{" + inSet.map(tup).join(", ") + "}" : "set()") + "\n" +
+      (ok ? '<span class="out"># 共 ' + inSet.length + " 个，" + (inSet.length ? "正好是不同三元组的个数" : "没有和为 0 的三元组") + "</span>"
+          : '<span class="ex"># 共 ' + inSet.length + " 个，但不同的三元组只有 " + multi.size + " 个：同一组数按不同顺序进了 set。勾上“先排序”试试</span>");
+  }
+  $("enBody").addEventListener("click", (e) => {
+    const tr = e.target.closest("tr[data-r]"); if (!tr) return;
+    enSel = +tr.dataset.r; enDraw();
+    const b = $("enBody").querySelector('button[data-r="' + enSel + '"]'); if (b) b.focus();
+  });
+  $("enFilter").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-f]"); if (!b) return;
+    enFilter = b.dataset.f;
+    $("enFilter").querySelectorAll("[data-f]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    enDraw();
+  });
+  $("enInput").addEventListener("input", enDraw);
+  $("enSort").addEventListener("change", enDraw);
+  presets($("enPresets"), ["[-1,0,1,2,-1,-4]", "[1,-1,0,-1,1]", "[0,0,0,0]", "[0,1,1]"], (p) => p, (p) => { $("enInput").value = p; enDraw(); });
+  enDraw();
+
+  /* ---------- 04 有序数组的两数之和 ---------- */
+  const TS_CODE = [
+    "l, r = 0, len(nums) - 1",
+    "while l < r:",
+    "    s = nums[l] + nums[r]",
+    "    if s > target:",
+    "        r -= 1",
+    "    elif s < target:",
+    "        l += 1",
+    "    else:",
+    "        pairs.append([nums[l], nums[r]])",
+    "        l, r = l + 1, r - 1"
+  ];
+  renderCode($("tsCode"), TS_CODE);
+
+  function tsBuild(a, target) {
+    const n = a.length, F = [], pairs = [], hit = new Set();
+    let l = 0, r = n - 1, s = null;
+    const push = (o) => F.push(Object.assign({ l, r, s, pairs: pairs.slice(), hit: new Set(hit), focus: "l", fresh: -1, end: false }, o));
+    push({ line: 0, hl: "hl0", msg: "l 放在最左边（最小的数），r 放在最右边（最大的数）：l = 0，r = " + (n - 1) + "。" });
+    for (;;) {
+      if (!(l < r)) {
+        push({ line: 1, hl: "hl0", end: true, msg: "l = " + l + "，r = " + r + "，<code>l &lt; r</code> 不成立，结束。" +
+          (l === r ? "两个指针在同一个位置，同一个数不能用两次。" : "两个指针已经交错。") +
+          (pairs.length ? "一共找到 " + pairs.length + " 对。" : "没有找到和为 target 的两个数。") +
+          (pairs.some((x) => x.dup) ? '<span class="bad">其中有重复的对：相同的值挨在一起时会出现，第 06 章处理。</span>' : "") });
+        return F;
+      }
+      s = a[l] + a[r];
+      push({ line: 2, hl: "hl0", msg: "s = nums[l] + nums[r] = " + sumStr([a[l], a[r]]) + " = " + s + "，" +
+        (s < target ? "小于" : s > target ? "大于" : "等于") + " target = " + target + "。" });
+      if (s > target) {
+        const o = r; r--;
+        push({ line: 4, hl: "hl2", focus: "r", msg: "太大了。nums[r] = " + a[o] + " 是剩下最大的数，它和剩下最小的 nums[l] = " + a[l] +
+          " 配都超过 target，和谁配都不行。扔掉它：<code>r -= 1</code>，r 变成 " + r + "。" });
+      } else if (s < target) {
+        const o = l; l++;
+        push({ line: 6, hl: "hl", focus: "l", msg: "太小了。nums[l] = " + a[o] + " 是剩下最小的数，它和剩下最大的 nums[r] = " + a[r] +
+          " 配都不够 target，和谁配都不够。扔掉它：<code>l += 1</code>，l 变成 " + l + "。" });
+      } else {
+        const v = [a[l], a[r]], dup = pairs.some((x) => sameArr(x.v, v));
+        pairs.push({ v, dup }); hit.add(l); hit.add(r);
+        push({ line: 8, hl: "hl4", fresh: pairs.length - 1, msg: "相等！记下 " + fmt(v) + "。" + (dup ? '<span class="bad">和前面找到的一对重复了。</span>' : "") });
+        l++; r--;
+        push({ line: 9, hl: "hl0", msg: "这两个数都用过了，同时往中间走：l = " + l + "，r = " + r + "。" });
+      }
+    }
+  }
+  let tsA = [], tsT = 0;
+  const tsP = makePlayer("ts", (f) => {
+    $("tsCells").innerHTML = tsA.map((v, x) => {
+      const cls = [];
+      if (f.hit.has(x)) cls.push("done");
+      if (!f.end && (x < f.l || x > f.r)) cls.push("gone");
+      if (x === f.l) cls.push("at-l");
+      if (x === f.r) cls.push("at-r");
+      return colHTML(cellHTML(v, x, cls.join(" ")), (x === f.l ? PL.l : "") + (x === f.r ? PL.r : ""));
+    }).join("");
+    keepVisible($("tsWrap"), [f.l, f.r], f.focus === "r" ? f.r : f.l);
+    $("tsL").textContent = "l = " + f.l;
+    $("tsR").textContent = "r = " + f.r;
+    $("tsS").textContent = "s = " + (f.s === null ? "—" : f.s) + "，target = " + tsT;
+    $("tsPairs").innerHTML = listHTML("pairs", f.pairs, f.fresh);
+    markLine($("tsCode"), f.line, f.hl);
+    $("tsMsg").innerHTML = f.msg;
+  });
+  function tsLoad() {
+    const p = parseArr($("tsArr").value, 2, 12), t = parseTarget($("tsTarget").value);
+    if (showErr("tsErr", p.err || t.err)) return;
+    tsA = p.arr.slice().sort(asc); tsT = t.v;
+    $("tsNote").textContent = sameArr(tsA, p.arr) ? "nums（已经有序）" : "nums（已自动排序：这个方法要求数组有序）";
+    tsP.load(tsBuild(tsA, tsT));
+    $("tsWrap").scrollLeft = 0;
+  }
+  $("tsArr").addEventListener("input", tsLoad);
+  $("tsTarget").addEventListener("input", tsLoad);
+  presets($("tsPresets"), [["[-4,-2,0,1,3,6]", "1"], ["[1,2,3,4,5,6]", "7"], ["[-2,-2,0,2,2]", "0"], ["[1,3,5,7]", "100"]],
+    (p) => p[0] + " · target=" + p[1], (p) => { $("tsArr").value = p[0]; $("tsTarget").value = p[1]; tsLoad(); });
+  tsLoad();
+
+  /* ---------- 05 固定 i 的示意图 ---------- */
+  const SX = EX.slice().sort(asc);
+  $("rdCells").innerHTML = SX.map((v, x) => colHTML(
+    cellHTML(v, x, x < 1 ? "gone" : x === 1 ? "at-i" : x === 2 ? "at-l" : x === SX.length - 1 ? "at-r" : ""),
+    x === 1 ? PL.i : x === 2 ? PL.l : x === SX.length - 1 ? PL.r : "")).join("");
+
+  /* ---------- 07 单步执行 ---------- */
+  const ST_CODE = [
+    "res = []",
+    "nums.sort()",
+    "for i in range(len(nums)):",
+    "    if nums[i] > 0:",
+    "        break",
+    "    if i > 0 and nums[i] == nums[i - 1]:",
+    "        continue",
+    "    l, r = i + 1, len(nums) - 1",
+    "    while l < r:",
+    "        total = nums[i] + nums[l] + nums[r]",
+    "        if total > 0:",
+    "            r -= 1",
+    "        elif total < 0:",
+    "            l += 1",
+    "        else:",
+    "            res.append([nums[i], nums[l], nums[r]])",
+    "            l, r = l + 1, r - 1",
+    "            while l < r and nums[l] == nums[l - 1]:",
+    "                l += 1",
+    "return res"
+  ];
+  const DEDUPE_LINES = [5, 6, 17, 18];
+  renderCode($("stCode"), ST_CODE);
+
+  function stBuild(orig, dedupe) {
+    const a = orig.slice().sort(asc), n = a.length, F = [], res = [];
+    let i = -1, l = -1, r = -1, total = null, sorted = false;
+    let skipL = new Set();
+    const skipI = new Set();
+    const push = (o) => F.push(Object.assign({
+      arr: sorted ? a : orig, i, l, r, total, res: res.slice(), match: null, fresh: -1,
+      skip: new Set([...skipI, ...skipL]), focus: "i", done: false
+    }, o));
+
+    push({ line: 0, hl: "hl0", msg: "<code>res = []</code>：准备一个空列表，用来装找到的三元组。" });
+    sorted = true;
+    push({ line: 1, hl: "hl0", msg: "<code>nums.sort()</code>：从小到大排序。" +
+      (sameArr(a, orig) ? "数组本来就是有序的。" : "原来是 " + fmt(orig) + "，现在是 " + fmt(a) + "。") + "相同的数都挨在了一起。" });
+
+    let stopped = false;
+    for (i = 0; i < n; i++) {
+      l = -1; r = -1; total = null; skipL = new Set();
+      push({ line: 2, hl: "hl5", msg: "i = " + i + "：固定 nums[i] = " + a[i] + "，让它当三元组里最小的数。" });
+      if (a[i] > 0) {
+        push({ line: 3, hl: "hl3", msg: "nums[i] = " + a[i] + " &gt; 0。排序后它右边的数都 ≥ " + a[i] + "，三个正数加起来不可能等于 0。" });
+        push({ line: 4, hl: "hl3", msg: "<code>break</code>：跳出整个 for 循环，后面的 i 都不用再看。" });
+        stopped = true;
+        break;
+      }
+      push({ line: 3, hl: "hl0", msg: "nums[i] = " + a[i] + " ≤ 0，还有可能凑出 0，不跳出。" });
+      if (dedupe) {
+        if (i === 0) {
+          push({ line: 5, hl: "hl0", msg: "i = 0，<code>i &gt; 0</code> 为 False，and 短路，不会去读 nums[-1]。第一个数不可能是重复的。" });
+        } else if (a[i] === a[i - 1]) {
+          push({ line: 5, hl: "hl3", msg: "nums[i] = " + a[i] + " 和上一个 nums[i - 1] 相同。上一轮用它当第一个数时，能找到的组合都已经找过了。" });
+          skipI.add(i);
+          push({ line: 6, hl: "hl3", msg: "<code>continue</code>：跳过这一轮，直接进入下一个 i。" });
+          continue;
+        } else {
+          push({ line: 5, hl: "hl0", msg: "nums[i] = " + a[i] + " 和上一个 nums[i - 1] = " + a[i - 1] + " 不同，不是重复。" });
+        }
+      }
+      l = i + 1; r = n - 1;
+      push({ line: 7, hl: "hl0", focus: "l", msg: "在 i 右边找另外两个数：l = i + 1 = " + l + "，r = len(nums) - 1 = " + r +
+        "。要找的是 nums[l] + nums[r] = -nums[i] = " + (-a[i]) + "。" });
+      for (;;) {
+        if (!(l < r)) {
+          push({ line: 8, hl: "hl0", focus: "l", msg: "l = " + l + "，r = " + r + "，<code>l &lt; r</code> 不成立，" +
+            (l === r ? "两个指针在同一个位置，同一个数不能用两次。" : "两个指针已经交错。") + "i = " + i + " 这一轮找完了。" });
+          break;
+        }
+        total = a[i] + a[l] + a[r];
+        push({ line: 9, hl: "hl0", focus: "l", msg: "total = " + sumStr([a[i], a[l], a[r]]) + " = " + total +
+          (total > 0 ? "，大于 0。" : total < 0 ? "，小于 0。" : "，正好等于 0！") });
+        if (total > 0) {
+          const o = r; r--;
+          push({ line: 11, hl: "hl2", focus: "r", msg: "太大了，要让和变小。nums[r] = " + a[o] + " 是这一段最大的数，它和这一段最小的 nums[l] = " + a[l] +
+            " 配都太大，和谁配都不行。扔掉：<code>r -= 1</code>，r 变成 " + r + "。" });
+        } else if (total < 0) {
+          const o = l; l++;
+          push({ line: 13, hl: "hl", focus: "l", msg: "太小了，要让和变大。nums[l] = " + a[o] + " 是这一段最小的数，它和这一段最大的 nums[r] = " + a[r] +
+            " 配都不够，和谁配都不够。扔掉：<code>l += 1</code>，l 变成 " + l + "。" });
+        } else {
+          const v = [a[i], a[l], a[r]], dup = res.some((x) => sameArr(x.v, v));
+          res.push({ v, dup });
+          push({ line: 15, hl: dup ? "hl3" : "hl4", focus: "l", match: [i, l, r], fresh: res.length - 1,
+            msg: "找到一组：" + fmt(v) + "，加进 res。" + (dup ? '<span class="bad">它和 res 里已有的一组重复了！</span>' : "") });
+          l++; r--;
+          push({ line: 16, hl: "hl0", focus: "l", msg: "nums[l] 和 nums[r] 都用过了，两个指针同时往中间走：l = " + l + "，r = " + r + "。" });
+          if (dedupe) {
+            while (l < r && a[l] === a[l - 1]) {
+              skipL.add(l); l++;
+              push({ line: 18, hl: "hl", focus: "l", msg: "nums[" + (l - 1) + "] = " + a[l - 1] + " 和刚用过的 nums[" + (l - 2) + "] 相同，再用它只会凑出同一组。跳过：<code>l += 1</code>，l 变成 " + l + "。" });
+            }
+            push({ line: 17, hl: "hl0", focus: "l", msg: l < r
+              ? "nums[l] = " + a[l] + " 和 nums[l - 1] = " + a[l - 1] + " 不同，不用再跳。"
+              : "l = " + l + "，r = " + r + "，<code>l &lt; r</code> 为 False，and 短路，不再往下跳。" });
+          }
+        }
+      }
+    }
+    i = -1; l = -1; r = -1; skipL = new Set();
+    const dups = res.filter((x) => x.dup).length;
+    push({ line: 19, hl: "hl4", done: true, msg: (stopped ? "" : "for 循环走完了。") + "<code>return res</code>：" +
+      (res.length ? "一共 " + res.length + " 组。" : "一组都没有找到，返回空列表。") +
+      (dups ? '<span class="bad">其中 ' + dups + " 组是重复的，这正是两处去重代码要解决的问题。</span>" : "") });
+    return F;
+  }
+
+  let stOff = new Set();
+  const stP = makePlayer("st", (f) => {
+    $("stCells").innerHTML = f.arr.map((v, x) => {
+      const cls = [];
+      if (f.i >= 0 && (x < f.i || (f.l >= 0 && x > f.i && (x < f.l || x > f.r)))) cls.push("gone");
+      if (f.skip.has(x)) cls.push("skip");
+      if (f.match && f.match.includes(x)) cls.push("done");
+      if (x === f.i) cls.push("at-i");
+      if (x === f.l) cls.push("at-l");
+      if (x === f.r) cls.push("at-r");
+      return colHTML(cellHTML(v, x, cls.join(" ")), (x === f.i ? PL.i : "") + (x === f.l ? PL.l : "") + (x === f.r ? PL.r : ""));
+    }).join("");
+    keepVisible($("stWrap"), [f.i, f.l, f.r].filter((x) => x >= 0), f.focus === "r" ? f.r : f.focus === "l" && f.l >= 0 ? f.l : f.i);
+    const at = (x) => (x >= 0 && x < f.arr.length ? x : "—");
+    $("stI").textContent = "i = " + at(f.i);
+    $("stL").textContent = "l = " + at(f.l);
+    $("stR").textContent = "r = " + at(f.r);
+    $("stT").textContent = "total = " + (f.total === null || f.l < 0 ? "—" : f.total);
+    $("stRes").innerHTML = listHTML("res", f.res, f.fresh);
+    $("stCode").querySelectorAll(".ln").forEach((x) => x.classList.toggle("off", stOff.has(+x.dataset.k)));
+    markLine($("stCode"), f.line, f.hl);
+    $("stMsg").innerHTML = f.msg;
+  });
+  function stLoad() {
+    const p = parseArr($("stInput").value, 3, 12);
+    if (showErr("stErr", p.err)) return;
+    const dedupe = $("stDedupe").checked;
+    stOff = new Set(dedupe ? [] : DEDUPE_LINES);
+    stP.load(stBuild(p.arr, dedupe));
+    $("stWrap").scrollLeft = 0;
+  }
+  $("stInput").addEventListener("input", stLoad);
+  $("stDedupe").addEventListener("change", stLoad);
+  presets($("stPresets"), ["[-1,0,1,2,-1,-4]", "[0,1,1]", "[0,0,0,0]", "[-2,0,0,2,2]", "[3,-2,1,0]", "[-3,-2,-1,0,1,2,3]"],
+    (p) => p, (p) => { $("stInput").value = p; stLoad(); });
+  stLoad();
+
+  /* ---------- 08 语言切换 ---------- */
+  document.querySelectorAll('.tabs [role="tab"]').forEach((t) => t.addEventListener("click", () => {
+    document.querySelectorAll('.tabs [role="tab"]').forEach((x) => x.setAttribute("aria-selected", x === t ? "true" : "false"));
+    ["py", "java", "cpp"].forEach((l) => { $("code-" + l).hidden = l !== t.dataset.lang; });
+  }));
+
+  /* ---------- 09 自测 ---------- */
+  const QUIZ = [
+    { q: "nums = [0, 0, 0]，正确输出是？", o: ["[[0, 0, 0]]", "[]", "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]", "报错：同一个值不能用三次"], a: 0,
+      e: "三个 0 在三个不同的下标上，下标不同就可以一起用。选三个位置的方式只有 (0, 1, 2) 一种，所以只有一组。" },
+    { q: "list(range(2, 5)) 是？", o: ["[2, 3, 4]", "[2, 3, 4, 5]", "[3, 4]", "[0, 1, 2, 3, 4]"], a: 0,
+      e: "range(a, b) 从 a 开始，到 b 之前结束，不包含 b。" },
+    { q: "nums = [3, 1, 2]，执行 nums = nums.sort() 之后，nums 是？", o: ["None", "[1, 2, 3]", "[3, 1, 2]", "报错"], a: 0,
+      e: "sort() 原地排序，返回值是 None。把返回值赋给 nums，nums 就变成了 None。直接写 nums.sort() 就好。" },
+    { q: "s = set()，执行 s.add([1, 2]) 会怎样？", o: ["报 TypeError：列表不能放进 set", "s 变成 {[1, 2]}", "s 变成 {1, 2}", "什么也不发生"], a: 0,
+      e: "列表可以被修改，不能放进 set。要先转成元组：s.add((1, 2))。" },
+    { q: "有序数组 [-4, -1, 0, 3, 5]，target = 2。l = 0，r = 4，nums[l] + nums[r] = 1。下一步？", o: ["l += 1", "r -= 1", "l 和 r 一起往中间走", "结束，没有答案"], a: 0,
+      e: "1 比 2 小，需要更大的和。-4 和剩下最大的 5 配都不够，和谁配都不够，扔掉 -4。" },
+    { q: "有序数组找两数之和时，循环条件为什么是 l < r，而不是 l <= r？", o: ["l == r 时是同一个下标，同一个数不能用两次", "写 l <= r 会报错", "l <= r 会更慢", "两种写法结果完全一样"], a: 0,
+      e: "题目要求下标互不相同。写成 l <= r，[-2, 1, 3] 会错误地得到 [-2, 1, 1]。" },
+    { q: "外层去重为什么写 nums[i] == nums[i - 1]，而不是 nums[i] == nums[i + 1]？", o: ["后者会跳过第一个 -1，[-1, -1, 2] 里就漏掉了 [-1, -1, 2]", "后者会越界，除此之外结果一样", "两种写法都对", "前者更快"], a: 0,
+      e: "和前一个比，每个值在第一次出现时当 nums[i]，这时右边还能用上和它相同的数。" },
+    { q: "去掉 i > 0，只写 if nums[i] == nums[i - 1]: continue，nums = [0, 0, 0] 会返回？", o: ["[]，漏掉了答案", "[[0, 0, 0]]", "报 IndexError", "[[0, 0, 0], [0, 0, 0]]"], a: 0,
+      e: "i = 0 时 nums[-1] 是最后一个 0，Python 不报错，直接 continue 了；后面两个 0 也都和前一个相同，全被跳过。" },
+    { q: "排好序的 [-2, 0, 0, 2, 2]，找到 [-2, 0, 2] 后只写 l, r = l + 1, r - 1，不跳过重复。结果是？", o: ["[[-2, 0, 2], [-2, 0, 2]]", "[[-2, 0, 2]]", "[]", "死循环"], a: 0,
+      e: "l = 2、r = 3 时又是 (-2) + 0 + 2 = 0，同一组被加了两次。" },
+    { q: "找到一组之后，为什么只跳过重复的 nums[l]，不用管重复的 nums[r]？", o: ["l 换成更大的值后，配旧的 nums[r] 和一定大于 0，r 会被正常挪走", "因为 nums[r] 不可能重复", "因为 r 是从右往左走的，Python 会自动跳过", "其实漏写了，是个 bug"], a: 0,
+      e: "nums[i] + 更大的 nums[l] + 原来的 nums[r] > 0，下一轮就执行 r -= 1。对称地也跳过 r 也可以，结果一样。" },
+    { q: "排序 + 双指针解法的时间复杂度是？", o: ["O(n²)", "O(n³)", "O(n log n)", "O(n)"], a: 0,
+      e: "排序 O(n log n)；外层 n 轮，每轮双指针最多 n 步，是 O(n²)。取较大的那个。" }
+  ];
+  const answered = {};
+  $("quizBox").innerHTML = QUIZ.map((it, qi) =>
+    '<div class="q"><div class="q-text">' + (qi + 1) + ". " + esc(it.q) + '</div><div class="opts">' +
+    it.o.map((o, oi) => ({ o, oi, r: (qi * 7 + oi * 5) % 4 })).sort((x, y) => x.r - y.r)
+      .map(({ o, oi }) => '<button type="button" class="opt" data-q="' + qi + '" data-o="' + oi + '">' + esc(o) + "</button>").join("") +
+    '</div><div class="explain" id="ex' + qi + '" hidden></div></div>').join("");
+  function score() {
+    const keys = Object.keys(answered), right = keys.filter((k) => answered[k]).length;
+    $("quizScore").textContent = keys.length ? "已作答 " + keys.length + " / " + QUIZ.length + "，答对 " + right + " 题" : "";
+  }
+  $("quizBox").addEventListener("click", (e) => {
+    const b = e.target.closest(".opt"); if (!b) return;
+    const qi = +b.dataset.q, oi = +b.dataset.o, it = QUIZ[qi], box = b.parentElement;
+    box.querySelectorAll(".opt").forEach((x) => x.classList.remove("right", "wrong"));
+    const ok = oi === it.a;
+    b.classList.add(ok ? "right" : "wrong");
+    if (!ok) box.querySelector('[data-o="' + it.a + '"]').classList.add("right");
+    if (!(qi in answered)) answered[qi] = ok;
+    const ex = $("ex" + qi); ex.hidden = false;
+    ex.textContent = (ok ? "答对了。" : "再想想。") + it.e;
+    score();
+  });
+
+  /* ---------- 掌握清单（仅保存在本浏览器） ---------- */
+  document.querySelectorAll("#checklist input").forEach((cb) => {
+    try { cb.checked = localStorage.getItem("3sum-" + cb.id) === "1"; } catch (e) {}
+    cb.addEventListener("change", () => { try { localStorage.setItem("3sum-" + cb.id, cb.checked ? "1" : "0"); } catch (e) {} });
+  });
+})();
+</script>
+</body>
+</html>
