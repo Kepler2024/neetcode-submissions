@@ -1,0 +1,1229 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>寻找旋转排序数组中的最小值</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* 版式：单栏教材，一章一个前置知识；左指针 l 琥珀色，右指针 r 蓝色，中点 m 紫色，最小值/正确用绿色，出错用红色，被扔掉的柱子变淡，贯穿全页 */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --ink: #17202b;
+  --muted: #586372;
+  --line: #dce1e7;
+  --pre: #b86e0a;
+  --pre-soft: #fcefd8;
+  --suf: #1d6aa3;
+  --suf-soft: #e0edf8;
+  --fix: #7445b8;
+  --fix-soft: #efe7fa;
+  --ans: #2b7a4b;
+  --ans-soft: #e1f2e7;
+  --bad: #b3372f;
+  --bad-soft: #fbe5e3;
+  --bar: #5b6676;
+  --code-bg: #eef1f5;
+  --font-display: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151b; --surface: #19202a; --ink: #e5e9ef; --muted: #9ba6b4; --line: #2b3441;
+    --pre: #f0a845; --pre-soft: #3a2b14; --suf: #6cb2e8; --suf-soft: #142b3e;
+    --fix: #b893f2; --fix-soft: #2a2140;
+    --ans: #5fcb8c; --ans-soft: #153223; --bad: #f08379; --bad-soft: #3d1c1a;
+    --bar: #7d899b; --code-bg: #141a22;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151b; --surface: #19202a; --ink: #e5e9ef; --muted: #9ba6b4; --line: #2b3441;
+  --pre: #f0a845; --pre-soft: #3a2b14; --suf: #6cb2e8; --suf-soft: #142b3e;
+  --fix: #b893f2; --fix-soft: #2a2140;
+  --ans: #5fcb8c; --ans-soft: #153223; --bad: #f08379; --bad-soft: #3d1c1a;
+  --bar: #7d899b; --code-bg: #141a22;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.75;
+  font-variant-ligatures: none; /* 等宽字体的连字会把 <= 显示成 ≤，初学者容易抄错 */
+}
+.wrap {
+  max-width: 760px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 80px;
+  display: flex; flex-direction: column; gap: 56px;
+}
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.3; margin: 0; }
+h1 { font-size: clamp(28px, 6vw, 42px); font-weight: 800; }
+h2 { font-size: clamp(22px, 4.2vw, 28px); font-weight: 800; }
+h3 { font-size: 18px; font-weight: 600; }
+p { margin: 0; }
+section { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lead { font-size: 18px; color: var(--muted); }
+code, .mono { font-family: var(--font-mono); font-size: .92em; }
+:not(pre) > code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; }
+.pre { color: var(--pre); font-weight: 700; }
+.suf { color: var(--suf); font-weight: 700; }
+.fix { color: var(--fix); font-weight: 700; }
+.ans { color: var(--ans); font-weight: 700; }
+.bad { color: var(--bad); font-weight: 700; }
+a { color: var(--suf); }
+
+/* 题目卡 */
+.problem { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 99px; background: var(--ans-soft); color: var(--ans); }
+.example { font-family: var(--font-mono); font-size: 14px; background: var(--code-bg); border-radius: 6px; padding: 10px 12px; overflow-x: auto; white-space: pre; }
+
+/* 目录 */
+.toc { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; padding: 0; margin: 0; list-style: none; counter-reset: toc; }
+.toc li { counter-increment: toc; }
+.toc a { display: flex; gap: 10px; align-items: baseline; text-decoration: none; color: var(--ink); padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 15px; }
+.toc a::before { content: counter(toc, decimal-leading-zero); font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.toc a:hover, .toc a:focus-visible { border-color: var(--suf); }
+
+/* 章节编号 */
+.chap { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.chap .num { font-family: var(--font-mono); font-size: 14px; color: var(--muted); }
+
+/* 提示块 */
+.note { border-left: 3px solid var(--suf); padding: 4px 0 4px 14px; }
+.note.warn { border-color: var(--pre); }
+.note.ok { border-color: var(--ans); }
+.note.no { border-color: var(--bad); }
+
+/* 柱状图：柱子越高数越大 */
+.chart-wrap { overflow-x: auto; padding: 2px 0; }
+svg.bars { display: block; width: 100%; height: auto; margin: 0 auto; }
+.bars .bar { fill: var(--bar); transition: fill .2s; }
+.bars .bar.bl { fill: var(--pre); }
+.bars .bar.br { fill: var(--suf); }
+.bars .bar.bm { fill: var(--fix); }
+.bars .bar.bres { fill: var(--ans); }
+.bars .faded { opacity: .2; transition: opacity .2s; }
+.bars .ring { fill: none; stroke: var(--ans); stroke-width: 2; stroke-dasharray: 5 3; }
+.bars .ring.lost { stroke: var(--bad); }
+.bars .drop { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.bars .axis { stroke: var(--ink); stroke-width: 1.5; }
+.bars text { font-family: var(--font-mono); text-anchor: middle; }
+.bars .tv { font-size: 12px; font-weight: 600; fill: var(--ink); }
+.bars .ti { font-size: 11px; fill: var(--muted); }
+.bars .tdrop { font-family: var(--font-body); font-size: 11px; fill: var(--muted); }
+.bars .tp { font-size: 13px; font-weight: 700; }
+.bars .tp .pl { fill: var(--pre); }
+.bars .tp .pm { fill: var(--fix); }
+.bars .tp .pr { fill: var(--suf); }
+.bars .hit { fill: transparent; cursor: pointer; }
+.bars .hit:hover { fill: var(--line); fill-opacity: .35; }
+.bars .hit:focus-visible { outline: none; stroke: var(--suf); stroke-width: 2; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.legend i.ring { background: transparent; border: 2px dashed var(--ans); width: 12px; height: 12px; border-radius: 3px; }
+.row-label { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+
+/* 表格 */
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 13px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+td code { white-space: nowrap; }
+tr:last-child td, tr:last-child th { border-bottom: 0; }
+tbody tr[data-k] { cursor: pointer; }
+tbody tr[data-k]:hover td { background: var(--bg); }
+.rowbtn { font-family: var(--font-mono); font-size: 14px; padding: 2px 8px; background: transparent; white-space: nowrap; }
+
+/* 交互组件外壳 */
+.lab { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.lab-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button {
+  font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+}
+button:hover { border-color: var(--muted); }
+button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button.mono { font-family: var(--font-mono); }
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--suf); outline-offset: 2px; }
+.controls button[aria-pressed="true"], .tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+input[type=text] {
+  font-family: var(--font-mono); font-size: 15px; padding: 6px 10px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink); min-width: 0; width: 100%;
+  font-variant-ligatures: none;
+}
+.inputs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+@media (min-width: 560px) { .inputs.two { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); } }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-size: 14px; font-weight: 700; }
+.err { color: var(--bad); font-size: 14px; }
+.modes { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.modes legend { font-size: 14px; font-weight: 700; margin-bottom: 6px; padding: 0; }
+.modes label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 99px; cursor: pointer; background: var(--bg); }
+.modes label:has(input:checked) { border-color: var(--ink); background: var(--surface); font-weight: 700; }
+.modes label:has(input:focus-visible) { outline: 2px solid var(--suf); outline-offset: 2px; }
+.modes input { accent-color: var(--fix); margin: 0; }
+
+/* 代码块 */
+pre.code { margin: 0; background: var(--code-bg); border-radius: 8px; padding: 12px 0; overflow-x: auto; font-family: var(--font-mono); font-size: 14px; line-height: 1.7; }
+pre.code .ln { display: block; padding: 0 14px; border-left: 3px solid transparent; white-space: pre; }
+pre.code .ln.hl0 { background: var(--line); border-left-color: var(--ink); }
+pre.code .ln.hl { background: var(--pre-soft); border-left-color: var(--pre); }
+pre.code .ln.hl2 { background: var(--suf-soft); border-left-color: var(--suf); }
+pre.code .ln.hl3 { background: var(--bad-soft); border-left-color: var(--bad); }
+pre.code .ln.hl4 { background: var(--ans-soft); border-left-color: var(--ans); }
+pre.code .ln.hl5 { background: var(--fix-soft); border-left-color: var(--fix); }
+pre.code .ln.mut .c { color: var(--bad); font-style: normal; font-weight: 600; }
+.k { color: var(--suf); font-weight: 600; }
+.c { color: var(--muted); font-style: italic; }
+.n { color: var(--pre); }
+
+.console {
+  font-family: var(--font-mono); font-size: 14px; background: var(--code-bg); border-radius: 8px;
+  padding: 10px 14px; min-height: 3.2em; overflow-x: auto; white-space: pre-wrap; word-break: break-all;
+}
+.console .out { color: var(--ans); }
+.console .c { font-style: normal; }
+.msg { min-height: 3.5em; padding: 10px 14px; border-radius: 8px; background: var(--bg); font-size: 15px; }
+.progress { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+.pill { display: inline-block; font-family: var(--font-mono); font-size: 14px; padding: 2px 12px; border-radius: 99px; border: 1.5px solid var(--line); white-space: nowrap; }
+.pill.t { border-color: var(--ans); color: var(--ans); background: var(--ans-soft); }
+.pill.f { border-color: var(--bad); color: var(--bad); background: var(--bad-soft); }
+
+/* 单步执行 */
+.vars { display: flex; gap: 8px; flex-wrap: wrap; }
+.var { font-family: var(--font-mono); padding: 3px 12px; border-radius: 99px; font-size: 14px; border: 1.5px solid var(--line); white-space: pre; }
+.var.p { border-color: var(--pre); color: var(--pre); }
+.var.s { border-color: var(--suf); color: var(--suf); }
+.var.m { border-color: var(--fix); color: var(--fix); }
+.stepper-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+@media (min-width: 720px) { .stepper-grid { grid-template-columns: minmax(0, .8fr) minmax(0, 1.5fr); align-items: start; } }
+.viz { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+/* 两图对照 */
+.duo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+@media (min-width: 620px) { .duo { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.fig { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.fig-cap { font-size: 14px; }
+.fig-title { font-family: var(--font-mono); font-size: 14px; font-weight: 600; }
+
+/* 测验 */
+.quiz { display: flex; flex-direction: column; gap: 18px; }
+.q { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.q-text { font-weight: 500; }
+.opts { display: flex; flex-direction: column; gap: 6px; }
+.opt { text-align: left; background: var(--bg); }
+.opt.right { background: var(--ans-soft); border-color: var(--ans); }
+.opt.wrong { background: var(--bad-soft); border-color: var(--bad); }
+.explain { font-size: 14px; color: var(--muted); }
+
+/* 清单 */
+.checklist { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.checklist label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.checklist input { margin-top: 6px; accent-color: var(--ans); width: 16px; height: 16px; flex: none; }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+ul.plain, ol.plain { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
+footer { font-size: 13px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:14px">
+  <span class="eyebrow">NeetCode · Binary Search · Medium</span>
+  <h1>寻找旋转排序数组中的最小值</h1>
+  <p class="lead">Find Minimum in Rotated Sorted Array。这一页先讲“旋转”把数组变成了什么样子，写出 O(n) 的暴力解，再从零讲二分查找，然后回答本题唯一的关键问题：只比较 nums[m] 和 nums[r] 这两个数，怎么知道最小值在左边还是右边。最后把 <code>r = m</code>、<code>l &lt; r</code>、向下取整这几个最容易写错的细节逐个拆开，走到 O(log n) 的标准解法。每一章只讲一个前置知识，所有 Python 语法都会单独解释。</p>
+</header>
+
+<section class="problem" aria-label="题目">
+  <div><span class="tag">题目</span></div>
+  <p>有一个长度为 <code>n</code> 的数组，原本按<strong>升序</strong>排好，后来被<strong>旋转</strong>了 1 到 n 次。旋转一次，就是把最后一个数搬到最前面。例如 <code>[1,2,3,4,5,6]</code>：</p>
+  <ul class="plain">
+    <li>旋转 4 次变成 <code>[3,4,5,6,1,2]</code>：最后四个数被搬到了前面；</li>
+    <li>旋转 6 次变回 <code>[1,2,3,4,5,6]</code>：转了一整圈，回到原样。</li>
+  </ul>
+  <p>数组里的元素<strong>互不相同</strong>，返回其中的最小值。O(n) 的解法很简单，你能写出 <strong>O(log n)</strong> 的吗？</p>
+  <div class="example">输入: nums = [3,4,5,6,1,2]
+输出: 1
+
+输入: nums = [4,5,0,1,2,3]
+输出: 0
+
+输入: nums = [4,5,6,7]
+输出: 4</div>
+  <p style="font-size:14px;color:var(--muted)">约束：1 ≤ nums.length ≤ 1000，-1000 ≤ nums[i] ≤ 1000，所有整数互不相同。</p>
+</section>
+
+<nav aria-label="目录" style="display:flex;flex-direction:column;gap:10px">
+  <span class="eyebrow">学习路线</span>
+  <ol class="toc">
+    <li><a href="#rotate">旋转：最后 k 个搬到前面</a></li>
+    <li><a href="#brute">暴力解与 O(log n)</a></li>
+    <li><a href="#bsearch">二分查找：每次扔掉一半</a></li>
+    <li><a href="#key">和最右边的数比</a></li>
+    <li><a href="#why-r">为什么不和最左边比</a></li>
+    <li><a href="#bounds">边界：一个字符的差别</a></li>
+    <li><a href="#step">单步执行</a></li>
+    <li><a href="#code">完整代码与复杂度</a></li>
+    <li><a href="#quiz">自测</a></li>
+  </ol>
+</nav>
+
+<!-- 01 -->
+<section id="rotate">
+  <div class="chap"><span class="num">01</span><h2>旋转：最后 k 个搬到前面</h2></div>
+  <p>Python 的<strong>列表</strong>（list）用方括号写。每个位置有一个<strong>下标</strong>，从 0 开始；负数下标从后往前数：</p>
+<pre class="code" data-lang="py">nums = [1, 2, 3, 4, 5, 6]
+nums[0]       # 1
+nums[-1]      # 6，最后一个
+len(nums)     # 6，一共几个数</pre>
+  <h3>切片：取出一段</h3>
+<pre class="code" data-lang="py">nums[1:4]     # [2, 3, 4]，从下标 1 到下标 3，不包含 4
+nums[:2]      # [1, 2]，省略开头：从头开始
+nums[2:]      # [3, 4, 5, 6]，省略结尾：一直取到最后
+nums[-2:]     # [5, 6]，最后 2 个
+nums[:-2]     # [1, 2, 3, 4]，除了最后 2 个
+[1, 2] + [3]  # [1, 2, 3]，两个列表用 + 拼成一个</pre>
+  <ul class="plain">
+    <li><code>nums[a:b]</code> 取下标 a 到 b - 1，<strong>不包含 b</strong>，和 <code>range(a, b)</code> 一样“含头不含尾”。切片得到的是一个新列表，原来的 nums 不变。</li>
+    <li>旋转一次把最后一个数搬到最前面，旋转 k 次就是把<strong>最后 k 个数整体</strong>搬到最前面：<code>nums[-k:] + nums[:-k]</code>。</li>
+  </ul>
+  <p>点不同的 k，看 <code>[1, 2, 3, 4, 5, 6]</code> 转完的样子（柱子越高，数越大；绿色是最小值）：</p>
+  <div class="lab">
+    <div class="controls" id="roKs" role="group" aria-label="旋转次数 k"></div>
+    <div class="chart-wrap" id="roChart"></div>
+    <div class="console" id="roLog" aria-live="polite"></div>
+    <p id="roNote" style="font-size:15px"></p>
+  </div>
+
+  <h3>旋转后的数组长什么样</h3>
+  <p>不管转几次，结果都是<strong>两段升序</strong>拼在一起：</p>
+  <ul class="plain">
+    <li><strong>左段</strong>是原来末尾的 k 个数，也就是整个数组里最大的 k 个；<strong>右段</strong>是原来开头的 n - k 个数，是小的那些。所以<strong>左段的每个数都比右段的每个数大</strong>。</li>
+    <li>两段交界的地方叫<strong>断点</strong>：<code>nums[i - 1] &gt; nums[i]</code>。整个数组只有这一处“前一个比后一个大”，其他地方都是越往右越大。</li>
+    <li><strong>最小值就在断点右边</strong>，是右段的第一个数，下标正好是 k。</li>
+    <li>转 n 次（转回原样）时没有断点，整个数组就是一段升序，最小值是 <code>nums[0]</code>。</li>
+  </ul>
+  <p class="note ok">所以这道题其实就是在找断点。下一章先用最直接的办法找。</p>
+</section>
+
+<!-- 02 -->
+<section id="brute">
+  <div class="chap"><span class="num">02</span><h2>暴力解与 O(log n)</h2></div>
+  <p>最直接的办法：从头看到尾，一直记着见过的最小值。</p>
+<pre class="code" data-lang="py">res = nums[0]
+for x in nums:
+    if x &lt; res:
+        res = x
+return res</pre>
+  <ul class="plain">
+    <li><code>for x in nums:</code> 直接遍历列表里的值：x 依次等于 nums[0]、nums[1]、……。不需要下标时这样写最简洁。</li>
+    <li>Python 自带 <code>min(nums)</code>，一行就能拿到最小值，它内部做的也是同样的事：每个数看一遍。</li>
+    <li>也可以直接找断点：第一个比前一个数小的位置就是最小值；一个都找不到，说明整个数组有序，返回 nums[0]。</li>
+  </ul>
+<pre class="code" data-lang="py">for i in range(1, len(nums)):
+    if nums[i] &lt; nums[i - 1]:      # 断点
+        return nums[i]
+return nums[0]                     # 没有断点：整个数组有序</pre>
+  <p>这几种写法最坏都要看完全部 n 个数，时间是 <strong>O(n)</strong>。题目想要 O(log n)。</p>
+
+  <h3>O(log n) 有多快</h3>
+  <p>log₂ n 的意思是：n 反复除以 2，要除几次才变成 1。比如 8 → 4 → 2 → 1，除了 3 次，所以 log₂ 8 = 3。2¹⁰ = 1024，所以 log₂ 1000 约等于 10。</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>数组长度 n</th><th>O(n)：每个数看一遍</th><th>O(log n)：每次扔掉一半</th></tr>
+    <tr><td>6</td><td>6 次</td><td>约 3 次</td></tr>
+    <tr><td>1000</td><td>1000 次</td><td>约 10 次</td></tr>
+    <tr><td>100 万</td><td>100 万次</td><td>约 20 次</td></tr>
+    <tr><td>10 亿</td><td>10 亿次</td><td>约 30 次</td></tr>
+  </table></div>
+  <p class="note">要做到 O(log n)，每一步都得扔掉大约一半的候选，直到只剩一个。“每次扔掉一半”最典型的算法就是<strong>二分查找</strong>，下一章从头讲。</p>
+</section>
+
+<!-- 03 -->
+<section id="bsearch">
+  <div class="chap"><span class="num">03</span><h2>二分查找：每次扔掉一半</h2></div>
+  <p>先放下旋转，看最基本的问题：在一个<strong>有序</strong>数组里找 <code>target</code>，返回它的下标，找不到返回 -1。</p>
+  <p>用左指针 <span class="pre mono">l</span> 和右指针 <span class="suf mono">r</span> 圈出“target 可能在的范围”，每次看范围正中间的数 <span class="fix mono">nums[m]</span>：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>情况</th><th>做法</th><th>原因</th></tr>
+    <tr><td><code>nums[m] == target</code></td><td>返回 m</td><td>找到了</td></tr>
+    <tr><td><code>nums[m] &lt; target</code></td><td><code>l = m + 1</code></td><td>数组有序，m 和它左边的数都 ≤ nums[m] &lt; target，全部扔掉</td></tr>
+    <tr><td><code>nums[m] &gt; target</code></td><td><code>r = m - 1</code></td><td>m 和它右边的数都 ≥ nums[m] &gt; target，全部扔掉</td></tr>
+  </table></div>
+<pre class="code" data-lang="py">l, r = 0, len(nums) - 1
+while l &lt;= r:
+    m = (l + r) // 2
+    if nums[m] == target:
+        return m
+    elif nums[m] &lt; target:
+        l = m + 1
+    else:
+        r = m - 1
+return -1</pre>
+  <ul class="plain">
+    <li><code>l, r = 0, len(nums) - 1</code> 是同时赋值：l 等于 0，r 等于最后一个下标。</li>
+    <li><code>//</code> 是<strong>整除</strong>：除完只留整数部分，往小的方向取。<code>7 // 2</code> 是 3，<code>6 // 2</code> 也是 3。下标必须是整数，写成 <code>/</code> 会得到 3.5 这样的小数，<code>nums[3.5]</code> 直接报 TypeError。</li>
+    <li><code>(l + r) // 2</code> 是 l 和 r 正中间的位置。l 到 r 有偶数个数时没有正中间，取靠左的那个。</li>
+    <li><code>while l &lt;= r</code>：l == r 时范围里还剩一个数，它也可能是 target，检查完才能停。l 跑到 r 右边，范围就空了。</li>
+    <li><code>if / elif / else</code> 从上往下检查，第一个成立的分支执行，其余跳过。每一轮要么找到并返回，要么扔掉一半，所以大约 log₂ n 轮就结束。</li>
+  </ul>
+  <p>输入一个数组和 target，一步一步看（数组会自动排序；变淡的柱子是已经扔掉的）：</p>
+  <div class="lab">
+    <div class="inputs two">
+      <div class="field"><label for="bsArr">nums =</label>
+        <input type="text" id="bsArr" value="[1,3,5,7,9,11,13]" autocomplete="off" spellcheck="false" aria-describedby="bsErr"></div>
+      <div class="field"><label for="bsTarget">target =</label>
+        <input type="text" id="bsTarget" value="9" autocomplete="off" spellcheck="false" aria-describedby="bsErr"></div>
+    </div>
+    <div class="controls" id="bsPresets"></div>
+    <span class="err" id="bsErr" hidden></span>
+    <div>
+      <div class="row-label" id="bsNote"></div>
+      <div class="chart-wrap" id="bsWrap"></div>
+    </div>
+    <div class="stepper-grid">
+      <div class="viz">
+        <div class="vars"><span class="var p" id="bsL"></span><span class="var s" id="bsR"></span><span class="var m" id="bsM"></span></div>
+        <div class="vars"><span class="var" id="bsNm"></span><span class="var" id="bsT"></span></div>
+      </div>
+      <pre class="code" id="bsCode"></pre>
+    </div>
+    <div class="msg" id="bsMsg" aria-live="polite"></div>
+    <div class="lab-head">
+      <div class="controls">
+        <button type="button" id="bsReset">重来</button>
+        <button type="button" id="bsPrev">上一步</button>
+        <button type="button" id="bsNext" class="primary">下一步</button>
+        <button type="button" id="bsPlay">自动播放</button>
+      </div>
+      <span class="progress" id="bsProg"></span>
+    </div>
+  </div>
+  <p class="note warn">二分能一次扔掉一半，靠的是<strong>有序</strong>：只看一眼 nums[m]，就知道整半边的数都比 target 大或者都比 target 小。旋转之后数组不再整体有序，还能这样扔吗？下一章。</p>
+</section>
+
+<!-- 04 -->
+<section id="key">
+  <div class="chap"><span class="num">04</span><h2>和最右边的数比</h2></div>
+  <p>回到本题。二分的每一步只需要回答一个问题：<strong>最小值在 m 的左边还是右边？</strong></p>
+  <p>我们看不见断点在哪，但可以拿 <span class="fix mono">nums[m]</span> 和范围最右边的 <span class="suf mono">nums[r]</span> 比一下。第 01 章说过：左段的每个数都比右段大，同一段里越往右越大。所以只有两种结果：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>比较结果</th><th>说明什么</th><th>最小值在哪</th><th>做法</th></tr>
+    <tr><td><code>nums[m] &gt; nums[r]</code></td><td>m 在左段，r 在右段，断点夹在 m 和 r 之间</td><td>m 右边。nums[m] 本身比 nums[r] 大，不可能是最小值</td><td><code>l = m + 1</code></td></tr>
+    <tr><td><code>nums[m] &lt; nums[r]</code></td><td>从 m 到 r 一路上升，中间没有断点</td><td>m 本身，或者 m 左边。m 右边的数都比 nums[m] 大</td><td><code>r = m</code></td></tr>
+  </table></div>
+  <ul class="plain">
+    <li><strong>第一行为什么成立</strong>：如果 m 和 r 在同一段，m 在 r 左边，nums[m] 应该比 nums[r] 小。现在 nums[m] 反而更大，只能是两个数隔着断点。</li>
+    <li><strong>第二行为什么成立</strong>：如果 m 和 r 之间有断点，m 就在左段、r 在右段，nums[m] 会比 nums[r] 大，和“nums[m] &lt; nums[r]”矛盾。所以 m 到 r 是一段升序。</li>
+    <li><strong>第二行要留下 m</strong>：m 可能正好落在断点右边，它自己就是最小值，所以写 <code>r = m</code>，不写 <code>r = m - 1</code>。第 06 章用反例说明。</li>
+    <li><strong>不会相等</strong>：元素互不相同，而 m 一定在 r 左边（第 06 章证明），所以只有大于、小于两种情况，一个 <code>if / else</code> 就够了。</li>
+  </ul>
+  <p>下面 l 固定为 0，r 固定为最后一个下标。<strong>点任意一根柱子当 m</strong>（不一定是中间），看比较结果会扔掉哪一边。虚线绿框是真正的最小值，看看它是不是总留在剩下的范围里：</p>
+  <div class="lab">
+    <div class="field"><label for="pkInput">nums =</label>
+      <input type="text" id="pkInput" value="[3,4,5,6,1,2]" autocomplete="off" spellcheck="false" aria-describedby="pkErr"></div>
+    <div class="controls" id="pkPresets"></div>
+    <span class="err" id="pkErr" hidden></span>
+    <div class="chart-wrap" id="pkChart"></div>
+    <div class="legend"><span><i style="background:var(--pre)"></i>l</span><span><i style="background:var(--fix)"></i>m（点柱子换）</span><span><i style="background:var(--suf)"></i>r</span><span><i class="ring"></i>真正的最小值</span></div>
+    <div class="msg" id="pkMsg" aria-live="polite"></div>
+  </div>
+  <p class="note ok">m 选在哪里，判断都成立。二分专门选正中间，是为了不管走哪个分支都能扔掉一半，O(log n) 就是这么来的。</p>
+  <p>扔掉一部分之后，剩下的 [l, r] 本身还是一个“旋转排序数组”：要么还是两段升序，要么只剩一段升序。所以下一轮可以用完全相同的判断，一直缩到只剩一个数。</p>
+</section>
+
+<!-- 05 -->
+<section id="why-r">
+  <div class="chap"><span class="num">05</span><h2>为什么不和最左边比</h2></div>
+  <p>很自然会想：为什么不拿 nums[m] 和最左边的 nums[l] 比？看两个数组，l = 0，m = 2：</p>
+  <div class="duo">
+    <div class="fig">
+      <span class="fig-title">[1, 2, 3, 4, 5]</span>
+      <div class="chart-wrap" id="wyA"></div>
+      <p class="fig-cap">转了 5 次，回到原样。nums[m] = 3 &gt; nums[l] = 1，最小值在 m 的<strong>左边</strong>（下标 0）。</p>
+    </div>
+    <div class="fig">
+      <span class="fig-title">[3, 4, 5, 1, 2]</span>
+      <div class="chart-wrap" id="wyB"></div>
+      <p class="fig-cap">转了 2 次。nums[m] = 5 &gt; nums[l] = 3，最小值在 m 的<strong>右边</strong>（下标 3）。</p>
+    </div>
+  </div>
+  <p>同样是 <code>nums[m] &gt; nums[l]</code>，最小值一个在左、一个在右，只凭这一次比较<strong>决定不了扔哪边</strong>。nums[m] &gt; nums[l] 只说明 l 到 m 是上升的，断点可能在 m 右边，也可能根本没有断点。</p>
+  <p>换成和 nums[r] 比，两个数组都能判断对：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>数组</th><th>nums[m] 和 nums[r]</th><th>做法</th><th>结果</th></tr>
+    <tr><td><code>[1, 2, 3, 4, 5]</code></td><td>3 &lt; 5</td><td><code>r = m</code>，往左找</td><td class="ans">最小值 1 确实在左边</td></tr>
+    <tr><td><code>[3, 4, 5, 1, 2]</code></td><td>5 &gt; 2</td><td><code>l = m + 1</code>，往右找</td><td class="ans">最小值 1 确实在右边</td></tr>
+  </table></div>
+  <p>区别在于参照物属于哪一段。最小值始终在 [l, r] 里，而 r 在最小值的右边（或者就是它），所以 <strong>nums[r] 一定在右段</strong>。拿一个确定在右段的数当参照，nums[m] 比它大就是左段，比它小就是右段，不会含糊。nums[l] 就不一样了：有断点时它在左段，没有断点时它就是最小值本身，事先不知道它属于哪一段。</p>
+  <p class="note">NeetCode 视频里的解法其实是和 nums[l] 比的，但它先多做一步检查：如果 <code>nums[l] &lt; nums[r]</code>，说明这一段已经有序，最小值就是 nums[l]，直接结束。排除了“没有断点”这种情况，和 nums[l] 比就不含糊了。第 08 章给出这个版本。</p>
+</section>
+
+<!-- 06 -->
+<section id="bounds">
+  <div class="chap"><span class="num">06</span><h2>边界：一个字符的差别</h2></div>
+  <p>把前两章拼起来，标准解法只有 8 行：</p>
+<pre class="code" data-lang="py">l, r = 0, len(nums) - 1
+while l &lt; r:
+    m = (l + r) // 2
+    if nums[m] &gt; nums[r]:      # m 在左段，最小值在 m 右边
+        l = m + 1
+    else:                      # m 到 r 是升序，最小值是 m 或在 m 左边
+        r = m
+return nums[l]</pre>
+  <p>它和第 03 章的二分长得很像，但有三个地方改一个字符就会出错。</p>
+
+  <h3>1. r = m，不是 r = m - 1</h3>
+  <p>nums[m] &lt; nums[r] 时，m 本身可能就是最小值。看 <code>[3, 1, 2]</code>：l = 0，r = 2，m = 1。nums[1] = 1 &lt; nums[2] = 2，走 else。如果写 <code>r = m - 1 = 0</code>，下标 1 上的最小值 1 就被扔掉了，最后返回 nums[0] = 3。</p>
+  <p>第 03 章找 target 时可以写 <code>r = m - 1</code>，是因为那里已经检查过 nums[m] != target，m 确定没用了。这里只比较了 nums[m] 和 nums[r]，没法确认 nums[m] 是不是最小值，只能留着它。</p>
+
+  <h3>2. while l &lt; r，不是 l &lt;= r</h3>
+  <p>循环里一直保持着一件事：<strong>最小值在 [l, r] 范围里</strong>。l == r 时范围里只剩一个数，它就是答案，该停了，然后 <code>return nums[l]</code>。</p>
+  <p>写成 <code>l &lt;= r</code>，l == r 时还会再进一轮：m = (l + r) // 2 = l，nums[m] 和 nums[r] 是同一个数，<code>nums[m] &gt; nums[r]</code> 不成立，走 else，<code>r = m</code>，r 没变。下一轮一模一样，<strong>死循环</strong>。每个输入最后都会走到 l == r，所以这个写法<strong>对任何输入都会死循环</strong>。</p>
+
+  <h3>3. m 向下取整</h3>
+  <p>l &lt; r 时，<code>(l + r) // 2</code> 向下取整，m 最大也只能是 r - 1，<strong>一定小于 r</strong>。这保证了两件事：</p>
+  <ul class="plain">
+    <li>nums[m] 和 nums[r] 是两个不同位置上的数，元素互不相同，所以不会相等。</li>
+    <li>两个分支都会让范围变小：<code>l = m + 1</code> 让 l 变大，<code>r = m</code> 让 r 变小。范围每轮都在缩小，循环一定会结束。</li>
+  </ul>
+  <p>如果改成向上取整 <code>(l + r + 1) // 2</code>，只剩两个数（r = l + 1）时 m = r，走 else 之后 <code>r = m</code> 还是原来的 r，又是死循环。</p>
+  <p style="font-size:14px;color:var(--muted)">Java、C++ 里常写 <code>m = l + (r - l) / 2</code>，结果和 (l + r) / 2 一样，好处是 l + r 很大时不会整数溢出。Python 的整数没有上限，不用担心这个。</p>
+
+  <h3>二分的两种写法</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th></th><th>找 target（第 03 章）</th><th>找最小值（本题）</th></tr>
+    <tr><td>循环条件</td><td><code>while l &lt;= r</code></td><td><code>while l &lt; r</code></td></tr>
+    <tr><td>缩小右边界</td><td><code>r = m - 1</code></td><td><code>r = m</code></td></tr>
+    <tr><td>m 能不能扔</td><td>能：已经确认 nums[m] 不是 target</td><td>不能：nums[m] 可能就是最小值</td></tr>
+    <tr><td>循环结束时</td><td>范围空了，说明没找到</td><td>l == r，剩下的就是答案</td></tr>
+  </table></div>
+
+  <h3>找 bug 实验</h3>
+  <p>选一种写法和数组长度 n，在 <code>[1, 2, …, n]</code> 的全部 n 种旋转上各跑一遍。点表格里的数组，可以在第 07 章单步看它是怎么错的：</p>
+  <div class="lab">
+    <fieldset class="modes" id="bgModes"><legend>写法</legend></fieldset>
+    <div class="controls" id="bgNs" role="group" aria-label="数组长度 n"></div>
+    <p id="bgSum" style="font-size:15px" aria-live="polite"></p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>转几次</th><th>nums（点击单步看）</th><th>返回</th><th>结果</th><th>循环轮数</th></tr></thead>
+      <tbody id="bgBody"></tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- 07 -->
+<section id="step">
+  <div class="chap"><span class="num">07</span><h2>单步执行</h2></div>
+  <p>输入任意旋转排序数组，一步一步看代码怎么走。上方是柱状图和三个指针，左边是变量，右边高亮当前执行的代码行。换成错误写法，可以看到最小值在哪一步被扔掉，或者循环怎样原地打转。</p>
+  <div class="lab">
+    <div class="field"><label for="stInput">nums =</label>
+      <input type="text" id="stInput" value="[3,4,5,6,1,2]" autocomplete="off" spellcheck="false" aria-describedby="stErr"></div>
+    <div class="controls" id="stPresets"></div>
+    <span class="err" id="stErr" hidden></span>
+    <fieldset class="modes" id="stModes"><legend>写法</legend></fieldset>
+    <div>
+      <div class="chart-wrap" id="stWrap"></div>
+      <div class="legend"><span><i style="background:var(--pre)"></i>l</span><span><i style="background:var(--fix)"></i>m</span><span><i style="background:var(--suf)"></i>r</span><span><i class="ring"></i>真正的最小值（被扔掉后变红）</span><span>变淡：已经扔掉</span></div>
+    </div>
+    <div class="stepper-grid">
+      <div class="viz">
+        <div class="vars"><span class="var p" id="stL"></span><span class="var s" id="stR"></span><span class="var m" id="stM"></span></div>
+        <div class="vars"><span class="var" id="stNm"></span><span class="var" id="stNc"></span></div>
+        <div class="vars"><span class="var" id="stRound"></span><span id="stOut" class="pill">运行中</span></div>
+      </div>
+      <pre class="code" id="stCode"></pre>
+    </div>
+    <div class="msg" id="stMsg" aria-live="polite"></div>
+    <div class="lab-head">
+      <div class="controls">
+        <button type="button" id="stReset">重来</button>
+        <button type="button" id="stPrev">上一步</button>
+        <button type="button" id="stNext" class="primary">下一步</button>
+        <button type="button" id="stPlay">自动播放</button>
+      </div>
+      <span class="progress" id="stProg"></span>
+    </div>
+  </div>
+</section>
+
+<!-- 08 -->
+<section id="code">
+  <div class="chap"><span class="num">08</span><h2>完整代码与复杂度</h2></div>
+  <div class="tabs" role="tablist" aria-label="语言">
+    <button type="button" role="tab" aria-selected="true" data-lang="py">Python</button>
+    <button type="button" role="tab" aria-selected="false" data-lang="java">Java</button>
+    <button type="button" role="tab" aria-selected="false" data-lang="cpp">C++</button>
+  </div>
+<pre class="code" data-lang="py" id="code-py">class Solution:
+    def findMin(self, nums: List[int]) -&gt; int:
+        l, r = 0, len(nums) - 1
+        while l &lt; r:                   # 剩下不止一个候选
+            m = (l + r) // 2           # 向下取整，保证 m &lt; r
+            if nums[m] &gt; nums[r]:      # m 在左段，最小值在 m 右边
+                l = m + 1
+            else:                      # m 到 r 是升序，最小值是 m 或在 m 左边
+                r = m
+        return nums[l]                 # l == r，只剩一个候选</pre>
+<pre class="code" data-lang="java" id="code-java" hidden>class Solution {
+    public int findMin(int[] nums) {
+        int l = 0, r = nums.length - 1;
+        while (l &lt; r) {
+            int m = l + (r - l) / 2;
+            if (nums[m] &gt; nums[r]) {
+                l = m + 1;
+            } else {
+                r = m;
+            }
+        }
+        return nums[l];
+    }
+}</pre>
+<pre class="code" data-lang="cpp" id="code-cpp" hidden>class Solution {
+public:
+    int findMin(vector&lt;int&gt;&amp; nums) {
+        int l = 0, r = (int)nums.size() - 1;
+        while (l &lt; r) {
+            int m = l + (r - l) / 2;
+            if (nums[m] &gt; nums[r]) {
+                l = m + 1;
+            } else {
+                r = m;
+            }
+        }
+        return nums[l];
+    }
+};</pre>
+  <p style="font-size:14px;color:var(--muted)"><code>class Solution:</code> 和 <code>def findMin(self, nums: List[int]) -&gt; int:</code> 是 NeetCode 给定的外壳。<code>List[int]</code> 表示整数列表，<code>-&gt; int</code> 表示返回一个整数，这些只是类型提示，不影响运行。注意返回的是最小值本身 <code>nums[l]</code>，不是下标 l。</p>
+
+  <h3>另一种写法：NeetCode 视频里的版本</h3>
+<pre class="code" data-lang="py">class Solution:
+    def findMin(self, nums: List[int]) -&gt; int:
+        res = nums[0]
+        l, r = 0, len(nums) - 1
+
+        while l &lt;= r:
+            if nums[l] &lt; nums[r]:          # 这一段已经有序
+                res = min(res, nums[l])
+                break
+
+            m = (l + r) // 2
+            res = min(res, nums[m])        # 先把 nums[m] 记下来，后面就能扔掉 m
+            if nums[m] &gt;= nums[l]:         # m 在左段
+                l = m + 1
+            else:                          # m 在右段
+                r = m - 1
+        return res</pre>
+  <ul class="plain">
+    <li>每轮先检查 <code>nums[l] &lt; nums[r]</code>：成立说明 [l, r] 里没有断点，最小值就是 nums[l]，记下来，<code>break</code> 跳出循环。</li>
+    <li>不成立说明 [l, r] 里有断点（或者只剩一个数），这时 nums[l] 一定在左段，和它比就不含糊了：<code>nums[m] &gt;= nums[l]</code> 说明 m 也在左段，最小值在右边；否则 m 在右段，最小值是 m 或在 m 左边。</li>
+    <li><code>min(a, b)</code> 返回两者中较小的那个。res 一直记着见过的最小值，nums[m] 已经记过了，所以可以写 <code>r = m - 1</code> 和 <code>while l &lt;= r</code>，和本页的写法刚好相反。</li>
+    <li>这里必须写 <code>&gt;=</code>：只剩两个数时 m == l，nums[m] 和 nums[l] 是同一个数，此时 m 在左段，要往右走。写成 <code>&gt;</code>，<code>[2, 1]</code> 会返回 2。</li>
+  </ul>
+  <p>两种写法都是 O(log n)。本页的写法更短，也不需要额外的 res 变量。</p>
+
+  <h3>复杂度</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>解法</th><th>时间</th><th>额外空间</th><th>说明</th></tr>
+    <tr><td>从头看到尾 / <code>min(nums)</code></td><td>O(n)</td><td>O(1)</td><td>每个数都要看一遍</td></tr>
+    <tr><td>二分，和 nums[r] 比</td><td class="ans">O(log n)</td><td>O(1)</td><td>每轮扔掉一半，n = 1000 时最多 10 轮</td></tr>
+    <tr><td>NeetCode 视频版</td><td>O(log n)</td><td>O(1)</td><td>多一个 res 变量和一次“是否有序”的检查</td></tr>
+  </table></div>
+  <p>时间：每轮循环只做一次比较，范围缩小到原来的一半左右，n 个候选大约 log₂ n 轮就只剩一个。空间：只用了 l、r、m 三个变量。</p>
+  <h3>最容易写错的六个地方</h3>
+  <ul class="plain">
+    <li><strong>写成 <code>r = m - 1</code></strong>：<code>[3, 1, 2]</code> 把最小值扔掉，返回 3。</li>
+    <li><strong>写成 <code>while l &lt;= r</code></strong>：l == r 时 <code>r = m</code> 原地不动，任何输入都死循环。</li>
+    <li><strong>和 nums[l] 比，又没有先检查有序</strong>：<code>[1, 2, 3, 4, 5]</code> 返回 4。</li>
+    <li><strong>写成 <code>m = (l + r + 1) // 2</code></strong>：只剩两个数时 m == r，<code>[3, 1, 2]</code> 死循环。</li>
+    <li><strong>写成 <code>m = (l + r) / 2</code></strong>：Python 里 <code>/</code> 得到小数，<code>nums[m]</code> 报 TypeError。</li>
+    <li><strong>最后写成 <code>return l</code></strong>：题目要的是最小值，不是它的下标。</li>
+  </ul>
+</section>
+
+<!-- 09 -->
+<section id="quiz">
+  <div class="chap"><span class="num">09</span><h2>自测</h2></div>
+  <p>点选答案，立即判分。全部答对说明前置知识已经过关。</p>
+  <div class="quiz" id="quizBox"></div>
+  <p class="progress" id="quizScore"></p>
+
+  <h3 style="margin-top:12px">掌握清单</h3>
+  <ul class="checklist" id="checklist">
+    <li><label><input type="checkbox" id="ck1"><span>能用切片写出旋转 k 次的结果，知道转 n 次会回到原样。</span></label></li>
+    <li><label><input type="checkbox" id="ck2"><span>能说出旋转后的数组长什么样：两段升序，左段都比右段大，最小值在断点右边。</span></label></li>
+    <li><label><input type="checkbox" id="ck3"><span>能写出找 target 的二分查找，解释 <code>(l + r) // 2</code> 和“每次扔掉一半”。</span></label></li>
+    <li><label><input type="checkbox" id="ck4"><span>能解释 <code>nums[m] &gt; nums[r]</code> 时为什么最小值一定在 m 右边，<code>nums[m] &lt; nums[r]</code> 时为什么在 m 或 m 左边。</span></label></li>
+    <li><label><input type="checkbox" id="ck5"><span>能用 <code>[1, 2, 3, 4, 5]</code> 和 <code>[3, 4, 5, 1, 2]</code> 说明为什么和 nums[l] 比会无法判断。</span></label></li>
+    <li><label><input type="checkbox" id="ck6"><span>能说出 <code>r = m</code>、<code>while l &lt; r</code>、向下取整分别在防什么，各举一个反例。</span></label></li>
+    <li><label><input type="checkbox" id="ck7"><span>不看本页，5 分钟内写出可以通过的代码。</span></label></li>
+  </ul>
+</section>
+
+<footer>同类题型：搜索旋转排序数组（Search in Rotated Sorted Array）同样先判断 m 落在哪一段，再决定扔哪边；寻找旋转排序数组中的最小值 II 允许重复值，nums[m] == nums[r] 时判断不了，只能 r -= 1，最坏退化成 O(n)；二分查找（Binary Search）、寻找峰值（Find Peak Element）也都是“看一眼中间，扔掉一半”。</footer>
+</main>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const fmt = (a) => "[" + a.join(", ") + "]";
+  const compact = (a) => "[" + a.join(",") + "]";
+  const asc = (x, y) => x - y;
+  const sameArr = (a, b) => a.length === b.length && a.every((v, k) => v === b[k]);
+  const rot = (b, k) => b.slice(b.length - k).concat(b.slice(0, b.length - k));
+  const argmin = (a) => a.reduce((bi, v, i) => (v < a[bi] ? i : bi), 0);
+  function showErr(id, msg) { $(id).textContent = msg || ""; $(id).hidden = !msg; return !!msg; }
+
+  // 接受 [3,4,5,1,2] 或 3 4 5 1 2 这类写法
+  function parseArr(text, minLen, maxLen) {
+    const t = text.trim().replace(/[−–]/g, "-").replace(/^\[/, "").replace(/\]$/, "");
+    const parts = t.split(/[\s,，]+/).filter(Boolean);
+    if (!parts.length) return { err: "请输入整数，用逗号分隔，例如 [3,4,5,6,1,2]" };
+    const bad = parts.find((p) => !/^-?\d+$/.test(p));
+    if (bad !== undefined) return { err: "“" + bad + "” 不是整数。请用逗号或空格分隔整数，例如 [3,4,5,6,1,2]" };
+    const arr = parts.map((p) => Number(p) || 0);
+    if (arr.some((v) => v < -99 || v > 99)) return { err: "演示里每个数限制在 -99 到 99，方便看清" };
+    if (arr.length < minLen) return { err: "至少需要 " + minLen + " 个数" };
+    if (arr.length > maxLen) return { err: "演示里最多 " + maxLen + " 个数，方便看清" };
+    return { arr };
+  }
+  function parseTarget(text) {
+    const t = text.trim().replace(/[−–]/g, "-");
+    if (!/^-?\d+$/.test(t)) return { err: "target 要是一个整数" };
+    const v = Number(t) || 0;
+    if (v < -99 || v > 99) return { err: "演示里 target 限制在 -99 到 99" };
+    return { v };
+  }
+  // 检查是不是“互不相同的旋转排序数组”
+  function checkRotated(a) {
+    const seen = new Set();
+    for (const v of a) { if (seen.has(v)) return "数组里 " + v + " 出现了不止一次。本题保证所有元素互不相同"; seen.add(v); }
+    const drops = [];
+    for (let i = 1; i < a.length; i++) if (a[i - 1] > a[i]) drops.push(i);
+    if (drops.length > 1) return "这不是旋转排序数组：有 " + drops.length + " 处“前一个比后一个大”（" +
+      drops.map((i) => a[i - 1] + " > " + a[i]).join("、") + "），旋转排序数组最多只有 1 处";
+    if (drops.length === 1 && a[a.length - 1] > a[0]) return "这不是旋转排序数组：最后一个数 " + a[a.length - 1] + " 比第一个数 " + a[0] + " 还大，两段拼不回一个有序数组";
+    return "";
+  }
+
+  /* ---------- 语法高亮 ---------- */
+  const KW = /\b(class|def|for|in|range|if|elif|else|not|and|or|while|return|break|continue|len|min|self|None|True|False|List|public|int|vector)\b|\b(\d+)\b/g;
+  function hlCode(text, lang) {
+    const marker = lang === "py" ? "#" : "//";
+    const pos = text.indexOf(marker);
+    const codePart = pos >= 0 ? text.slice(0, pos) : text;
+    const comPart = pos >= 0 ? text.slice(pos) : "";
+    const body = esc(codePart).replace(KW, (m, k, n) => k ? '<span class="k">' + k + "</span>" : '<span class="n">' + n + "</span>");
+    return body + (comPart ? '<span class="c">' + esc(comPart) + "</span>" : "");
+  }
+  document.querySelectorAll("pre.code[data-lang]").forEach((pre) => {
+    const lang = pre.dataset.lang;
+    pre.innerHTML = pre.textContent.split("\n").map((l) => '<span class="ln">' + (hlCode(l, lang) || " ") + "</span>").join("");
+  });
+  function renderCode(el, lines, mut) {
+    el.innerHTML = lines.map((l, k) => '<span class="ln' + (k === mut ? " mut" : "") + '" data-k="' + k + '">' + (hlCode(l, "py") || " ") + "</span>").join("");
+  }
+  function markLine(el, line, hl) {
+    el.querySelectorAll(".ln").forEach((x) => {
+      x.classList.remove("hl0", "hl", "hl2", "hl3", "hl4", "hl5");
+      if (+x.dataset.k === line) x.classList.add(hl);
+    });
+  }
+
+  /* ---------- 柱状图 ---------- */
+  const SLOT = 44, BW = 26, PX = 8;
+  function barsSVG(a, o) {
+    o = o || {};
+    const n = a.length, top = 30, plot = 120, bot = 42;
+    const W = PX * 2 + n * SLOT, H = top + plot + bot, base = top + plot;
+    const lo = Math.min(...a), hi = Math.max(...a);
+    const X = (i) => PX + i * SLOT + (SLOT - BW) / 2;
+    const hgt = (v) => (hi === lo ? plot * 0.6 : 14 + ((v - lo) / (hi - lo)) * (plot - 14));
+    const has = (v) => v !== undefined && v !== null && v >= 0 && v < n;
+    let s = '<svg class="bars" viewBox="0 0 ' + W + " " + H + '" style="min-width:' + n * 30 + "px;max-width:" + Math.round(W * 1.4) +
+      'px" role="img" aria-label="' + esc(o.label || "nums = " + fmt(a) + "，柱子越高数越大") + '">';
+    if (o.drop) for (let i = 1; i < n; i++) if (a[i - 1] > a[i]) {
+      const x = PX + i * SLOT;
+      s += '<line class="drop" x1="' + x + '" x2="' + x + '" y1="' + (top - 8) + '" y2="' + base + '"/>' +
+        '<text class="tdrop" x="' + x + '" y="' + (top - 13) + '">断点</text>';
+    }
+    for (let i = 0; i < n; i++) {
+      let cls = "bar";
+      if (i === o.res) cls += " bres";
+      else if (i === o.m) cls += " bm";
+      else if (i === o.r) cls += " br";
+      else if (i === o.l) cls += " bl";
+      const h = hgt(a[i]), cx = X(i) + BW / 2;
+      const fade = o.fade && o.fade(i);
+      s += "<g" + (fade ? ' class="faded"' : "") + ">" +
+        '<rect class="' + cls + '" x="' + X(i) + '" y="' + (base - h) + '" width="' + BW + '" height="' + h + '" rx="2"/>' +
+        '<text class="tv" x="' + cx + '" y="' + (base - h - (i === o.minRing ? 10 : 6)) + '">' + a[i] + "</text>" +
+        '<text class="ti" x="' + cx + '" y="' + (base + 15) + '">' + i + "</text></g>";
+      const tags = [];
+      if (has(o.l) && i === o.l) tags.push('<tspan class="pl">l</tspan>');
+      if (has(o.m) && i === o.m) tags.push('<tspan class="pm">m</tspan>');
+      if (has(o.r) && i === o.r) tags.push('<tspan class="pr">r</tspan>');
+      if (tags.length) s += '<text class="tp" x="' + cx + '" y="' + (base + 34) + '">' + tags.join(" ") + "</text>";
+    }
+    if (has(o.minRing)) {
+      const i = o.minRing, h = hgt(a[i]);
+      s += '<rect class="ring' + (o.lost ? " lost" : "") + '" x="' + (X(i) - 4) + '" y="' + (base - h - 4) + '" width="' + (BW + 8) + '" height="' + (h + 4) + '" rx="4"/>';
+    }
+    s += '<line class="axis" x1="' + PX / 2 + '" x2="' + (W - PX / 2) + '" y1="' + base + '" y2="' + base + '"/>';
+    if (o.hit) for (let i = 0; i < n; i++) {
+      s += '<rect class="hit" data-i="' + i + '" x="' + (PX + i * SLOT) + '" y="0" width="' + SLOT + '" height="' + (base + 4) +
+        '" tabindex="0" role="button" aria-label="把下标 ' + i + "（值 " + a[i] + '）设为 m"/>';
+    }
+    return s + "</svg>";
+  }
+
+  // 手机上图比框宽时横向滚动：几个指针放得下就都露出来，放不下就只露出刚动的那个
+  function keepVisible(wrap, idxs, focusIdx, n) {
+    const svg = wrap.querySelector("svg"); if (!svg) return;
+    const w = wrap.clientWidth, sw = svg.getBoundingClientRect().width;
+    if (sw <= w + 1) { wrap.scrollLeft = 0; return; }
+    const unit = sw / (PX * 2 + n * SLOT);
+    const L0 = (i) => (PX + i * SLOT) * unit, R0 = (i) => (PX + (i + 1) * SLOT) * unit;
+    const xs = idxs.filter((i) => i !== null && i >= 0 && i < n);
+    if (!xs.length) return;
+    let L = Math.min(...xs.map(L0)), R = Math.max(...xs.map(R0));
+    if (R - L + 8 > w) { const f = xs.includes(focusIdx) ? focusIdx : xs[0]; L = L0(f); R = R0(f); }
+    const pad = Math.max(4, Math.min(16, (w - (R - L)) / 2));
+    if (L - pad < wrap.scrollLeft) wrap.scrollLeft = L - pad;
+    else if (R + pad > wrap.scrollLeft + w) wrap.scrollLeft = R + pad - w;
+  }
+
+  function presets(el, list, label, apply) {
+    el.innerHTML = list.map((p, k) => '<button type="button" class="mono" data-k="' + k + '">' + esc(label(p)) + "</button>").join("");
+    el.addEventListener("click", (e) => { const b = e.target.closest("[data-k]"); if (b) apply(list[+b.dataset.k]); });
+  }
+
+  function makePlayer(p, draw) {
+    const S = { frames: [], idx: 0, timer: null };
+    const el = (s) => $(p + s);
+    function render() {
+      draw(S.frames[S.idx]);
+      el("Prog").textContent = "第 " + (S.idx + 1) + " / " + S.frames.length + " 步";
+      el("Prev").disabled = S.idx === 0;
+      el("Next").disabled = S.idx === S.frames.length - 1;
+    }
+    function stop() { if (S.timer) { clearInterval(S.timer); S.timer = null; } el("Play").textContent = "自动播放"; }
+    el("Next").addEventListener("click", () => { stop(); if (S.idx < S.frames.length - 1) { S.idx++; render(); } });
+    el("Prev").addEventListener("click", () => { stop(); if (S.idx > 0) { S.idx--; render(); } });
+    el("Reset").addEventListener("click", () => { stop(); S.idx = 0; render(); });
+    el("Play").addEventListener("click", () => {
+      if (S.timer) { stop(); return; }
+      if (S.idx === S.frames.length - 1) { S.idx = 0; render(); }
+      el("Play").textContent = "暂停";
+      S.timer = setInterval(() => { if (S.idx < S.frames.length - 1) { S.idx++; render(); } else stop(); }, 1000);
+    });
+    return { load(frames) { stop(); S.frames = frames; S.idx = 0; render(); } };
+  }
+
+  /* ---------- 01 旋转 ---------- */
+  const RO_BASE = [1, 2, 3, 4, 5, 6];
+  let roK = 4;
+  function roDraw() {
+    const n = RO_BASE.length, a = rot(RO_BASE, roK), mi = roK % n;
+    $("roKs").querySelectorAll("[data-k]").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.k === roK)));
+    $("roChart").innerHTML = barsSVG(a, { drop: true, res: mi, label: "旋转 " + roK + " 次后 nums = " + fmt(a) });
+    const tail = RO_BASE.slice(n - roK), head = RO_BASE.slice(0, n - roK);
+    $("roLog").innerHTML = "&gt;&gt;&gt; nums = " + fmt(RO_BASE) + "\n&gt;&gt;&gt; k = " + roK + "\n" +
+      "&gt;&gt;&gt; nums[-k:]   " + '<span class="c"># 最后 ' + roK + " 个</span>\n" + fmt(tail) + "\n" +
+      "&gt;&gt;&gt; nums[:-k]   " + '<span class="c"># 其余的</span>\n' + fmt(head) + "\n" +
+      "&gt;&gt;&gt; nums[-k:] + nums[:-k]\n" + '<span class="out">' + fmt(a) + "</span>";
+    $("roNote").innerHTML = roK === n
+      ? "转了 " + n + " 次，每个数都搬了一圈，回到原样。<code>nums[:-" + n + "]</code> 是空列表 <code>[]</code>。没有断点，整个数组是一段升序，最小值是 <span class=\"ans\">nums[0] = " + a[0] + "</span>。"
+      : "左段 <code>" + fmt(tail) + "</code> 是原来最后 " + roK + " 个数，右段 <code>" + fmt(head) + "</code> 是原来开头的 " + (n - roK) + " 个数。断点在下标 " + (mi - 1) + " 和 " + mi +
+        " 之间（" + a[mi - 1] + " &gt; " + a[mi] + "）。最小值 <span class=\"ans\">" + a[mi] + "</span> 是右段的第一个数，下标正好是 k = " + roK + "。";
+  }
+  $("roKs").innerHTML = RO_BASE.map((_, x) => '<button type="button" class="mono" data-k="' + (x + 1) + '" aria-pressed="false">k = ' + (x + 1) + "</button>").join("") +
+    '<button type="button" id="roOnce">再转一次</button>';
+  $("roKs").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    roK = b.id === "roOnce" ? (roK % RO_BASE.length) + 1 : +b.dataset.k;
+    roDraw();
+  });
+  roDraw();
+
+  /* ---------- 03 普通二分查找 ---------- */
+  const BS_CODE = [
+    "l, r = 0, len(nums) - 1",
+    "while l <= r:",
+    "    m = (l + r) // 2",
+    "    if nums[m] == target:",
+    "        return m",
+    "    elif nums[m] < target:",
+    "        l = m + 1",
+    "    else:",
+    "        r = m - 1",
+    "return -1"
+  ];
+  renderCode($("bsCode"), BS_CODE);
+  function bsBuild(a, t) {
+    const n = a.length, F = [];
+    let l = 0, r = n - 1, m = null;
+    const push = (o) => F.push(Object.assign({ l, r, m, found: null }, o));
+    push({ line: 0, hl: "hl0", msg: "l = 0，r = " + (n - 1) + "：一开始整个数组都可能藏着 target。" });
+    for (let guard = 0; guard < 40; guard++) {
+      if (!(l <= r)) {
+        push({ line: 1, hl: "hl0", m: null, msg: "l = " + l + "，r = " + r + "，l 跑到了 r 右边，<code>l &lt;= r</code> 不成立：范围空了，退出循环。" });
+        push({ line: 9, hl: "hl3", m: null, msg: "<code>return -1</code>：target = " + t + " 不在数组里。一共只检查了 " + guard + " 个数。" });
+        return F;
+      }
+      push({ line: 1, hl: "hl0", m: null, msg: "l = " + l + "，r = " + r + "，<code>l &lt;= r</code> 成立：范围里还有 " + (r - l + 1) + " 个数。" });
+      m = Math.floor((l + r) / 2);
+      push({ line: 2, hl: "hl5", msg: "m = (l + r) // 2 = (" + l + " + " + r + ") // 2 = " + (l + r) + " // 2 = " + m + "，范围正中间。" });
+      if (a[m] === t) {
+        push({ line: 3, hl: "hl0", msg: "nums[m] = " + a[m] + "，等于 target。" });
+        push({ line: 4, hl: "hl4", found: m, msg: "<code>return m</code>：找到了，下标 " + m + "。一共只检查了 " + (guard + 1) + " 个数。" });
+        return F;
+      }
+      push({ line: 3, hl: "hl0", msg: "nums[m] = " + a[m] + "，不等于 target = " + t + "。" });
+      if (a[m] < t) {
+        push({ line: 5, hl: "hl0", msg: a[m] + " &lt; " + t + "：nums[m] 太小。数组有序，m 左边的数更小，全都不可能是 target。" });
+        const ol = l; l = m + 1;
+        push({ line: 6, hl: "hl", msg: "<code>l = m + 1 = " + l + "</code>：扔掉下标 " + ol + " 到 " + m + "。m 自己也扔掉，它已经确认不是 target。" });
+      } else {
+        push({ line: 7, hl: "hl0", msg: "nums[m] &lt; target 也不成立（" + a[m] + " &gt; " + t + "），走 else：nums[m] 太大，m 右边的数更大，全都不可能是 target。" });
+        const or = r; r = m - 1;
+        push({ line: 8, hl: "hl2", msg: "<code>r = m - 1 = " + r + "</code>：扔掉下标 " + m + " 到 " + or + "。" });
+      }
+    }
+    return F;
+  }
+  let bsA = [], bsT = 0;
+  const bsP = makePlayer("bs", (f) => {
+    $("bsWrap").innerHTML = barsSVG(bsA, { l: f.l, r: f.r, m: f.m, res: f.found, fade: (i) => i < f.l || i > f.r });
+    keepVisible($("bsWrap"), [f.l, f.r, f.m], f.m !== null ? f.m : f.l, bsA.length);
+    const at = (x) => (x !== null && x >= 0 && x < bsA.length ? x : x === null ? "—" : x);
+    $("bsL").textContent = "l = " + f.l;
+    $("bsR").textContent = "r = " + f.r;
+    $("bsM").textContent = "m = " + at(f.m);
+    $("bsNm").textContent = "nums[m] = " + (f.m !== null ? bsA[f.m] : "—");
+    $("bsT").textContent = "target = " + bsT;
+    markLine($("bsCode"), f.line, f.hl);
+    $("bsMsg").innerHTML = f.msg;
+  });
+  function bsLoad() {
+    const p = parseArr($("bsArr").value, 1, 12), t = parseTarget($("bsTarget").value);
+    if (showErr("bsErr", p.err || t.err)) return;
+    bsA = p.arr.slice().sort(asc); bsT = t.v;
+    $("bsNote").textContent = sameArr(bsA, p.arr) ? "nums（已经有序）" : "nums（已自动排序：二分查找要求数组有序）";
+    bsP.load(bsBuild(bsA, bsT));
+    $("bsWrap").scrollLeft = 0;
+  }
+  $("bsArr").addEventListener("input", bsLoad);
+  $("bsTarget").addEventListener("input", bsLoad);
+  presets($("bsPresets"), [["[1,3,5,7,9,11,13]", "9"], ["[1,3,5,7,9,11,13]", "4"], ["[2,4,6,8,10,12,14,16]", "16"], ["[-5,-2,0,3,8]", "-5"]],
+    (p) => p[0] + " · target=" + p[1], (p) => { $("bsArr").value = p[0]; $("bsTarget").value = p[1]; bsLoad(); });
+  bsLoad();
+
+  /* ---------- 04 任选一个 m ---------- */
+  let pkA = [], pkM = 0;
+  function pkDraw(refocus) {
+    const a = pkA, n = a.length, l = 0, r = n - 1, mi = argmin(a), m = pkM;
+    if (n === 1) {
+      $("pkChart").innerHTML = barsSVG(a, { l: 0, r: 0, minRing: 0 });
+      $("pkMsg").innerHTML = "只有一个数：l == r，它就是最小值，循环一轮都不用跑。";
+      return;
+    }
+    let fade = null, msg, nl = l, nr = r;
+    if (m === r) {
+      msg = "m 要在 r 的左边。用 <code>(l + r) // 2</code> 算出来的 m 一定小于 r（第 06 章解释），换一根柱子试试。";
+    } else if (a[m] > a[r]) {
+      nl = m + 1; fade = (i) => i <= m;
+      msg = "nums[m] = " + a[m] + " &gt; nums[r] = " + a[r] + "：m 在左段，r 在右段，断点夹在它们之间。最小值在 m 右边，nums[m] 本身也不是最小值（nums[r] 就比它小）。" +
+        "扔掉下标 0 到 " + m + "，<code>l = m + 1 = " + nl + "</code>。";
+    } else {
+      nr = m; fade = (i) => i > m;
+      msg = "nums[m] = " + a[m] + " &lt; nums[r] = " + a[r] + "：从 m 到 r 一路上升，中间没有断点，m 右边的数都比 nums[m] 大。最小值是 nums[m] 或在 m 左边。" +
+        "扔掉下标 " + (m + 1) + (r > m + 1 ? " 到 " + r : "") + "，<code>r = m = " + nr + "</code>，m 保留。";
+    }
+    $("pkChart").innerHTML = barsSVG(a, { l, r, m, drop: true, minRing: mi, fade, hit: true, label: "nums = " + fmt(a) + "，点柱子选 m" });
+    if (fade) {
+      const kept = !fade(mi);
+      msg += "<br>" + (kept
+        ? '<span class="ans">剩下 [' + nl + ", " + nr + "]，" + (nr - nl + 1) + " 个数，扔掉了 " + (n - (nr - nl + 1)) + " 个。最小值 " + a[mi] + "（下标 " + mi + "）还在里面。</span>"
+        : '<span class="bad">最小值被扔掉了？这不应该发生。</span>');
+    }
+    $("pkMsg").innerHTML = msg;
+    if (refocus) { const h = $("pkChart").querySelector('.hit[data-i="' + m + '"]'); if (h) h.focus(); }
+  }
+  function pkLoad() {
+    const p = parseArr($("pkInput").value, 1, 12);
+    if (showErr("pkErr", p.err || checkRotated(p.arr || []))) return;
+    pkA = p.arr; pkM = Math.floor((pkA.length - 1) / 2);
+    pkDraw();
+  }
+  function pkPick(e, refocus) {
+    const h = e.target.closest(".hit"); if (!h) return;
+    pkM = +h.dataset.i; pkDraw(refocus);
+  }
+  $("pkChart").addEventListener("click", (e) => pkPick(e, false));
+  $("pkChart").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pkPick(e, true); } });
+  $("pkInput").addEventListener("input", pkLoad);
+  presets($("pkPresets"), ["[3,4,5,6,1,2]", "[4,5,0,1,2,3]", "[4,5,6,7]", "[6,1,2,3,4,5]", "[2,3,4,5,6,1]"], (p) => p, (p) => { $("pkInput").value = p; pkLoad(); });
+  pkLoad();
+
+  /* ---------- 05 两图对照 ---------- */
+  $("wyA").innerHTML = barsSVG([1, 2, 3, 4, 5], { l: 0, m: 2, r: 4, minRing: 0, label: "[1, 2, 3, 4, 5]，l = 0，m = 2，r = 4，最小值在下标 0" });
+  $("wyB").innerHTML = barsSVG([3, 4, 5, 1, 2], { l: 0, m: 2, r: 4, minRing: 3, drop: true, label: "[3, 4, 5, 1, 2]，l = 0，m = 2，r = 4，最小值在下标 3" });
+
+  /* ---------- 06/07 几种写法 ---------- */
+  const VARS = [
+    { id: "ok", name: "正确写法", why: "每一轮都保住最小值，范围也都在缩小，全部通过。" },
+    { id: "rm1", name: "r = m - 1", rm1: true, mut: 6, why: "nums[m] &lt; nums[r] 时连 m 也扔掉了。m 恰好就是最小值的那些输入会出错。" },
+    { id: "le", name: "while l <= r", le: true, mut: 1, why: "每个输入最后都会走到 l == r，这时 r = m 什么也不改变，所以全部死循环。" },
+    { id: "cmpL", name: "和 nums[l] 比", cmpL: true, mut: 3, why: "nums[m] &gt; nums[l] 时分不清最小值在左还是在右，这个写法一律往右找。数组本来有序（转 n 次）时第一步就错了。" },
+    { id: "up", name: "m 向上取整", up: true, mut: 2, why: "只剩两个数（r = l + 1）时 m 等于 r，r = m 原地不动，走到这一步的输入都会死循环。" }
+  ];
+  const VBY = {}; VARS.forEach((v) => { VBY[v.id] = v; });
+  function codeFor(v) {
+    return [
+      "l, r = 0, len(nums) - 1",
+      v.le ? "while l <= r:               # ← 改成了 <=" : "while l < r:",
+      v.up ? "    m = (l + r + 1) // 2       # ← 改成了向上取整" : "    m = (l + r) // 2",
+      v.cmpL ? "    if nums[m] > nums[l]:      # ← 改成了和 nums[l] 比" : "    if nums[m] > nums[r]:",
+      "        l = m + 1",
+      "    else:",
+      v.rm1 ? "        r = m - 1              # ← 改成了 m - 1" : "        r = m",
+      "return nums[l]"
+    ];
+  }
+  function modesHTML(group) {
+    return VARS.map((v, k) => '<label><input type="radio" name="' + group + '" value="' + v.id + '"' + (k === 0 ? " checked" : "") + ">" +
+      (v.id === "ok" ? esc(v.name) : '<span class="mono">' + esc(v.name) + "</span>") + "</label>").join("");
+  }
+  const modeOf = (group) => { const c = document.querySelector('input[name="' + group + '"]:checked'); return VBY[c ? c.value : "ok"]; };
+
+  // 不出帧、只出结果的快速版本，给表格用
+  function fastRun(a, v) {
+    let l = 0, r = a.length - 1, it = 0, prev = null;
+    while (v.le ? l <= r : l < r) {
+      const key = l + "," + r;
+      if (key === prev) return { kind: "loop", it };
+      prev = key; it++;
+      const m = v.up ? Math.floor((l + r + 1) / 2) : Math.floor((l + r) / 2);
+      if (a[m] > (v.cmpL ? a[l] : a[r])) l = m + 1; else r = v.rm1 ? m - 1 : m;
+    }
+    if (l < 0 || l >= a.length) return { kind: "idx", it };
+    return { kind: a[l] === Math.min(...a) ? "ok" : "bad", res: a[l], it };
+  }
+
+  /* ---------- 06 找 bug 实验 ---------- */
+  $("bgModes").insertAdjacentHTML("beforeend", modesHTML("bgMode"));
+  let bgN = 6, bgRows = [];
+  $("bgNs").innerHTML = [2, 3, 4, 5, 6, 7, 8].map((n) => '<button type="button" class="mono" data-n="' + n + '" aria-pressed="false">n = ' + n + "</button>").join("");
+  function bgDraw() {
+    const v = modeOf("bgMode"), base = Array.from({ length: bgN }, (_, i) => i + 1);
+    $("bgNs").querySelectorAll("[data-n]").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.n === bgN)));
+    bgRows = base.map((_, x) => { const k = x + 1, a = rot(base, k); return { k, a, o: fastRun(a, v) }; });
+    const pass = bgRows.filter((x) => x.o.kind === "ok").length;
+    $("bgBody").innerHTML = bgRows.map((x, ri) => {
+      const o = x.o;
+      const verdict = o.kind === "ok" ? '<span class="pill t">✓ 正确</span>'
+        : o.kind === "bad" ? '<span class="pill f">✗ 应为 1</span>'
+        : o.kind === "loop" ? '<span class="pill f">死循环</span>' : '<span class="pill f">IndexError</span>';
+      return '<tr data-k="' + ri + '"><td class="mono">' + x.k + (x.k === bgN ? "（原样）" : "") + '</td><td><button type="button" class="rowbtn" data-k="' + ri + '">' + fmt(x.a) +
+        '</button></td><td class="mono">' + (o.res === undefined ? "—" : o.res) + "</td><td>" + verdict + '</td><td class="mono">' + (o.kind === "loop" ? "∞" : o.it) + "</td></tr>";
+    }).join("");
+    $("bgSum").innerHTML = '<span class="' + (pass === bgN ? "ans" : "bad") + '">通过 ' + pass + " / " + bgN + "</span>。" + v.why;
+  }
+  $("bgModes").addEventListener("change", bgDraw);
+  $("bgNs").addEventListener("click", (e) => { const b = e.target.closest("[data-n]"); if (b) { bgN = +b.dataset.n; bgDraw(); } });
+  $("bgBody").addEventListener("click", (e) => {
+    const t = e.target.closest("[data-k]"); if (!t) return;
+    const row = bgRows[+t.dataset.k], v = modeOf("bgMode");
+    $("stInput").value = compact(row.a);
+    const radio = document.querySelector('input[name="stMode"][value="' + v.id + '"]'); if (radio) radio.checked = true;
+    stLoad();
+    $("step").scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  });
+  bgDraw();
+
+  /* ---------- 07 单步执行 ---------- */
+  $("stModes").insertAdjacentHTML("beforeend", modesHTML("stMode"));
+  function stBuild(a, v) {
+    const n = a.length, F = [], mi = argmin(a), cName = v.cmpL ? "nums[l]" : "nums[r]";
+    let l = 0, r = n - 1, m = null, lost = false, prevKey = null, rounds = 0;
+    const push = (o) => F.push(Object.assign({ l, r, m, lost, res: null, verdict: null, round: rounds, focus: "m" }, o));
+    push({ line: 0, hl: "hl0", msg: "l = 0，r = len(nums) - 1 = " + (n - 1) + "。一开始整个数组都是候选，最小值 " + a[mi] + "（虚线框）当然在 [l, r] 里。" });
+    for (;;) {
+      const cond = v.le ? l <= r : l < r, key = l + "," + r;
+      if (cond && key === prevKey) {
+        push({ line: 1, hl: "hl3", m: null, verdict: "loop", msg: "l = " + l + "，r = " + r + "，和上一轮开始时一模一样。这一轮会算出同一个 m、走同一个分支、再次原地不动，永远停不下来：" +
+          '<span class="bad">死循环</span>。在 NeetCode 上提交会显示超时（Time Limit Exceeded）。' });
+        return F;
+      }
+      prevKey = key;
+      if (!cond) {
+        push({ line: 1, hl: "hl0", m: null, msg: l === r
+          ? "l = r = " + l + "，<code>l &lt; r</code> 不成立：范围里只剩一个数，退出循环。"
+          : "l = " + l + "，r = " + r + "，两个指针交错了，退出循环。" });
+        if (l < 0 || l >= n) {
+          push({ line: 7, hl: "hl3", m: null, verdict: "idx", msg: "nums[" + l + "] 越界：<span class=\"bad\">IndexError</span>。" });
+          return F;
+        }
+        const ok = l === mi;
+        push({ line: 7, hl: ok ? "hl4" : "hl3", m: null, res: l, verdict: ok ? "ok" : "bad", msg: ok
+          ? "<code>return nums[l]</code>：返回 nums[" + l + "] = " + a[l] + "。正确，" + rounds + " 轮循环就找到了最小值" + (n > 2 ? "，而 n = " + n + " 个数并没有每个都看一遍" : "") + "。"
+          : "<code>return nums[l]</code>：返回 nums[" + l + "] = " + a[l] + "，<span class=\"bad\">错了</span>，最小值是 " + a[mi] + "（下标 " + mi + "）。" + (lost ? "它在前面某一步被扔出了范围，之后再也回不来。" : "") });
+        return F;
+      }
+      rounds++;
+      if (rounds > 40) return F;
+      push({ line: 1, hl: "hl0", m: null, round: rounds, msg: l === r
+        ? "l = r = " + l + "，<code>l &lt;= r</code> 成立（相等也算）。只剩一个数了，循环却还要继续，进入第 " + rounds + " 轮……"
+        : "l = " + l + "，r = " + r + "，<code>" + (v.le ? "l &lt;= r" : "l &lt; r") + "</code> 成立：范围里还有 " + (r - l + 1) + " 个数，进入第 " + rounds + " 轮。" });
+      m = v.up ? Math.floor((l + r + 1) / 2) : Math.floor((l + r) / 2);
+      push({ line: 2, hl: "hl5", msg: "m = " + (v.up
+        ? "(l + r + 1) // 2 = (" + l + " + " + r + " + 1) // 2 = " + (l + r + 1)
+        : "(l + r) // 2 = (" + l + " + " + r + ") // 2 = " + (l + r)) + " // 2 = " + m + "。" +
+        (m === r ? ' <span class="bad">m 和 r 重合了。</span>' : "") });
+      const cIdx = v.cmpL ? l : r, c = a[cIdx], gt = a[m] > c;
+      let why;
+      if (m === cIdx) why = "nums[m] 和 " + cName + " 是同一个位置上的数，当然不比自己大，走 else。";
+      else if (!v.cmpL) why = gt ? "m 在左段（大的那段），r 在右段，断点夹在它们之间，最小值在 m 右边。"
+        : "从 m 到 r 一路上升，没有断点，m 右边的数都比 nums[m] 大，最小值是 nums[m] 或在 m 左边。";
+      else why = gt ? "这只能说明 l 到 m 是上升的。断点可能在 m 右边，也可能根本没有断点（那样最小值就是 nums[l]）。这个写法一律当成“在右边”。"
+        : "l 和 m 之间有断点，最小值在 l 右边、m 或 m 左边。";
+      push({ line: 3, hl: "hl0", msg: "nums[m] = " + a[m] + "，" + cName + " = " + c + "，<code>nums[m] &gt; " + cName + "</code> " + (gt ? "成立" : "不成立") + "。" + why });
+      const ol = l, or = r;
+      let line, hl, txt;
+      if (gt) {
+        l = m + 1; line = 4; hl = "hl";
+        txt = "<code>l = m + 1 = " + l + "</code>：扔掉下标 " + ol + (m > ol ? " 到 " + m : "") + "。";
+      } else if (v.rm1) {
+        r = m - 1; line = 6; hl = "hl2";
+        txt = "<code>r = m - 1 = " + r + "</code>：m 右边连同 m 自己都扔掉了。";
+      } else {
+        r = m; line = 6; hl = "hl2";
+        txt = or === m ? "<code>r = m = " + r + "</code>：m 本来就是 r，r 等于没动。"
+          : "<code>r = m = " + r + "</code>：扔掉下标 " + (m + 1) + (or > m + 1 ? " 到 " + or : "") + "，m 保留，它可能就是最小值。";
+      }
+      if (!lost && mi >= ol && mi <= or && !(mi >= l && mi <= r)) {
+        lost = true;
+        txt += ' <span class="bad">最小值 ' + a[mi] + "（下标 " + mi + "）被扔出了范围，后面再也找不回来了。</span>";
+      }
+      if (l === ol && r === or) txt += ' <span class="bad">l 和 r 都没变，范围没有缩小！</span>';
+      else if (l <= r && !lost) txt += "剩下 [" + l + ", " + r + "]，" + (r - l + 1) + " 个数。";
+      push({ line, hl, focus: gt ? "l" : "r", msg: txt });
+    }
+  }
+  let stA = [], stMi = 0, stV = VBY.ok;
+  const stP = makePlayer("st", (f) => {
+    $("stWrap").innerHTML = barsSVG(stA, { l: f.l, r: f.r, m: f.m, res: f.res, minRing: stMi, lost: f.lost, drop: true, fade: (i) => i < f.l || i > f.r });
+    keepVisible($("stWrap"), [f.l, f.r, f.m], f.focus === "l" ? f.l : f.focus === "r" ? f.r : f.m !== null ? f.m : f.l, stA.length);
+    const cName = stV.cmpL ? "nums[l]" : "nums[r]", cIdx = stV.cmpL ? f.l : f.r;
+    $("stL").textContent = "l = " + f.l;
+    $("stR").textContent = "r = " + f.r;
+    $("stM").textContent = "m = " + (f.m === null ? "—" : f.m);
+    $("stNm").textContent = "nums[m] = " + (f.m === null ? "—" : stA[f.m]);
+    $("stNc").textContent = cName + " = " + (cIdx >= 0 && cIdx < stA.length ? stA[cIdx] : "—");
+    $("stRound").textContent = "第 " + f.round + " 轮";
+    const out = $("stOut");
+    out.className = "pill" + (f.verdict === "ok" ? " t" : f.verdict ? " f" : "");
+    out.textContent = f.verdict === "ok" ? "返回 " + stA[f.res] + " ✓"
+      : f.verdict === "bad" ? "返回 " + stA[f.res] + " ✗"
+      : f.verdict === "loop" ? "死循环" : f.verdict === "idx" ? "IndexError" : "运行中";
+    markLine($("stCode"), f.line, f.hl);
+    $("stMsg").innerHTML = f.msg;
+  });
+  function stLoad() {
+    const p = parseArr($("stInput").value, 1, 12);
+    if (showErr("stErr", p.err || checkRotated(p.arr || []))) return;
+    stA = p.arr; stMi = argmin(stA); stV = modeOf("stMode");
+    renderCode($("stCode"), codeFor(stV), stV.mut);
+    stP.load(stBuild(stA, stV));
+    $("stWrap").scrollLeft = 0;
+  }
+  function randRot() {
+    const n = 4 + Math.floor(Math.random() * 7);
+    const pool = Array.from({ length: 30 }, (_, i) => i + 1);
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = pool[i]; pool[i] = pool[j]; pool[j] = t; }
+    return rot(pool.slice(0, n).sort(asc), 1 + Math.floor(Math.random() * n));
+  }
+  $("stInput").addEventListener("input", stLoad);
+  $("stModes").addEventListener("change", stLoad);
+  presets($("stPresets"), ["[3,4,5,6,1,2]", "[4,5,0,1,2,3]", "[4,5,6,7]", "[3,1,2]", "[2,1]", "[5,6,7,8,9,1,2,3,4]", "随机"],
+    (p) => p, (p) => { $("stInput").value = p === "随机" ? compact(randRot()) : p; stLoad(); });
+  stLoad();
+
+  /* ---------- 08 语言切换 ---------- */
+  document.querySelectorAll('.tabs [role="tab"]').forEach((t) => t.addEventListener("click", () => {
+    document.querySelectorAll('.tabs [role="tab"]').forEach((x) => x.setAttribute("aria-selected", x === t ? "true" : "false"));
+    ["py", "java", "cpp"].forEach((l) => { $("code-" + l).hidden = l !== t.dataset.lang; });
+  }));
+
+  /* ---------- 09 自测 ---------- */
+  const QUIZ = [
+    { q: "nums = [1, 2, 3, 4, 5, 6]，nums[-2:] + nums[:-2] 是？", o: ["[5, 6, 1, 2, 3, 4]", "[3, 4, 5, 6, 1, 2]", "[1, 2, 3, 4, 5, 6]", "[5, 6]"], a: 0,
+      e: "nums[-2:] 是最后 2 个 [5, 6]，nums[:-2] 是其余的 [1, 2, 3, 4]，拼起来就是旋转 2 次的结果。" },
+    { q: "旋转后的数组 [5, 6, 7, 1, 2, 3, 4]，最小值的下标是？", o: ["3", "0", "2", "6"], a: 0,
+      e: "断点在 7 和 1 之间（下标 2 和 3），最小值是断点右边的第一个数 1，下标 3。" },
+    { q: "Python 里 7 // 2 的结果是？", o: ["3", "3.5", "4", "1"], a: 0,
+      e: "// 是整除，只保留整数部分，往小的方向取。7 / 2 才是 3.5，不能当下标。" },
+    { q: "有序数组长度 n = 1000，二分查找最多大约要几轮？", o: ["10", "500", "100", "1000"], a: 0,
+      e: "每轮扔掉一半：1000 → 500 → 250 → … → 1，大约 10 次，因为 2¹⁰ = 1024。" },
+    { q: "nums = [4, 5, 6, 7, 0, 1, 2]，l = 0，r = 6，m = 3。下一步？", o: ["l = m + 1，也就是 l = 4", "r = m，也就是 r = 3", "r = m - 1，也就是 r = 2", "直接返回 nums[3]"], a: 0,
+      e: "nums[3] = 7 > nums[6] = 2，m 在左段，最小值在 m 右边。" },
+    { q: "nums = [5, 1, 2, 3, 4]，l = 0，r = 4，m = 2。下一步？", o: ["r = 2", "r = 1", "l = 3", "l = 2"], a: 0,
+      e: "nums[2] = 2 < nums[4] = 4，m 到 r 是升序，最小值是 m 或在 m 左边，r = m = 2。最小值 1 在下标 1，确实还在 [0, 2] 里。" },
+    { q: "nums[m] < nums[r] 时，为什么写 r = m 而不是 r = m - 1？", o: ["nums[m] 本身可能就是最小值，[3, 1, 2] 写 m - 1 会把 1 扔掉", "r = m - 1 会死循环", "两种写法都对", "r = m 跑得更快"], a: 0,
+      e: "只比较了 nums[m] 和 nums[r]，没法确认 nums[m] 是不是最小值，所以 m 要留着。" },
+    { q: "把 while l < r 改成 while l <= r，会怎样？", o: ["l == r 时 r = m 什么也不改变，任何输入都死循环", "结果一样，只是多跑一轮", "报 IndexError", "只有本来就有序的数组会出错"], a: 0,
+      e: "l == r 时 m = l，nums[m] > nums[r] 不成立，走 else，r = m 还是原来的值，下一轮完全相同。" },
+    { q: "为什么不能直接拿 nums[m] 和 nums[l] 比？", o: ["nums[m] > nums[l] 时，最小值可能在左也可能在右：[1,2,3,4,5] 在左，[3,4,5,1,2] 在右", "nums[l] 可能越界", "和 nums[l] 比会更慢", "可以，结果完全一样"], a: 0,
+      e: "nums[r] 一定在右段，拿它当参照才不含糊。NeetCode 视频版先检查 nums[l] < nums[r]，排除了有序的情况，才能和 nums[l] 比。" },
+    { q: "标准解法的循环里，会不会出现 nums[m] == nums[r]？", o: ["不会：l < r 时 m 一定小于 r，而元素互不相同", "会，要单独写一个分支处理", "只有数组长度为 1 时会", "只有数组本来有序时会"], a: 0,
+      e: "(l + r) // 2 向下取整，l < r 时 m ≤ r - 1。两个不同位置的数一定不相等。" },
+    { q: "nums = [2, 1]，标准解法一共跑了几轮循环？", o: ["1 轮", "0 轮", "2 轮", "死循环"], a: 0,
+      e: "l = 0，r = 1，m = 0：nums[0] = 2 > nums[1] = 1，l = 1。此时 l == r，退出，返回 nums[1] = 1。" },
+    { q: "标准解法的时间复杂度是？", o: ["O(log n)", "O(n)", "O(n log n)", "O(1)"], a: 0,
+      e: "每轮只比较一次，范围缩小一半左右，大约 log₂ n 轮。" }
+  ];
+  const answered = {};
+  $("quizBox").innerHTML = QUIZ.map((it, qi) =>
+    '<div class="q"><div class="q-text">' + (qi + 1) + ". " + esc(it.q) + '</div><div class="opts">' +
+    it.o.map((o, oi) => ({ o, oi, r: (qi * 7 + oi * 5) % 4 })).sort((x, y) => x.r - y.r)
+      .map(({ o, oi }) => '<button type="button" class="opt" data-q="' + qi + '" data-o="' + oi + '">' + esc(o) + "</button>").join("") +
+    '</div><div class="explain" id="ex' + qi + '" hidden></div></div>').join("");
+  function score() {
+    const keys = Object.keys(answered), right = keys.filter((k) => answered[k]).length;
+    $("quizScore").textContent = keys.length ? "已作答 " + keys.length + " / " + QUIZ.length + "，答对 " + right + " 题" : "";
+  }
+  $("quizBox").addEventListener("click", (e) => {
+    const b = e.target.closest(".opt"); if (!b) return;
+    const qi = +b.dataset.q, oi = +b.dataset.o, it = QUIZ[qi], box = b.parentElement;
+    box.querySelectorAll(".opt").forEach((x) => x.classList.remove("right", "wrong"));
+    const ok = oi === it.a;
+    b.classList.add(ok ? "right" : "wrong");
+    if (!ok) box.querySelector('[data-o="' + it.a + '"]').classList.add("right");
+    if (!(qi in answered)) answered[qi] = ok;
+    const ex = $("ex" + qi); ex.hidden = false;
+    ex.textContent = (ok ? "答对了。" : "再想想。") + it.e;
+    score();
+  });
+
+  /* ---------- 掌握清单（仅保存在本浏览器） ---------- */
+  document.querySelectorAll("#checklist input").forEach((cb) => {
+    try { cb.checked = localStorage.getItem("fmin-" + cb.id) === "1"; } catch (e) {}
+    cb.addEventListener("change", () => { try { localStorage.setItem("fmin-" + cb.id, cb.checked ? "1" : "0"); } catch (e) {} });
+  });
+})();
+</script>
+</body>
+</html>
