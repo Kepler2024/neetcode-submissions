@@ -1,0 +1,1391 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>买卖股票的最佳时机</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* 版式：单栏教材，一章一个前置知识；买入日 l 琥珀色，卖出日 r 蓝色，DP 读到的格子紫色，利润/正确用绿色，亏损/出错用红色，还没走到的日子变淡，贯穿全页 */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --ink: #17202b;
+  --muted: #586372;
+  --line: #dce1e7;
+  --edge: #b5bfcb;
+  --pre: #b86e0a;
+  --pre-soft: #fcefd8;
+  --suf: #1d6aa3;
+  --suf-soft: #e0edf8;
+  --fix: #7445b8;
+  --fix-soft: #efe7fa;
+  --ans: #2b7a4b;
+  --ans-soft: #e1f2e7;
+  --bad: #b3372f;
+  --bad-soft: #fbe5e3;
+  --bar: #5b6676;
+  --code-bg: #eef1f5;
+  --font-display: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151b; --surface: #19202a; --ink: #e5e9ef; --muted: #9ba6b4; --line: #2b3441; --edge: #4b5666;
+    --pre: #f0a845; --pre-soft: #3a2b14; --suf: #6cb2e8; --suf-soft: #142b3e;
+    --fix: #b893f2; --fix-soft: #2a2140;
+    --ans: #5fcb8c; --ans-soft: #153223; --bad: #f08379; --bad-soft: #3d1c1a;
+    --bar: #7d899b; --code-bg: #141a22;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151b; --surface: #19202a; --ink: #e5e9ef; --muted: #9ba6b4; --line: #2b3441; --edge: #4b5666;
+  --pre: #f0a845; --pre-soft: #3a2b14; --suf: #6cb2e8; --suf-soft: #142b3e;
+  --fix: #b893f2; --fix-soft: #2a2140;
+  --ans: #5fcb8c; --ans-soft: #153223; --bad: #f08379; --bad-soft: #3d1c1a;
+  --bar: #7d899b; --code-bg: #141a22;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.75;
+  font-variant-ligatures: none; /* 等宽字体的连字会把 <= 显示成 ≤，初学者容易抄错 */
+}
+.wrap {
+  max-width: 760px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 80px;
+  display: flex; flex-direction: column; gap: 56px;
+}
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.3; margin: 0; }
+h1 { font-size: clamp(28px, 6vw, 42px); font-weight: 800; }
+h2 { font-size: clamp(22px, 4.2vw, 28px); font-weight: 800; }
+h3 { font-size: 18px; font-weight: 600; }
+p { margin: 0; }
+section { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lead { font-size: 18px; color: var(--muted); }
+code, .mono { font-family: var(--font-mono); font-size: .92em; }
+:not(pre) > code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; }
+.pre { color: var(--pre); font-weight: 700; }
+.suf { color: var(--suf); font-weight: 700; }
+.fix { color: var(--fix); font-weight: 700; }
+.ans { color: var(--ans); font-weight: 700; }
+.bad { color: var(--bad); font-weight: 700; }
+a { color: var(--suf); }
+
+/* 题目卡 */
+.problem { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 99px; background: var(--ans-soft); color: var(--ans); }
+.example { font-family: var(--font-mono); font-size: 14px; background: var(--code-bg); border-radius: 6px; padding: 10px 12px; overflow-x: auto; white-space: pre; }
+
+/* 目录 */
+.toc { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; padding: 0; margin: 0; list-style: none; counter-reset: toc; }
+.toc li { counter-increment: toc; }
+.toc a { display: flex; gap: 10px; align-items: baseline; text-decoration: none; color: var(--ink); padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 15px; }
+.toc a::before { content: counter(toc, decimal-leading-zero); font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.toc a:hover, .toc a:focus-visible { border-color: var(--suf); }
+.toc-part { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+/* 章节编号 */
+.chap { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.chap .num { font-family: var(--font-mono); font-size: 14px; color: var(--muted); }
+
+/* 提示块 */
+.note { border-left: 3px solid var(--suf); padding: 4px 0 4px 14px; }
+.note.warn { border-color: var(--pre); }
+.note.ok { border-color: var(--ans); }
+.note.no { border-color: var(--bad); }
+.formula { font-family: var(--font-mono); font-size: 15px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; overflow-x: auto; white-space: pre; }
+
+/* 价格柱状图：柱子越高价格越高，从 0 画起 */
+.chart-wrap { overflow-x: auto; padding: 2px 0; }
+svg.bars { display: block; width: 100%; height: auto; margin: 0 auto; }
+.bars .bar { fill: var(--bar); transition: fill .2s; }
+.bars .bar.bb { fill: var(--pre); }
+.bars .bar.bs { fill: var(--suf); }
+.bars .faded { opacity: .22; transition: opacity .2s; }
+.bars .gain { fill: var(--ans); }
+.bars .loss { fill: var(--bad-soft); stroke: var(--bad); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.bars .buyline { stroke: var(--pre); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.bars .ring { fill: none; stroke: var(--ans); stroke-width: 2; stroke-dasharray: 5 3; }
+.bars .ring.bad { stroke: var(--bad); }
+.bars .axis { stroke: var(--ink); stroke-width: 1.5; }
+.bars text { font-family: var(--font-mono); text-anchor: middle; }
+.bars .tv { font-size: 12px; font-weight: 600; fill: var(--ink); }
+.bars .ti { font-size: 11px; fill: var(--muted); }
+.bars .tg { font-size: 12px; font-weight: 700; fill: var(--ans); }
+.bars .tl { font-size: 12px; font-weight: 700; fill: var(--bad); }
+.bars .tp { font-size: 13px; font-weight: 700; }
+.bars .tp .pl { fill: var(--pre); }
+.bars .tp .pr { fill: var(--suf); }
+.bars .tp .pb { fill: var(--bad); }
+.bars .hit { fill: transparent; cursor: pointer; }
+.bars .hit:hover { fill: var(--line); fill-opacity: .35; }
+.bars .hit:focus-visible { outline: none; stroke: var(--suf); stroke-width: 2; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.legend i.ring { background: transparent; border: 2px dashed var(--ans); width: 12px; height: 12px; border-radius: 3px; }
+
+/* 递归树 */
+svg.tree { display: block; width: 100%; height: auto; margin: 0 auto; }
+.tree .edge { stroke: var(--edge); stroke-width: 1.5; }
+.tree .node circle { fill: var(--surface); stroke: var(--muted); stroke-width: 1.5; }
+.tree .node.base circle { stroke-dasharray: 3 2; }
+.tree .node.hot circle { fill: var(--fix-soft); stroke: var(--fix); stroke-width: 2.5; }
+.tree .node text { font-family: var(--font-mono); font-size: 11px; text-anchor: middle; dominant-baseline: central; fill: var(--ink); }
+.tree .node.hot text { fill: var(--fix); font-weight: 700; }
+
+/* 表格 */
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 13px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+td code { white-space: nowrap; }
+tr:last-child td, tr:last-child th { border-bottom: 0; }
+.num-tbl td, .num-tbl th { text-align: center; font-variant-numeric: tabular-nums; }
+.num-tbl td { font-family: var(--font-mono); }
+.num-tbl td.hi { background: var(--fix-soft); color: var(--fix); font-weight: 700; }
+tbody tr[data-k] { cursor: pointer; }
+tbody tr[data-k]:hover td { background: var(--bg); }
+tbody tr.on td { background: var(--suf-soft); }
+tbody tr.on:hover td { background: var(--suf-soft); }
+
+/* 暴力解的组合表 */
+.grid-wrap { overflow-x: auto; }
+table.grid { border-collapse: separate; border-spacing: 3px; width: auto; margin: 0 auto; }
+.grid th, .grid td { padding: 0; border: 0; text-align: center; vertical-align: middle; }
+.grid th { font-family: var(--font-mono); font-size: 11px; color: var(--muted); font-weight: 500; padding: 2px 6px; line-height: 1.35; }
+.grid th b { display: block; font-size: 13px; color: var(--ink); font-weight: 600; }
+.grid th.on-i b, .grid th.on-i { color: var(--pre); }
+.grid th.on-j b, .grid th.on-j { color: var(--suf); }
+.grid .corner { font-family: var(--font-body); font-size: 11px; text-align: left; }
+.grid td.na { color: var(--edge); font-family: var(--font-mono); font-size: 13px; min-width: 42px; }
+button.cell { font-family: var(--font-mono); font-size: 13px; min-width: 42px; padding: 6px 4px; border-radius: 4px; background: var(--surface); font-variant-numeric: tabular-nums; }
+button.cell.neg { color: var(--bad); }
+button.cell.zero { color: var(--muted); }
+button.cell.best { background: var(--ans-soft); border-color: var(--ans); color: var(--ans); font-weight: 700; }
+button.cell.sel { outline: 2px solid var(--suf); outline-offset: 1px; }
+
+/* DP 填表 */
+.dptbl td, .dptbl th { text-align: center; font-variant-numeric: tabular-nums; vertical-align: middle; }
+.dptbl td { font-family: var(--font-mono); transition: background .2s; }
+.dptbl th small { display: block; font-family: var(--font-mono); font-size: 11px; }
+.dptbl td.ph { color: var(--muted); opacity: .45; }
+.dptbl td.used { background: var(--fix-soft); box-shadow: inset 0 0 0 2px var(--fix); color: var(--fix); font-weight: 700; }
+.dptbl td.write { background: var(--ans-soft); box-shadow: inset 0 0 0 2px var(--ans); color: var(--ans); font-weight: 700; }
+.dptbl tr.cur td:first-child { color: var(--suf); font-weight: 700; }
+
+/* 交互组件外壳 */
+.lab { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.lab-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button {
+  font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+}
+button:hover { border-color: var(--muted); }
+button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button.mono { font-family: var(--font-mono); }
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--suf); outline-offset: 2px; }
+.controls button[aria-pressed="true"], .tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+input[type=text] {
+  font-family: var(--font-mono); font-size: 15px; padding: 6px 10px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink); min-width: 0; width: 100%;
+  font-variant-ligatures: none;
+}
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-size: 14px; font-weight: 700; }
+.err { color: var(--bad); font-size: 14px; }
+.modes { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.modes legend { font-size: 14px; font-weight: 700; margin-bottom: 6px; padding: 0; }
+.modes label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 99px; cursor: pointer; background: var(--bg); }
+.modes label:has(input:checked) { border-color: var(--ink); background: var(--surface); font-weight: 700; }
+.modes label:has(input:focus-visible) { outline: 2px solid var(--suf); outline-offset: 2px; }
+.modes input { accent-color: var(--fix); margin: 0; }
+
+/* 代码块 */
+pre.code { margin: 0; background: var(--code-bg); border-radius: 8px; padding: 12px 0; overflow-x: auto; font-family: var(--font-mono); font-size: 14px; line-height: 1.7; }
+pre.code .ln { display: block; padding: 0 14px; border-left: 3px solid transparent; white-space: pre; }
+pre.code .ln.hl0 { background: var(--line); border-left-color: var(--ink); }
+pre.code .ln.hl { background: var(--pre-soft); border-left-color: var(--pre); }
+pre.code .ln.hl2 { background: var(--suf-soft); border-left-color: var(--suf); }
+pre.code .ln.hl3 { background: var(--bad-soft); border-left-color: var(--bad); }
+pre.code .ln.hl4 { background: var(--ans-soft); border-left-color: var(--ans); }
+pre.code .ln.hl5 { background: var(--fix-soft); border-left-color: var(--fix); }
+pre.code .ln.mut .c { color: var(--bad); font-style: normal; font-weight: 600; }
+.k { color: var(--suf); font-weight: 600; }
+.c { color: var(--muted); font-style: italic; }
+.n { color: var(--pre); }
+.code-cap { font-size: 14px; color: var(--muted); }
+
+.msg { min-height: 3.5em; padding: 10px 14px; border-radius: 8px; background: var(--bg); font-size: 15px; }
+.progress { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+.pill { display: inline-block; font-family: var(--font-mono); font-size: 14px; padding: 2px 12px; border-radius: 99px; border: 1.5px solid var(--line); white-space: nowrap; }
+.pill.t { border-color: var(--ans); color: var(--ans); background: var(--ans-soft); }
+.pill.f { border-color: var(--bad); color: var(--bad); background: var(--bad-soft); }
+
+/* 单步执行 */
+.vars { display: flex; gap: 8px; flex-wrap: wrap; }
+.var { font-family: var(--font-mono); padding: 3px 12px; border-radius: 99px; font-size: 14px; border: 1.5px solid var(--line); white-space: pre; }
+.var.p { border-color: var(--pre); color: var(--pre); }
+.var.s { border-color: var(--suf); color: var(--suf); }
+.var.a { border-color: var(--ans); color: var(--ans); }
+.stepper-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+@media (min-width: 720px) { .stepper-grid { grid-template-columns: minmax(0, .8fr) minmax(0, 1.5fr); align-items: start; } }
+.viz { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+/* 两图对照 */
+.duo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+@media (min-width: 620px) { .duo { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.fig { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.fig-cap { font-size: 14px; }
+.fig-title { font-family: var(--font-mono); font-size: 14px; font-weight: 600; }
+
+/* 测验 */
+.quiz { display: flex; flex-direction: column; gap: 18px; }
+.q { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.q-text { font-weight: 500; }
+.opts { display: flex; flex-direction: column; gap: 6px; }
+.opt { text-align: left; background: var(--bg); }
+.opt.right { background: var(--ans-soft); border-color: var(--ans); }
+.opt.wrong { background: var(--bad-soft); border-color: var(--bad); }
+.explain { font-size: 14px; color: var(--muted); }
+
+/* 清单 */
+.checklist { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.checklist label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.checklist input { margin-top: 6px; accent-color: var(--ans); width: 16px; height: 16px; flex: none; }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.code-group { display: flex; flex-direction: column; gap: 10px; }
+ul.plain, ol.plain { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
+footer { font-size: 13px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:14px">
+  <span class="eyebrow">NeetCode · Sliding Window · Easy</span>
+  <h1>买卖股票的最佳时机</h1>
+  <p class="lead">Best Time to Buy and Sell Stock。这一页先用暴力解把所有“哪天买、哪天卖”的组合摆出来，再问一个问题：卖出日定了，该哪天买？这个问题的答案有两种写法。一种是双指针：l 记买入日，r 扫卖出日。另一种是动态规划（DP）：从爬楼梯讲起，把“状态、转移、初始值、答案”四步讲清楚，再用同样的四步解本题。最后你会看到，这两种写法其实是同一个算法。</p>
+</header>
+
+<section class="problem" aria-label="题目">
+  <div><span class="tag">题目</span></div>
+  <p>给你一个整数数组 <code>prices</code>，<code>prices[i]</code> 是 NeetCoin 在第 i 天的价格。</p>
+  <p>你可以选<strong>某一天</strong>买入一个 NeetCoin，再选<strong>之后的另一天</strong>卖出。返回能获得的最大利润。你也可以<strong>不做任何交易</strong>，这时利润是 <code>0</code>。</p>
+  <div class="example">输入: prices = [10,1,5,6,7,1]
+输出: 6
+解释: 第 1 天以 1 买入，第 4 天以 7 卖出，利润 7 - 1 = 6
+
+输入: prices = [10,8,7,5,2]
+输出: 0
+解释: 价格一路下跌，怎么买卖都亏，不交易，利润 0</div>
+  <p style="font-size:14px;color:var(--muted)">约束：1 ≤ prices.length ≤ 100，0 ≤ prices[i] ≤ 100。</p>
+</section>
+
+<nav aria-label="目录" style="display:flex;flex-direction:column;gap:10px">
+  <span class="eyebrow">学习路线</span>
+  <ol class="toc">
+    <li><a href="#rules">先买后卖</a></li>
+    <li><a href="#brute">暴力解：试遍每一对</a></li>
+    <li><a href="#fix-sell">固定卖出日</a></li>
+    <li><a href="#two-ptr">双指针：l 买，r 卖</a></li>
+    <li><a href="#step">单步执行</a></li>
+    <li><a href="#why">为什么没想到双指针</a></li>
+    <li><a href="#dp-intro">DP 从零开始：爬楼梯</a></li>
+    <li><a href="#dp">用 DP 四步解本题</a></li>
+    <li><a href="#compress">两个变量：DP 就是双指针</a></li>
+    <li><a href="#code">完整代码与复杂度</a></li>
+    <li><a href="#quiz">自测</a></li>
+  </ol>
+  <p class="toc-part">01–03 是两种解法共同的起点；04–06 讲双指针；07–09 讲 DP。</p>
+</nav>
+
+<!-- 01 -->
+<section id="rules">
+  <div class="chap"><span class="num">01</span><h2>先买后卖</h2></div>
+  <p>利润 = 卖出价 − 买入价。题目有两条规则：</p>
+  <ul class="plain">
+    <li><strong>先买后卖</strong>：买入日 i 必须早于卖出日 j，也就是 <code>i &lt; j</code>。同一天买卖利润是 0，等于没交易。</li>
+    <li><strong>可以不交易</strong>：所以答案至少是 0。价格一路下跌时，任何买卖都亏钱，答案就是 0。</li>
+  </ul>
+  <p>第一反应往往是“最高价减最低价”。用例 1 试一下（柱子越高价格越高，柱子下面的数字是第几天）：</p>
+  <div class="duo">
+    <div class="fig">
+      <span class="fig-title">最高价 − 最低价 = 10 − 1 = 9 ✗</span>
+      <div class="chart-wrap" id="ruA"></div>
+      <p class="fig-cap">最高价 10 在第 0 天，最低价 1 在第 1 天。要赚这 9 块，得第 1 天买、第 0 天卖，是<strong>先卖后买</strong>，不允许。</p>
+    </div>
+    <div class="fig">
+      <span class="fig-title">第 1 天买，第 4 天卖 = 7 − 1 = 6 ✓</span>
+      <div class="chart-wrap" id="ruB"></div>
+      <p class="fig-cap">虚线是买入价 1。卖出那天的柱子比虚线高出来的<span class="ans">绿色部分</span>就是利润，这里是 6。</p>
+    </div>
+  </div>
+  <p class="note warn">这道题难在<strong>时间顺序</strong>：只能拿“后面的高价”减“前面的低价”。最高价出现在最低价前面时，最高减最低就错了。后面所有方法都在处理这一点。</p>
+</section>
+
+<!-- 02 -->
+<section id="brute">
+  <div class="chap"><span class="num">02</span><h2>暴力解：试遍每一对</h2></div>
+  <p>最直接的办法：把每一对（买入日 i，卖出日 j）都试一遍，j 必须在 i 后面。</p>
+<pre class="code" data-lang="py">res = 0                                  # 不交易，利润 0
+for i in range(len(prices)):             # i：买入日
+    for j in range(i + 1, len(prices)):  # j：卖出日，从 i 的下一天开始
+        res = max(res, prices[j] - prices[i])
+return res</pre>
+  <ul class="plain">
+    <li><code>range(a, b)</code> 依次给出 a、a + 1、……、b − 1，<strong>不含 b</strong>。<code>range(n)</code> 是 <code>range(0, n)</code> 的简写。</li>
+    <li>内层从 <code>i + 1</code> 开始，保证 j &gt; i：卖出日一定在买入日之后。上一章说的“时间顺序”，在代码里就是这一个 <code>+ 1</code>。</li>
+    <li><code>max(a, b)</code> 返回较大的那个。res 一直记着见过的最大利润。它从 0 开始，表示“不交易”；如果每一对都亏钱，res 停在 0，正好是题目要的答案。</li>
+    <li>一共试 n(n − 1) / 2 对，时间 <strong>O(n²)</strong>。本题 n ≤ 100，最多 4950 对，能通过；LeetCode 上同一题 n 可以到 10⁵，要试约 50 亿对，会超时。</li>
+  </ul>
+  <p>下面的表格就是暴力解试过的全部组合：<strong>行</strong>是买入日 i，<strong>列</strong>是卖出日 j，格子里是 <code>prices[j] − prices[i]</code>。左下半边 j ≤ i，不允许，所以是空的。点任意一个格子，上面的图会画出这次买卖：</p>
+  <div class="lab">
+    <div class="field"><label for="bfInput">prices =</label>
+      <input type="text" id="bfInput" value="[10,1,5,6,7,1]" autocomplete="off" spellcheck="false" aria-describedby="bfErr"></div>
+    <div class="controls" id="bfPresets"></div>
+    <span class="err" id="bfErr" hidden></span>
+    <div class="chart-wrap" id="bfChart"></div>
+    <div class="grid-wrap"><table class="grid" id="bfGrid" aria-label="所有买卖组合的利润"></table></div>
+    <div class="msg" id="bfMsg" aria-live="polite"></div>
+    <p id="bfSum" style="font-size:15px"></p>
+  </div>
+</section>
+
+<!-- 03 -->
+<section id="fix-sell">
+  <div class="chap"><span class="num">03</span><h2>固定卖出日</h2></div>
+  <p>看上一章表格的某<strong>一列</strong>。卖出日 j 定了，prices[j] 就定了，这一列每个格子都是 <code>prices[j] − prices[i]</code>，变的只有买入价 prices[i]。要让差最大，prices[i] 就要最小。</p>
+  <p class="note ok"><strong>卖出日是 j 时，最好的买入日就是 j 前面最便宜的那一天。</strong></p>
+  <p>点任意一根柱子，把它当卖出日。j 后面的日子还没到，画成淡色；琥珀色是 j 前面最便宜的那天：</p>
+  <div class="lab">
+    <div class="field"><label for="fsInput">prices =</label>
+      <input type="text" id="fsInput" value="[10,1,5,6,7,1]" autocomplete="off" spellcheck="false" aria-describedby="fsErr"></div>
+    <div class="controls" id="fsPresets"></div>
+    <span class="err" id="fsErr" hidden></span>
+    <div class="chart-wrap" id="fsChart"></div>
+    <div class="legend"><span><i style="background:var(--suf)"></i>卖出日 j（点柱子换）</span><span><i style="background:var(--pre)"></i>j 前面最便宜的那天</span><span><i style="background:var(--ans)"></i>利润</span><span>淡色：j 之后，还没到</span></div>
+    <div class="msg" id="fsMsg" aria-live="polite"></div>
+    <div class="tbl-wrap"><table class="num-tbl">
+      <thead><tr><th>卖出日 j</th><th>prices[j]</th><th>之前最低价</th><th>最多赚</th></tr></thead>
+      <tbody id="fsBody"></tbody>
+    </table></div>
+    <p id="fsSum" style="font-size:15px"></p>
+  </div>
+  <p>于是问题变成：对每个卖出日 j，求出“j 之前的最低价”，再取 <code>prices[j] − 最低价</code> 的最大值（和 0 比，取大）。</p>
+  <p>“j 之前的最低价”怎么求？看表格第三列：第 j 行只比第 j − 1 行<strong>多考虑了一个数</strong> prices[j − 1]。</p>
+  <div class="formula">j 之前的最低价 = min( j − 1 之前的最低价, prices[j − 1] )</div>
+  <p>所以从左往右走一遍，边走边更新最低价，不用每次回头重找。O(n²) 就变成了 O(n)。这个想法有两种写法：</p>
+  <ul class="plain">
+    <li>用两个下标 l、r 来写，就是<strong>双指针</strong>（第 04–06 章）。</li>
+    <li>用“状态 + 递推”的语言来写，就是<strong>动态规划</strong>（第 07–09 章）。</li>
+  </ul>
+</section>
+
+<!-- 04 -->
+<section id="two-ptr">
+  <div class="chap"><span class="num">04</span><h2>双指针：l 买，r 卖</h2></div>
+  <p>用两个下标：<span class="suf mono">r</span> 是卖出日，从左往右每轮走一格，每一天都当一次卖出日；<span class="pre mono">l</span> 是买入日，始终指着 r 前面最便宜的那天。</p>
+<pre class="code" data-lang="py">l, r = 0, 1                  # l：买入日，r：卖出日
+maxP = 0
+while r &lt; len(prices):
+    if prices[l] &lt; prices[r]:          # 今天卖能赚钱：算一下利润
+        maxP = max(maxP, prices[r] - prices[l])
+    else:                              # r 这天不比 l 贵：以后改在 r 买
+        l = r
+    r += 1
+return maxP</pre>
+  <ul class="plain">
+    <li><code>l, r = 0, 1</code>：先试“第 0 天买、第 1 天卖”。只有一天时 r = 1 已经不满足 <code>r &lt; len(prices)</code>，循环一轮都不跑，返回 0。</li>
+    <li><code>r += 1</code> 就是 <code>r = r + 1</code>。每轮结束 r 往右走一格，直到走过最后一天。</li>
+    <li><code>prices[l] &lt; prices[r]</code> 成立：今天卖比 l 那天买的贵，有利润，算一下，更新 maxP。<strong>l 不动</strong>，它还是最便宜的。</li>
+    <li>不成立，说明 <code>prices[r] ≤ prices[l]</code>：r 这天比 l 还便宜（或一样）。以后不管哪天卖，从 r 买都至少和从 l 买一样好，所以 <code>l = r</code>。</li>
+  </ul>
+
+  <h3>为什么 l 能直接跳到 r</h3>
+  <p><code>l = r</code> 一下跳过了 l 和 r 之间好几天，它们会不会是更好的买入日？不会：</p>
+  <ul class="plain">
+    <li>l 和 r 之间的每一天，价格都 ≥ prices[l]。如果其中某天比 prices[l] 便宜，r 走到那天时 l 早就跳过去了。</li>
+    <li>现在 prices[r] ≤ prices[l]，所以那些天的价格也都 ≥ prices[r]。</li>
+    <li>以后任何一个卖出日 k，从 r 买赚 prices[k] − prices[r]，至少和从那些天买一样多。所以它们永远不用再看。</li>
+  </ul>
+
+  <h3>l 一直指着最低价</h3>
+  <p>每轮比较之前，下面这句话都成立：</p>
+  <p class="note"><strong>prices[l] 是第 0 天到第 r − 1 天里的最低价。</strong></p>
+  <ul class="plain">
+    <li>一开始 l = 0，r = 1：第 0 天到第 0 天只有一个数，就是 prices[0]，成立。</li>
+    <li>每轮多看一天 prices[r]：它不比 prices[l] 便宜，最低价还是 prices[l]，l 不动；它更便宜（或一样），最低价换成它，l = r。r 往右走一格之后，这句话又成立了。</li>
+  </ul>
+  <p>所以这段代码做的正是第 03 章的事：r 把每一天当一次卖出日，prices[l] 就是“r 之前的最低价”。</p>
+  <p class="note warn">写成 <code>l += 1</code> 行不行？不行。题目的两个样例它都能过，但 <code>[3, 5, 1, 4]</code> 会返回 2，正确答案是 3（第 2 天买 1，第 3 天卖 4）。下一章可以单步看它在哪一步错的。</p>
+</section>
+
+<!-- 05 -->
+<section id="step">
+  <div class="chap"><span class="num">05</span><h2>单步执行</h2></div>
+  <p>输入任意价格，一步一步看双指针怎么走。右边高亮当前执行的代码行。换成 <code>l += 1</code>，可以看到 l 是怎么跟丢最低价的。</p>
+  <div class="lab">
+    <div class="field"><label for="tpInput">prices =</label>
+      <input type="text" id="tpInput" value="[10,1,5,6,7,1]" autocomplete="off" spellcheck="false" aria-describedby="tpErr"></div>
+    <div class="controls" id="tpPresets"></div>
+    <span class="err" id="tpErr" hidden></span>
+    <fieldset class="modes" id="tpModes"><legend>写法</legend>
+      <label><input type="radio" name="tpMode" value="ok" checked>正确写法 <span class="mono">l = r</span></label>
+      <label><input type="radio" name="tpMode" value="inc"><span class="mono">l += 1</span></label>
+    </fieldset>
+    <div>
+      <div class="chart-wrap" id="tpWrap"></div>
+      <div class="legend"><span><i style="background:var(--pre)"></i>l 买入日</span><span><i style="background:var(--suf)"></i>r 卖出日</span><span><i style="background:var(--ans)"></i>利润</span><span><i class="ring"></i>r 之前真正最便宜的那天</span><span>淡色：还没走到</span></div>
+    </div>
+    <div class="stepper-grid">
+      <div class="viz">
+        <div class="vars"><span class="var p" id="tpL"></span><span class="var s" id="tpR"></span></div>
+        <div class="vars"><span class="var" id="tpPl"></span><span class="var" id="tpPr"></span></div>
+        <div class="vars"><span class="var a" id="tpMax"></span><span id="tpOut" class="pill">运行中</span></div>
+        <p class="progress" id="tpBest"></p>
+      </div>
+      <pre class="code" id="tpCode"></pre>
+    </div>
+    <div class="msg" id="tpMsg" aria-live="polite"></div>
+    <div class="lab-head">
+      <div class="controls">
+        <button type="button" id="tpReset">重来</button>
+        <button type="button" id="tpPrev">上一步</button>
+        <button type="button" id="tpNext" class="primary">下一步</button>
+        <button type="button" id="tpPlay">自动播放</button>
+      </div>
+      <span class="progress" id="tpProg"></span>
+    </div>
+  </div>
+</section>
+
+<!-- 06 -->
+<section id="why">
+  <div class="chap"><span class="num">06</span><h2>为什么没想到双指针</h2></div>
+  <p>你之前做的双指针题，两个指针都是从两头往中间走（<strong>相向</strong>）。这道题两个指针都从左往右走（<strong>同向</strong>），而且 l 不是一格一格挪，是直接跳。长得不一样，所以不容易联想到。</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>题目</th><th>指针怎么走</th><th>每一步靠什么决定</th></tr>
+    <tr><td>验证回文串</td><td>l 从左、r 从右，往中间走</td><td>两头的字符是否相同</td></tr>
+    <tr><td>盛最多水的容器</td><td>相向，每次挪矮的那边</td><td>矮的那边决定了水位</td></tr>
+    <tr><td>三数之和</td><td>固定一个数，另外两个相向</td><td>三数之和偏大还是偏小</td></tr>
+    <tr><td><strong>本题</strong></td><td><strong>同向</strong>：r 每轮 +1；l 遇到更低价时跳到 r</td><td>r 当卖出日，l 记住最便宜的买入日</td></tr>
+  </table></div>
+
+  <h3>同向双指针，也叫滑动窗口</h3>
+  <p>NeetCode 把本题放在 Sliding Window（滑动窗口）分类。[l, r] 是一个窗口：r 每次往右扩一格；窗口左端“不划算”了（出现了更低的价格），就把 l 往右收。这一类后面还有“无重复字符的最长子串”“最长重复字符替换”。看到下面几个特征，就可以往同向双指针上想：</p>
+  <ul class="plain">
+    <li>题目要找的是一对 l &lt; r，或者一段连续区间 [l, r]，而且有先后顺序。</li>
+    <li>固定右端 r 之后，最好的左端能从之前记下的信息直接得到，不用回头重扫。</li>
+    <li>l 只会往右走，永远不需要往回退。</li>
+  </ul>
+
+  <h3>下次怎么想到</h3>
+  <ol class="plain">
+    <li>先写暴力双重循环：外层 i，内层 j。</li>
+    <li>换个角度：<strong>固定 j，问最好的 i 是谁</strong>。</li>
+    <li>如果“最好的 i”能随着 j 往右走顺手更新（本题是“到目前为止的最低价”），内层循环就可以删掉。</li>
+  </ol>
+  <p class="note ok">没想到“双指针”这个名字也没关系。本题的 l 其实就是“最低价在哪一天”。只要想到“从左往右走，边走边记最低价”，就已经得到最优解了，它就是第 09 章的 DP 写法。</p>
+</section>
+
+<!-- 07 -->
+<section id="dp-intro">
+  <div class="chap"><span class="num">07</span><h2>DP 从零开始：爬楼梯</h2></div>
+  <p><strong>动态规划</strong>（Dynamic Programming，DP）是一种解题思路：把大问题拆成同类的小问题，每个小问题只算一次、把答案存起来，大问题直接用存好的答案拼出来。先用最经典的一道题感受一下。</p>
+  <div class="problem">
+    <div><span class="tag">热身题：爬楼梯</span></div>
+    <p>一共 n 级台阶，每次可以爬 1 级或 2 级。爬到顶一共有多少种不同的爬法？例如 n = 3 有 3 种：1+1+1、1+2、2+1。</p>
+  </div>
+  <p>看<strong>最后一步</strong>。要站到第 n 级，最后一步只有两种可能：从第 n − 1 级跨 1 级上来，或者从第 n − 2 级跨 2 级上来。这两类爬法互不重复，加起来就是全部：</p>
+  <div class="formula">f(n) = f(n − 1) + f(n − 2)        f(1) = 1，f(2) = 2</div>
+  <p>f(n) 表示“爬到第 n 级有几种爬法”。最小的两个直接数：1 级只有一种（1）；2 级有两种（1+1 或 2）。照着公式写成函数：</p>
+<pre class="code" data-lang="py">def f(n):
+    if n &lt;= 2:
+        return n               # f(1) = 1，f(2) = 2
+    return f(n - 1) + f(n - 2)</pre>
+  <ul class="plain">
+    <li><code>def</code> 定义一个函数。函数在自己里面调用自己，叫<strong>递归</strong>。</li>
+    <li>递归必须有一个不再往下调用的出口，这里是 <code>n &lt;= 2</code>。</li>
+  </ul>
+  <p>这段代码是对的，但很慢。把它的调用过程画出来，每个圆圈是一次函数调用。选一个 n，再选一个 f(k) 高亮，看它被算了几次：</p>
+  <div class="lab">
+    <div class="controls" id="trNs" role="group" aria-label="台阶数 n"></div>
+    <div class="controls" id="trKs" role="group" aria-label="高亮哪个调用"></div>
+    <div class="chart-wrap" id="trChart"></div>
+    <div class="legend"><span><i style="background:var(--fix)"></i>高亮的 f(k)</span><span>虚线圆圈：f(1)、f(2)，直接返回，不再往下调用</span></div>
+    <div class="msg" id="trMsg" aria-live="polite"></div>
+  </div>
+  <p>同一个 f(k) 不管被谁调用，答案都一样，可递归每次都从头再算一遍。n 稍微大一点，调用次数就爆炸了：</p>
+  <div class="tbl-wrap"><table class="num-tbl">
+    <tr><th>n</th><th>递归调用次数</th><th>填表要算几格</th></tr>
+    <tr><td>10</td><td>109</td><td>8</td></tr>
+    <tr><td>20</td><td>13,529</td><td>18</td></tr>
+    <tr><td>30</td><td>1,664,079</td><td>28</td></tr>
+    <tr><td>40</td><td>204,668,309</td><td>38</td></tr>
+  </table></div>
+
+  <h3>算过的记下来：两种写法</h3>
+  <p class="code-cap">写法一：记忆化递归（自顶向下）。还是递归，但每个结果第一次算出来就存进字典，下次直接拿。</p>
+<pre class="code" data-lang="py">memo = {}
+def f(n):
+    if n &lt;= 2:
+        return n
+    if n in memo:              # 算过了，直接拿
+        return memo[n]
+    memo[n] = f(n - 1) + f(n - 2)
+    return memo[n]</pre>
+  <ul class="plain">
+    <li><code>{}</code> 是空字典，按 key 存值：<code>memo[5] = 8</code> 存，<code>memo[5]</code> 取。<code>n in memo</code> 检查有没有存过这个 key。</li>
+  </ul>
+  <p class="code-cap">写法二：填表（自底向上）。干脆不递归，从小到大把每一格算出来。刷题时这种更常见。</p>
+<pre class="code" data-lang="py">if n &lt;= 2:
+    return n
+dp = [0] * (n + 1)             # dp[i]：爬到第 i 级有几种爬法
+dp[1], dp[2] = 1, 2
+for i in range(3, n + 1):
+    dp[i] = dp[i - 1] + dp[i - 2]
+return dp[n]</pre>
+  <ul class="plain">
+    <li><code>[0] * (n + 1)</code> 生成 n + 1 个 0 组成的列表，下标 0 到 n。dp[0] 用不到，留着是为了让下标正好等于台阶数。</li>
+    <li>for 循环从 3 填到 n。填 dp[i] 时，dp[i − 1] 和 dp[i − 2] 都已经填好了，直接用。每格只算一次，时间 O(n)。</li>
+  </ul>
+  <div class="tbl-wrap"><table class="num-tbl">
+    <tr><th>i</th><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td></tr>
+    <tr><th>dp[i]</th><td>1</td><td>2</td><td>3</td><td>5</td><td>8</td><td>13</td><td>21</td></tr>
+  </table></div>
+
+  <h3>DP 四步</h3>
+  <p>不管什么 DP 题，都按这四步想。第一步最关键：状态定义清楚了，转移一般就是把“最后一步”的几种可能列出来。</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>步骤</th><th>要回答的问题</th><th>爬楼梯</th></tr>
+    <tr><td><strong>1. 状态</strong></td><td>dp[i] 代表什么？用一句中文说清楚</td><td>dp[i] = 爬到第 i 级的爬法数</td></tr>
+    <tr><td><strong>2. 转移</strong></td><td>dp[i] 怎么用更小的格子算出来？看“最后一步”</td><td><code>dp[i] = dp[i - 1] + dp[i - 2]</code></td></tr>
+    <tr><td><strong>3. 初始值</strong></td><td>哪些格子没法用转移算，要直接写出来？</td><td>dp[1] = 1，dp[2] = 2</td></tr>
+    <tr><td><strong>4. 顺序与答案</strong></td><td>按什么顺序填？答案在哪一格？</td><td>i 从 3 填到 n，答案 dp[n]</td></tr>
+    <tr><td>（可选）压缩</td><td>转移只用到前面一两格吗？</td><td>只用前两格，可以只留两个变量</td></tr>
+  </table></div>
+  <p class="note">能用 DP 的问题一般有两个特点：<strong>大问题的答案能由小问题的答案算出来</strong>；<strong>同一个小问题会被反复用到</strong>。第二个特点就是递归树里那些重复的紫色圆圈，DP 让每个只算一次。</p>
+</section>
+
+<!-- 08 -->
+<section id="dp">
+  <div class="chap"><span class="num">08</span><h2>用 DP 四步解本题</h2></div>
+  <p>回到股票。按四步来：</p>
+  <h3>1. 状态</h3>
+  <ul class="plain">
+    <li><code>dp[i]</code>：买和卖都限定在第 0 天到第 i 天之间，最多能赚多少（不交易算 0）。</li>
+    <li><code>lo[i]</code>：第 0 天到第 i 天里的最低价。转移要用到它，所以也存一张表。</li>
+  </ul>
+  <h3>2. 转移：看最后一天 i 做什么</h3>
+  <ul class="plain">
+    <li><strong>第 i 天不卖</strong>：交易全在前面的第 0 到 i − 1 天里完成，最多赚 <code>dp[i - 1]</code>。</li>
+    <li><strong>第 i 天卖</strong>：买入日在 i 之前，选最便宜的（第 03 章的结论），赚 <code>prices[i] - lo[i - 1]</code>。</li>
+    <li>两种取大：</li>
+  </ul>
+  <div class="formula">dp[i] = max( dp[i − 1], prices[i] − lo[i − 1] )
+lo[i] = min( lo[i − 1], prices[i] )</div>
+  <p>第二行就是第 03 章那个“多考虑一个数”的递推，它本身也是一个小 DP。</p>
+  <h3>3. 初始值</h3>
+  <ul class="plain">
+    <li><code>lo[0] = prices[0]</code>：只有一天，最低价就是它。</li>
+    <li><code>dp[0] = 0</code>：只有一天，没法卖，利润 0。</li>
+  </ul>
+  <h3>4. 顺序与答案</h3>
+  <p>i 从 1 填到 n − 1，每一行只用上一行的格子。答案是 <code>dp[n - 1]</code>：允许用上全部日子时，最多能赚多少。</p>
+<pre class="code" data-lang="py">n = len(prices)
+lo = [0] * n                 # lo[i]：第 0..i 天的最低价
+dp = [0] * n                 # dp[i]：只在第 0..i 天交易，最多赚多少
+lo[0] = prices[0]
+for i in range(1, n):
+    dp[i] = max(dp[i - 1], prices[i] - lo[i - 1])
+    lo[i] = min(lo[i - 1], prices[i])
+return dp[n - 1]</pre>
+  <p>一步一步填表。<span class="fix">紫色</span>是这一步读的格子，<span class="ans">绿色</span>是这一步写的格子。注意每一行只读上一行：</p>
+  <div class="lab">
+    <div class="field"><label for="dpInput">prices =</label>
+      <input type="text" id="dpInput" value="[10,1,5,6,7,1]" autocomplete="off" spellcheck="false" aria-describedby="dpErr"></div>
+    <div class="controls" id="dpPresets"></div>
+    <span class="err" id="dpErr" hidden></span>
+    <div class="tbl-wrap"><table class="dptbl">
+      <thead><tr><th>第 i 天</th><th>prices[i]</th><th>lo[i]<small>最低价</small></th><th>今天卖<small>prices[i] − lo[i−1]</small></th><th>dp[i]<small>最多赚</small></th></tr></thead>
+      <tbody id="dpBody"></tbody>
+    </table></div>
+    <pre class="code" id="dpCode"></pre>
+    <div class="msg" id="dpMsg" aria-live="polite"></div>
+    <div class="lab-head">
+      <div class="controls">
+        <button type="button" id="dpReset">重来</button>
+        <button type="button" id="dpPrev">上一步</button>
+        <button type="button" id="dpNext" class="primary">下一步</button>
+        <button type="button" id="dpPlay">自动播放</button>
+      </div>
+      <span class="progress" id="dpProg"></span>
+    </div>
+  </div>
+  <p style="font-size:14px;color:var(--muted)">“今天卖”这一列代码里没有存，它是 max 里面的第二项，单独列出来方便看。</p>
+</section>
+
+<!-- 09 -->
+<section id="compress">
+  <div class="chap"><span class="num">09</span><h2>两个变量：DP 就是双指针</h2></div>
+  <p>DP 四步里的“压缩”：dp[i] 只用到 dp[i − 1] 和 lo[i − 1]，更早的格子再也不会用。所以不需要整张表，两个变量滚动更新就够了：</p>
+<pre class="code" data-lang="py">minBuy = prices[0]           # 到目前为止的最低价，相当于 lo[i - 1]
+maxP = 0                     # 到目前为止最多赚多少，相当于 dp[i - 1]
+for sell in prices:          # 每一天都当一次卖出日
+    maxP = max(maxP, sell - minBuy)
+    minBuy = min(minBuy, sell)
+return maxP</pre>
+  <ul class="plain">
+    <li><code>for sell in prices:</code> 直接拿到每天的价格，不需要下标。</li>
+    <li>第一轮 sell = prices[0]，<code>sell - minBuy</code> 是 0，maxP 还是 0，没有影响，所以不用特意跳过第 0 天。</li>
+    <li>先算利润，再更新最低价：算利润时用的是“今天之前”的最低价。两行换过来也对：先更新最低价，相当于允许同一天买卖，利润是 0，而答案本来就 ≥ 0。</li>
+    <li>这就是 NeetCode 给出的 DP 解法，空间从 O(n) 降到 O(1)。</li>
+  </ul>
+
+  <h3>和双指针放在一起看</h3>
+  <p>用例 1 <code>[10, 1, 5, 6, 7, 1]</code>，每个卖出日两种写法各自的变量（双指针取比较之前的 l，DP 取更新之前的 minBuy）：</p>
+  <div class="tbl-wrap"><table class="num-tbl">
+    <thead><tr><th>卖出日 r</th><th>prices[r]</th><th>双指针的 l</th><th>prices[l]</th><th>DP 的 minBuy</th><th>maxP</th></tr></thead>
+    <tbody id="eqBody"></tbody>
+  </table></div>
+  <p class="note ok">每一行 <span class="fix">prices[l]</span> 和 <span class="fix">minBuy</span> 都相等，maxP 也一样。l 记的是“最低价在哪一天”，minBuy 记的是“最低价是多少”，除此之外两段代码做的事完全相同：同一个 O(n) 算法的两种说法。</p>
+
+  <h3>选读：按“手里有没有股票”分状态</h3>
+  <p>股票系列后面还有好几道（可以买卖多次、有冷冻期、最多买卖两次……），它们通用的 DP 写法是按<strong>手里有没有股票</strong>分两种状态。本题也能这样写，先熟悉一下：</p>
+  <ul class="plain">
+    <li><code>hold[i]</code>：第 i 天结束时<strong>手里有</strong>股票，现金最多是多少。买入花的钱记成负数。</li>
+    <li><code>free[i]</code>：第 i 天结束时<strong>手里没有</strong>股票，现金最多是多少。</li>
+  </ul>
+  <div class="formula">hold[i] = max( hold[i − 1], −prices[i] )               昨天就拿着 / 今天买
+free[i] = max( free[i − 1], hold[i − 1] + prices[i] )   昨天就空着 / 今天卖
+初始值：hold[0] = −prices[0]，free[0] = 0；答案 free[n − 1]</div>
+  <p>“今天买”写成 <code>−prices[i]</code>：本题只能交易一次，买之前现金一定是 0。用例 1 填出来是这样：</p>
+  <div class="tbl-wrap"><table class="num-tbl">
+    <thead><tr><th>第 i 天</th><th>prices[i]</th><th>hold[i]</th><th>free[i]</th><th>对照：−lo[i]</th><th>对照：dp[i]</th></tr></thead>
+    <tbody id="hfBody"></tbody>
+  </table></div>
+  <p>hold[i] 正好等于 −lo[i]，free[i] 正好等于 dp[i]。换了一种状态定义，算的还是同样的东西。到了可以买卖多次的 Best Time to Buy and Sell Stock II，只要把 <code>−prices[i]</code> 换成 <code>free[i − 1] − prices[i]</code>（卖掉之后可以用赚到的钱再买），其余不变。</p>
+</section>
+
+<!-- 10 -->
+<section id="code">
+  <div class="chap"><span class="num">10</span><h2>完整代码与复杂度</h2></div>
+  <div class="tabs" role="tablist" aria-label="语言">
+    <button type="button" role="tab" aria-selected="true" data-lang="py">Python</button>
+    <button type="button" role="tab" aria-selected="false" data-lang="java">Java</button>
+    <button type="button" role="tab" aria-selected="false" data-lang="cpp">C++</button>
+  </div>
+  <div class="code-group" id="code-py">
+    <p class="code-cap">写法一：一遍扫描（压缩后的 DP）</p>
+<pre class="code" data-lang="py">class Solution:
+    def maxProfit(self, prices: List[int]) -&gt; int:
+        minBuy = prices[0]               # 到目前为止的最低价
+        maxP = 0                         # 到目前为止最多赚多少
+        for sell in prices:
+            maxP = max(maxP, sell - minBuy)
+            minBuy = min(minBuy, sell)
+        return maxP</pre>
+    <p class="code-cap">写法二：双指针</p>
+<pre class="code" data-lang="py">class Solution:
+    def maxProfit(self, prices: List[int]) -&gt; int:
+        l, r = 0, 1                      # l：买入日，r：卖出日
+        maxP = 0
+        while r &lt; len(prices):
+            if prices[l] &lt; prices[r]:
+                maxP = max(maxP, prices[r] - prices[l])
+            else:
+                l = r                    # 更便宜，以后改在这天买
+            r += 1
+        return maxP</pre>
+  </div>
+  <div class="code-group" id="code-java" hidden>
+    <p class="code-cap">写法一：一遍扫描（压缩后的 DP）</p>
+<pre class="code" data-lang="java">class Solution {
+    public int maxProfit(int[] prices) {
+        int minBuy = prices[0], maxP = 0;
+        for (int sell : prices) {
+            maxP = Math.max(maxP, sell - minBuy);
+            minBuy = Math.min(minBuy, sell);
+        }
+        return maxP;
+    }
+}</pre>
+    <p class="code-cap">写法二：双指针</p>
+<pre class="code" data-lang="java">class Solution {
+    public int maxProfit(int[] prices) {
+        int l = 0, r = 1, maxP = 0;
+        while (r &lt; prices.length) {
+            if (prices[l] &lt; prices[r]) {
+                maxP = Math.max(maxP, prices[r] - prices[l]);
+            } else {
+                l = r;
+            }
+            r++;
+        }
+        return maxP;
+    }
+}</pre>
+  </div>
+  <div class="code-group" id="code-cpp" hidden>
+    <p class="code-cap">写法一：一遍扫描（压缩后的 DP）</p>
+<pre class="code" data-lang="cpp">class Solution {
+public:
+    int maxProfit(vector&lt;int&gt;&amp; prices) {
+        int minBuy = prices[0], maxP = 0;
+        for (int sell : prices) {
+            maxP = max(maxP, sell - minBuy);
+            minBuy = min(minBuy, sell);
+        }
+        return maxP;
+    }
+};</pre>
+    <p class="code-cap">写法二：双指针</p>
+<pre class="code" data-lang="cpp">class Solution {
+public:
+    int maxProfit(vector&lt;int&gt;&amp; prices) {
+        int l = 0, r = 1, maxP = 0;
+        while (r &lt; (int)prices.size()) {
+            if (prices[l] &lt; prices[r]) {
+                maxP = max(maxP, prices[r] - prices[l]);
+            } else {
+                l = r;
+            }
+            r++;
+        }
+        return maxP;
+    }
+};</pre>
+  </div>
+  <p style="font-size:14px;color:var(--muted)"><code>class Solution:</code> 和 <code>def maxProfit(self, prices: List[int]) -&gt; int:</code> 是 NeetCode 给定的外壳。<code>List[int]</code> 表示整数列表，<code>-&gt; int</code> 表示返回一个整数，这些只是类型提示，不影响运行。</p>
+
+  <h3>复杂度</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>解法</th><th>时间</th><th>额外空间</th><th>说明</th></tr>
+    <tr><td>暴力：试遍每一对</td><td>O(n²)</td><td>O(1)</td><td>n(n − 1) / 2 对</td></tr>
+    <tr><td>双指针</td><td class="ans">O(n)</td><td class="ans">O(1)</td><td>r 走一遍，l 只往右跳</td></tr>
+    <tr><td>DP 两张表</td><td>O(n)</td><td>O(n)</td><td>lo 和 dp 各 n 格</td></tr>
+    <tr><td>DP 两个变量</td><td class="ans">O(n)</td><td class="ans">O(1)</td><td>只留上一格</td></tr>
+  </table></div>
+
+  <h3>最容易写错的五个地方</h3>
+  <ul class="plain">
+    <li><strong>直接 <code>max(prices) - min(prices)</code></strong>：<code>[10, 1, 5, 6, 7, 1]</code> 得 9，忽略了先买后卖。</li>
+    <li><strong>双指针写成 <code>l += 1</code></strong>：<code>[3, 5, 1, 4]</code> 返回 2，正确是 3。两个样例却都能过，交上去才发现错。</li>
+    <li><strong>minBuy 初始化成 0</strong>：价格都 ≥ 0，最低价永远是 0，返回的是最高价（用例 1 返回 10）。要用 <code>prices[0]</code> 或 <code>float("inf")</code>（无穷大）。</li>
+    <li><strong>maxP 初始化成 <code>prices[1] - prices[0]</code></strong>：价格一路下跌时是负数，最后返回负数；只有一天时还会越界。要从 0 开始。</li>
+    <li><strong>暴力解内层写成 <code>range(len(prices))</code></strong>：j 可以在 i 前面，等于允许先卖后买，结果和最高减最低一样错。</li>
+  </ul>
+</section>
+
+<!-- 11 -->
+<section id="quiz">
+  <div class="chap"><span class="num">11</span><h2>自测</h2></div>
+  <p>点选答案，立即判分。全部答对说明前置知识已经过关。</p>
+  <div class="quiz" id="quizBox"></div>
+  <p class="progress" id="quizScore"></p>
+
+  <h3 style="margin-top:12px">掌握清单</h3>
+  <ul class="checklist" id="checklist">
+    <li><label><input type="checkbox" id="ck1"><span>能用 <code>[10, 1, 5, 6, 7, 1]</code> 说明为什么不能直接用最高价减最低价。</span></label></li>
+    <li><label><input type="checkbox" id="ck2"><span>能写出暴力解，说出 <code>range(i + 1, n)</code> 保证了什么。</span></label></li>
+    <li><label><input type="checkbox" id="ck3"><span>能说出“卖出日定了，最好的买入日就是它前面最便宜的那天”。</span></label></li>
+    <li><label><input type="checkbox" id="ck4"><span>能写出双指针解法，解释 <code>l = r</code> 为什么安全、<code>l += 1</code> 为什么错。</span></label></li>
+    <li><label><input type="checkbox" id="ck5"><span>能说出相向双指针和同向双指针的区别，知道本题属于 Sliding Window。</span></label></li>
+    <li><label><input type="checkbox" id="ck6"><span>能用 DP 四步（状态、转移、初始值、顺序与答案）讲清楚爬楼梯。</span></label></li>
+    <li><label><input type="checkbox" id="ck7"><span>能用 DP 四步写出本题的 lo、dp 两张表，再压缩成两个变量。</span></label></li>
+    <li><label><input type="checkbox" id="ck8"><span>不看本页，5 分钟内写出可以通过的代码。</span></label></li>
+  </ul>
+</section>
+
+<footer>同类题型：Best Time to Buy and Sell Stock II 可以买卖多次，用第 09 章的 hold / free 写法改一项就行；Best Time to Buy and Sell Stock with Cooldown（含冷冻期）在 hold / free 之外再加一个状态。无重复字符的最长子串、最长重复字符替换是同一类同向双指针。爬楼梯、打家劫舍是 1-D DP 的入门题，用的都是第 07 章的四步。</footer>
+</main>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const fmt = (a) => "[" + a.join(", ") + "]";
+  const compact = (a) => "[" + a.join(",") + "]";
+  const EX = [10, 1, 5, 6, 7, 1];
+  const sg = (v) => (v < 0 ? "−" + -v : String(v));   // 负数用真正的减号
+  function showErr(id, msg) { $(id).textContent = msg || ""; $(id).hidden = !msg; return !!msg; }
+
+  // 接受 [10,1,5] 或 10 1 5 这类写法；价格是 0 到 100 的整数
+  function parsePrices(text, minLen, maxLen) {
+    const t = text.trim().replace(/^\[/, "").replace(/\]$/, "");
+    const parts = t.split(/[\s,，]+/).filter(Boolean);
+    if (!parts.length) return { err: "请输入价格，用逗号分隔，例如 [10,1,5,6,7,1]" };
+    const bad = parts.find((p) => !/^\d+$/.test(p));
+    if (bad !== undefined) return { err: "“" + bad + "” 不是 0 到 100 之间的整数。价格用逗号或空格分隔，例如 [10,1,5,6,7,1]" };
+    const arr = parts.map(Number);
+    if (arr.some((v) => v > 100)) return { err: "题目规定价格在 0 到 100 之间" };
+    if (arr.length < minLen) return { err: "至少需要 " + minLen + " 天的价格" };
+    if (arr.length > maxLen) return { err: "演示里最多 " + maxLen + " 天，方便看清" };
+    return { arr };
+  }
+  // 暴力求真正的答案，给单步执行判对错
+  function bestPair(a) {
+    let p = 0, bi = null, bj = null;
+    for (let i = 0; i < a.length; i++) for (let j = i + 1; j < a.length; j++) if (a[j] - a[i] > p) { p = a[j] - a[i]; bi = i; bj = j; }
+    return { p, i: bi, j: bj };
+  }
+  function randPrices() {
+    const n = 6 + Math.floor(Math.random() * 5);
+    return Array.from({ length: n }, () => 1 + Math.floor(Math.random() * 20));
+  }
+
+  /* ---------- 语法高亮 ---------- */
+  const KW = /\b(class|def|for|in|range|if|elif|else|not|and|or|while|return|break|continue|len|max|min|float|self|None|True|False|List|public|int|vector|Math)\b|\b(\d+)\b/g;
+  function hlCode(text, lang) {
+    const marker = lang === "py" ? "#" : "//";
+    const pos = text.indexOf(marker);
+    const codePart = pos >= 0 ? text.slice(0, pos) : text;
+    const comPart = pos >= 0 ? text.slice(pos) : "";
+    const body = esc(codePart).replace(KW, (m, k, n) => k ? '<span class="k">' + k + "</span>" : '<span class="n">' + n + "</span>");
+    return body + (comPart ? '<span class="c">' + esc(comPart) + "</span>" : "");
+  }
+  document.querySelectorAll("pre.code[data-lang]").forEach((pre) => {
+    const lang = pre.dataset.lang;
+    pre.innerHTML = pre.textContent.split("\n").map((l) => '<span class="ln">' + (hlCode(l, lang) || " ") + "</span>").join("");
+  });
+  function renderCode(el, lines, mut) {
+    el.innerHTML = lines.map((l, k) => '<span class="ln' + (k === mut ? " mut" : "") + '" data-k="' + k + '">' + (hlCode(l, "py") || " ") + "</span>").join("");
+  }
+  function markLine(el, line, hl) {
+    el.querySelectorAll(".ln").forEach((x) => {
+      x.classList.remove("hl0", "hl", "hl2", "hl3", "hl4", "hl5");
+      if (+x.dataset.k === line) x.classList.add(hl);
+    });
+  }
+
+  /* ---------- 价格柱状图 ---------- */
+  // o.buy / o.sell：买入日、卖出日（画出买入价虚线和利润）；o.tags：[[下标, 文字, 颜色类]]；o.rings：[[下标, 类]]；o.fade(i)；o.hit：柱子可点
+  const SLOT = 44, BW = 26, PX = 10;
+  function pricesSVG(a, o) {
+    o = o || {};
+    const n = a.length, top = 44, plot = 130, bot = 44;
+    const W = PX * 2 + n * SLOT, H = top + plot + bot, base = top + plot;
+    const hi = Math.max(1, ...a);
+    const X = (i) => PX + i * SLOT + (SLOT - BW) / 2;
+    const hgt = (v) => 4 + (v / hi) * (plot - 4);
+    const has = (i) => i !== undefined && i !== null && i >= 0 && i < n;
+    const pair = has(o.buy) && has(o.sell) && o.buy !== o.sell;
+    let s = '<svg class="bars" viewBox="0 0 ' + W + " " + H + '" style="min-width:' + n * 30 + "px;max-width:" + Math.round(W * 1.4) +
+      'px" role="img" aria-label="' + esc(o.label || "prices = " + fmt(a) + "，柱子越高价格越高") + '">';
+    let yb = 0, ys = 0;
+    if (pair) {
+      yb = base - hgt(a[o.buy]); ys = base - hgt(a[o.sell]);
+      const x1 = Math.min(X(o.buy), X(o.sell)), x2 = Math.max(X(o.buy), X(o.sell)) + BW;
+      s += '<line class="buyline" x1="' + x1 + '" x2="' + x2 + '" y1="' + yb + '" y2="' + yb + '"/>';
+      if (a[o.sell] < a[o.buy]) s += '<rect class="loss" x="' + X(o.sell) + '" y="' + yb + '" width="' + BW + '" height="' + (ys - yb) + '" rx="2"/>';
+    }
+    const tagsAt = {};
+    (o.tags || []).forEach(([i, t, c]) => { if (has(i)) (tagsAt[i] = tagsAt[i] || []).push('<tspan class="' + c + '">' + esc(t) + "</tspan>"); });
+    for (let i = 0; i < n; i++) {
+      let cls = "bar";
+      if (i === o.sell) cls += " bs";
+      else if (i === o.buy) cls += " bb";
+      const h = hgt(a[i]), cx = X(i) + BW / 2;
+      const fade = o.fade && o.fade(i);
+      s += "<g" + (fade ? ' class="faded"' : "") + ">" +
+        '<rect class="' + cls + '" x="' + X(i) + '" y="' + (base - h) + '" width="' + BW + '" height="' + h + '" rx="2"/>' +
+        '<text class="tv" x="' + cx + '" y="' + (base - h - 6) + '">' + a[i] + "</text>" +
+        '<text class="ti" x="' + cx + '" y="' + (base + 15) + '">' + i + "</text></g>";
+      if (tagsAt[i]) s += '<text class="tp" x="' + cx + '" y="' + (base + 34) + '">' + tagsAt[i].join(" ") + "</text>";
+    }
+    if (pair) {
+      const cx = X(o.sell) + BW / 2, d = a[o.sell] - a[o.buy];
+      if (d > 0) {
+        s += '<rect class="gain" x="' + X(o.sell) + '" y="' + ys + '" width="' + BW + '" height="' + (yb - ys) + '" rx="2"/>' +
+          '<text class="tg" x="' + cx + '" y="' + (ys - 22) + '">+' + d + "</text>";
+      } else if (d < 0) {
+        s += '<text class="tl" x="' + cx + '" y="' + (yb - 8) + '">−' + -d + "</text>";
+      } else {
+        s += '<text class="tl" x="' + cx + '" y="' + (ys - 22) + '">±0</text>';
+      }
+    }
+    (o.rings || []).forEach(([i, c]) => {
+      if (!has(i)) return;
+      const h = hgt(a[i]);
+      s += '<rect class="ring' + (c ? " " + c : "") + '" x="' + (X(i) - 4) + '" y="' + (base - h - 4) + '" width="' + (BW + 8) + '" height="' + (h + 4) + '" rx="4"/>';
+    });
+    s += '<line class="axis" x1="' + PX / 2 + '" x2="' + (W - PX / 2) + '" y1="' + base + '" y2="' + base + '"/>';
+    if (o.hit) for (let i = 0; i < n; i++) {
+      s += '<rect class="hit" data-i="' + i + '" x="' + (PX + i * SLOT) + '" y="0" width="' + SLOT + '" height="' + (base + 4) +
+        '" tabindex="0" role="button" aria-label="' + esc(o.hitLabel ? o.hitLabel(i) : "第 " + i + " 天") + '"/>';
+    }
+    return s + "</svg>";
+  }
+
+  // 手机上图比框宽时横向滚动：几个指针放得下就都露出来，放不下就只露出刚动的那个
+  function keepVisible(wrap, idxs, focusIdx, n) {
+    const svg = wrap.querySelector("svg"); if (!svg) return;
+    const w = wrap.clientWidth, sw = svg.getBoundingClientRect().width;
+    if (sw <= w + 1) { wrap.scrollLeft = 0; return; }
+    const unit = sw / (PX * 2 + n * SLOT);
+    const L0 = (i) => (PX + i * SLOT) * unit, R0 = (i) => (PX + (i + 1) * SLOT) * unit;
+    const xs = idxs.filter((i) => i !== null && i !== undefined && i >= 0 && i < n);
+    if (!xs.length) return;
+    let L = Math.min(...xs.map(L0)), R = Math.max(...xs.map(R0));
+    if (R - L + 8 > w) { const f = xs.includes(focusIdx) ? focusIdx : xs[0]; L = L0(f); R = R0(f); }
+    const pad = Math.max(4, Math.min(16, (w - (R - L)) / 2));
+    if (L - pad < wrap.scrollLeft) wrap.scrollLeft = L - pad;
+    else if (R + pad > wrap.scrollLeft + w) wrap.scrollLeft = R + pad - w;
+  }
+
+  function presets(el, list, label, apply) {
+    el.innerHTML = list.map((p, k) => '<button type="button" class="mono" data-k="' + k + '">' + esc(label(p)) + "</button>").join("");
+    el.addEventListener("click", (e) => { const b = e.target.closest("[data-k]"); if (b) apply(list[+b.dataset.k]); });
+  }
+
+  function makePlayer(p, draw) {
+    const S = { frames: [], idx: 0, timer: null };
+    const el = (s) => $(p + s);
+    function render() {
+      draw(S.frames[S.idx]);
+      el("Prog").textContent = "第 " + (S.idx + 1) + " / " + S.frames.length + " 步";
+      el("Prev").disabled = S.idx === 0;
+      el("Next").disabled = S.idx === S.frames.length - 1;
+    }
+    function stop() { if (S.timer) { clearInterval(S.timer); S.timer = null; } el("Play").textContent = "自动播放"; }
+    el("Next").addEventListener("click", () => { stop(); if (S.idx < S.frames.length - 1) { S.idx++; render(); } });
+    el("Prev").addEventListener("click", () => { stop(); if (S.idx > 0) { S.idx--; render(); } });
+    el("Reset").addEventListener("click", () => { stop(); S.idx = 0; render(); });
+    el("Play").addEventListener("click", () => {
+      if (S.timer) { stop(); return; }
+      if (S.idx === S.frames.length - 1) { S.idx = 0; render(); }
+      el("Play").textContent = "暂停";
+      S.timer = setInterval(() => { if (S.idx < S.frames.length - 1) { S.idx++; render(); } else stop(); }, 1000);
+    });
+    return { load(frames) { stop(); S.frames = frames; S.idx = 0; render(); } };
+  }
+
+  /* ---------- 01 先买后卖 ---------- */
+  $("ruA").innerHTML = pricesSVG(EX, { rings: [[0, "bad"], [1, "bad"]], tags: [[0, "最高", "pb"], [1, "最低", "pb"]], label: "最高价 10 在第 0 天，最低价 1 在第 1 天" });
+  $("ruB").innerHTML = pricesSVG(EX, { buy: 1, sell: 4, tags: [[1, "买", "pl"], [4, "卖", "pr"]], label: "第 1 天以 1 买入，第 4 天以 7 卖出，利润 6" });
+
+  /* ---------- 02 暴力解的组合表 ---------- */
+  let bfA = [], bfBest = 0, bfSel = { i: 0, j: 1 };
+  function bfRender() {
+    const a = bfA, n = a.length;
+    bfBest = bestPair(a).p;
+    let h = '<thead><tr><th class="corner">买 i ↓<br>卖 j →</th>';
+    for (let j = 0; j < n; j++) h += '<th data-col="' + j + '">j = ' + j + "<b>" + a[j] + "</b></th>";
+    h += "</tr></thead><tbody>";
+    for (let i = 0; i < n; i++) {
+      h += '<tr><th data-row="' + i + '">i = ' + i + "<b>" + a[i] + "</b></th>";
+      for (let j = 0; j < n; j++) {
+        if (j <= i) { h += '<td class="na">·</td>'; continue; }
+        const p = a[j] - a[i];
+        const cls = "cell" + (p < 0 ? " neg" : p === 0 ? " zero" : "") + (p > 0 && p === bfBest ? " best" : "");
+        h += '<td><button type="button" class="' + cls + '" data-i="' + i + '" data-j="' + j + '" aria-label="第 ' + i + " 天买、第 " + j + " 天卖，利润 " + p + '">' + sg(p) + "</button></td>";
+      }
+      h += "</tr>";
+    }
+    $("bfGrid").innerHTML = h + "</tbody>";
+    const pairs = n * (n - 1) / 2, bp = bestPair(a);
+    $("bfSum").innerHTML = "一共 " + n + " × " + (n - 1) + " / 2 = " + pairs + " 对。" + (bp.p > 0
+      ? '最大利润 <span class="ans">' + bp.p + "</span>（绿色格子），答案就是它。"
+      : '<span class="ans">没有一个格子是正数</span>，每一对都不赚钱，答案是 0：不交易。');
+    bfSelect();
+  }
+  function bfSelect() {
+    const a = bfA, { i, j } = bfSel, p = a[j] - a[i];
+    $("bfChart").innerHTML = pricesSVG(a, { buy: i, sell: j, tags: [[i, "i 买", "pl"], [j, "j 卖", "pr"]], label: "第 " + i + " 天买，第 " + j + " 天卖" });
+    keepVisible($("bfChart"), [i, j], j, a.length);
+    $("bfGrid").querySelectorAll(".cell").forEach((c) => c.classList.toggle("sel", +c.dataset.i === i && +c.dataset.j === j));
+    $("bfGrid").querySelectorAll("[data-row]").forEach((c) => c.classList.toggle("on-i", +c.dataset.row === i));
+    $("bfGrid").querySelectorAll("[data-col]").forEach((c) => c.classList.toggle("on-j", +c.dataset.col === j));
+    $("bfMsg").innerHTML = "第 " + i + " 天以 " + a[i] + " 买入，第 " + j + " 天以 " + a[j] + " 卖出：" + a[j] + " − " + a[i] + " = " +
+      (p > 0 ? '<span class="ans">' + p + "</span>" : '<span class="bad">' + p + "</span>") + "。" +
+      (p < 0 ? "亏钱，不如不交易。" : p === 0 ? "不赚不亏。" : p === bfBest ? "这是所有组合里最大的。" : "");
+  }
+  function bfLoad() {
+    const r = parsePrices($("bfInput").value, 2, 8);
+    if (showErr("bfErr", r.err)) return;
+    bfA = r.arr;
+    const bp = bestPair(bfA);
+    bfSel = bp.p > 0 ? { i: bp.i, j: bp.j } : { i: 0, j: 1 };
+    bfRender();
+  }
+  $("bfGrid").addEventListener("click", (e) => {
+    const c = e.target.closest(".cell"); if (!c) return;
+    bfSel = { i: +c.dataset.i, j: +c.dataset.j }; bfSelect();
+  });
+  $("bfInput").addEventListener("input", bfLoad);
+  presets($("bfPresets"), ["[10,1,5,6,7,1]", "[10,8,7,5,2]", "[2,4,1]", "[3,5,1,4]", "[1,2,3,4,5]"], (p) => p, (p) => { $("bfInput").value = p; bfLoad(); });
+  bfLoad();
+
+  /* ---------- 03 固定卖出日 ---------- */
+  let fsA = [], fsJ = 4;
+  const minBefore = (a, j) => { let k = null; for (let x = 0; x < j; x++) if (k === null || a[x] < a[k]) k = x; return k; };
+  function fsRows() {
+    const a = fsA, n = a.length;
+    const prof = a.map((v, j) => (j === 0 ? null : v - a[minBefore(a, j)]));
+    const best = Math.max(0, ...prof.filter((x) => x !== null));
+    $("fsBody").innerHTML = a.map((v, j) => {
+      const k = minBefore(a, j), p = prof[j];
+      return '<tr data-k="' + j + '"><td>' + j + "</td><td>" + v + "</td><td>" + (k === null ? "—" : a[k]) + "</td><td" +
+        (p !== null && p > 0 && p === best ? ' class="ans"' : p !== null && p < 0 ? ' class="bad"' : "") + ">" + (p === null ? "—" : sg(p)) + "</td></tr>";
+    }).join("");
+    $("fsSum").innerHTML = "最后一列取最大，再和 0 比：答案是 <span class=\"ans\">" + best + "</span>" + (best === 0 ? "，不交易。" : "。");
+  }
+  function fsDraw(refocus) {
+    const a = fsA, j = fsJ, k = minBefore(a, j);
+    const tags = [[j, "卖", "pr"]]; if (k !== null) tags.push([k, "买", "pl"]);
+    $("fsChart").innerHTML = pricesSVG(a, { sell: j, buy: k, tags, fade: (i) => i > j, hit: true,
+      hitLabel: (i) => "把第 " + i + " 天设为卖出日", label: "卖出日是第 " + j + " 天" });
+    keepVisible($("fsChart"), [k, j], j, a.length);
+    $("fsBody").querySelectorAll("tr").forEach((tr) => tr.classList.toggle("on", +tr.dataset.k === j));
+    if (k === null) {
+      $("fsMsg").innerHTML = "第 0 天前面没有日子可以买，这天没法卖。点别的柱子。";
+    } else {
+      const p = a[j] - a[k];
+      $("fsMsg").innerHTML = "卖出日 j = " + j + "，价格 " + a[j] + "。能买的是第 0 到第 " + (j - 1) + " 天，其中最便宜的是第 " + k + " 天的 " + a[k] + "。" +
+        "这天卖最多赚 " + a[j] + " − " + a[k] + " = " + (p > 0 ? '<span class="ans">' + p + "</span>。" : '<span class="bad">' + p + "</span>：这天卖怎么都亏。");
+    }
+    if (refocus) { const h = $("fsChart").querySelector('.hit[data-i="' + j + '"]'); if (h) h.focus(); }
+  }
+  function fsLoad() {
+    const r = parsePrices($("fsInput").value, 2, 10);
+    if (showErr("fsErr", r.err)) return;
+    fsA = r.arr;
+    const bp = bestPair(fsA);
+    fsJ = bp.p > 0 ? bp.j : fsA.length - 1;
+    fsRows(); fsDraw();
+  }
+  function fsPick(e, refocus) { const h = e.target.closest(".hit"); if (!h) return; fsJ = +h.dataset.i; fsDraw(refocus); }
+  $("fsChart").addEventListener("click", (e) => fsPick(e, false));
+  $("fsChart").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fsPick(e, true); } });
+  $("fsBody").addEventListener("click", (e) => { const tr = e.target.closest("tr[data-k]"); if (tr) { fsJ = +tr.dataset.k; fsDraw(); } });
+  $("fsInput").addEventListener("input", fsLoad);
+  presets($("fsPresets"), ["[10,1,5,6,7,1]", "[7,1,5,3,6,4]", "[10,8,7,5,2]", "[3,5,1,4]"], (p) => p, (p) => { $("fsInput").value = p; fsLoad(); });
+  fsLoad();
+
+  /* ---------- 05 双指针单步执行 ---------- */
+  function tpCodeLines(inc) {
+    return [
+      "l, r = 0, 1",
+      "maxP = 0",
+      "while r < len(prices):",
+      "    if prices[l] < prices[r]:",
+      "        maxP = max(maxP, prices[r] - prices[l])",
+      "    else:",
+      inc ? "        l += 1                 # ← 改成了 l += 1" : "        l = r",
+      "    r += 1",
+      "return maxP"
+    ];
+  }
+  // 0..upto 里最便宜的那天；价格一样时取靠后的，和 l = r 的行为一致
+  const lastMin = (a, upto) => { let k = 0; for (let x = 1; x <= upto && x < a.length; x++) if (a[x] <= a[k]) k = x; return k; };
+  function tpBuild(a, inc) {
+    const n = a.length, F = [], truth = bestPair(a);
+    let l = 0, r = 1, maxP = 0, bl = null, br = null;
+    const push = (o) => F.push(Object.assign({ l, r, maxP, bl, br, verdict: null, ring: r < n ? lastMin(a, r - 1) : null, focus: "r" }, o));
+    push({ line: 0, hl: "hl0", msg: n > 1 ? "l = 0，r = 1：先试“第 0 天买、第 1 天卖”。" : "l = 0，r = 1。数组只有 1 天。" });
+    push({ line: 1, hl: "hl0", msg: "maxP = 0：一次都不交易，利润是 0。后面只会往上更新。" });
+    for (let guard = 0; guard < 40; guard++) {
+      if (!(r < n)) {
+        push({ line: 2, hl: "hl0", ring: null, focus: "l", msg: n === 1
+          ? "r = 1，不小于 len(prices) = 1：只有一天，没法卖，循环一轮都不跑。"
+          : "r = " + r + "，不小于 len(prices) = " + n + "：每一天都当过卖出日了，退出循环。" });
+        const ok = maxP === truth.p;
+        let msg = "<code>return maxP</code>：返回 " + maxP + "。";
+        if (ok) msg += truth.p > 0 ? '<span class="ans">正确</span>：第 ' + truth.i + " 天以 " + a[truth.i] + " 买、第 " + truth.j + " 天以 " + a[truth.j] + " 卖。r 只走了一遍。"
+          : '<span class="ans">正确</span>：没有一天能赚钱，不交易。';
+        if (ok && inc) msg += "这个输入 <code>l += 1</code> 碰巧没出错，换成 [3,5,1,4] 试试。";
+        else msg += '<span class="bad">错了</span>，正确答案是 ' + truth.p + "（第 " + truth.i + " 天以 " + a[truth.i] + " 买、第 " + truth.j + " 天以 " + a[truth.j] +
+          " 卖）。l 没跟上最低价，r 走到第 " + truth.j + " 天时，l 指的不是第 " + truth.i + " 天，这一对就错过了。";
+        push({ line: 8, hl: ok ? "hl4" : "hl3", ring: null, verdict: ok ? "ok" : "bad", focus: "l", msg });
+        return F;
+      }
+      push({ line: 2, hl: "hl0", msg: "r = " + r + " &lt; " + n + "：把第 " + r + " 天当卖出日。" });
+      const gain = a[l] < a[r];
+      push({ line: 3, hl: "hl0", msg: "prices[l] = " + a[l] + "，prices[r] = " + a[r] + "。" + a[l] + " &lt; " + a[r] +
+        (gain ? " 成立：今天卖能赚钱。" : " 不成立：第 " + r + " 天不比第 " + l + " 天贵，今天卖赚不到钱，走 else。") });
+      if (gain) {
+        const p = a[r] - a[l], old = maxP;
+        if (p > maxP) { maxP = p; bl = l; br = r; }
+        push({ line: 4, hl: "hl4", msg: "第 " + l + " 天买、第 " + r + " 天卖，赚 " + a[r] + " − " + a[l] + " = " + p + "。maxP = max(" + old + ", " + p + ") = " + maxP +
+          (p > old ? '，<span class="ans">新纪录</span>。' : "，没超过之前的。") + "l 不动：第 " + l + " 天还是最便宜的。" });
+      } else {
+        const ol = l;
+        let msg;
+        if (inc) {
+          l = l + 1;
+          const k = lastMin(a, r);
+          msg = "<code>l += 1</code>：l 从 " + ol + " 只挪到 " + l + "，prices[l] = " + a[l] + "。";
+          if (a[l] > a[k]) msg += '<span class="bad">可是到第 ' + r + " 天为止最便宜的是第 " + k + " 天的 " + a[k] + "，l 没指到它。</span>";
+          else msg += "这次碰巧指到了最低价。";
+        } else {
+          l = r;
+          msg = "<code>l = r = " + r + "</code>：第 " + r + " 天的 " + a[r] + " 不比 " + a[ol] + " 贵，以后不管哪天卖，从第 " + r + " 天买都至少一样好。" +
+            (r - ol > 1 ? "中间跳过的第 " + (ol + 1) + (r - 1 > ol + 1 ? " 到 " + (r - 1) : "") + " 天价格都 ≥ " + a[ol] + "，不用再看。" : "");
+        }
+        push({ line: 6, hl: inc ? "hl3" : "hl", ring: lastMin(a, r), focus: "l", msg });
+      }
+      r++;
+      push({ line: 7, hl: "hl0", msg: "<code>r += 1</code>：r 走到 " + r + "，回到 while 判断。" });
+    }
+    return F;
+  }
+  const tpMode = () => { const c = document.querySelector('input[name="tpMode"]:checked'); return c && c.value === "inc"; };
+  let tpA = [], tpInc = false;
+  const tpP = makePlayer("tp", (f) => {
+    const n = tpA.length, rIn = f.r < n;
+    const tags = [[f.l, "l", "pl"]]; if (rIn) tags.push([f.r, "r", "pr"]);
+    $("tpWrap").innerHTML = pricesSVG(tpA, { buy: f.l, sell: rIn ? f.r : null, tags, fade: (i) => i > f.r,
+      rings: f.ring !== null ? [[f.ring, ""]] : [], label: "l = " + f.l + "，r = " + f.r });
+    keepVisible($("tpWrap"), [f.l, rIn ? f.r : null], f.focus === "l" ? f.l : f.r, n);
+    $("tpL").textContent = "l = " + f.l;
+    $("tpR").textContent = "r = " + f.r;
+    $("tpPl").textContent = "prices[l] = " + tpA[f.l];
+    $("tpPr").textContent = "prices[r] = " + (rIn ? tpA[f.r] : "—");
+    $("tpMax").textContent = "maxP = " + f.maxP;
+    $("tpBest").textContent = f.bl === null ? "目前最好：还没有赚钱的买卖" : "目前最好：第 " + f.bl + " 天买 → 第 " + f.br + " 天卖";
+    const out = $("tpOut");
+    out.className = "pill" + (f.verdict === "ok" ? " t" : f.verdict ? " f" : "");
+    out.textContent = f.verdict === "ok" ? "返回 " + f.maxP + " ✓" : f.verdict === "bad" ? "返回 " + f.maxP + " ✗" : "运行中";
+    markLine($("tpCode"), f.line, f.hl);
+    $("tpMsg").innerHTML = f.msg;
+  });
+  function tpLoad() {
+    const r = parsePrices($("tpInput").value, 1, 12);
+    if (showErr("tpErr", r.err)) return;
+    tpA = r.arr; tpInc = tpMode();
+    renderCode($("tpCode"), tpCodeLines(tpInc), tpInc ? 6 : -1);
+    tpP.load(tpBuild(tpA, tpInc));
+    $("tpWrap").scrollLeft = 0;
+  }
+  $("tpInput").addEventListener("input", tpLoad);
+  $("tpModes").addEventListener("change", tpLoad);
+  presets($("tpPresets"), ["[10,1,5,6,7,1]", "[7,1,5,3,6,4]", "[3,5,1,4]", "[10,8,7,5,2]", "[1,2,3,4,5]", "[2,4,1]", "随机"],
+    (p) => p, (p) => { $("tpInput").value = p === "随机" ? compact(randPrices()) : p; tpLoad(); });
+  tpLoad();
+
+  /* ---------- 07 爬楼梯递归树 ---------- */
+  const ways = (k) => { let x = 1, y = 2; if (k <= 2) return k; for (let i = 3; i <= k; i++) { const z = x + y; x = y; y = z; } return y; };
+  function buildTree(n) {
+    let leaf = 0;
+    const nodes = [], edges = [];
+    (function rec(k, d) {
+      const node = { k, d };
+      nodes.push(node);
+      if (k <= 2) { node.x = leaf++; return node; }
+      const c1 = rec(k - 1, d + 1), c2 = rec(k - 2, d + 1);
+      edges.push([node, c1], [node, c2]);
+      node.x = (c1.x + c2.x) / 2;
+      return node;
+    })(n, 0);
+    return { nodes, edges, leaves: leaf, depth: Math.max(...nodes.map((x) => x.d)) };
+  }
+  function treeSVG(n, hot) {
+    const t = buildTree(n), LW = 36, LH = 52, R = 15, pad = 22;
+    const W = pad * 2 + Math.max(0, t.leaves - 1) * LW, H = pad * 2 + t.depth * LH;
+    const px = (x) => pad + x * LW, py = (d) => pad + d * LH;
+    let s = '<svg class="tree" viewBox="0 0 ' + W + " " + H + '" style="min-width:' + Math.min(W, t.leaves * 28 + 20) + "px;max-width:" + Math.round(W * 1.35) +
+      'px" role="img" aria-label="f(' + n + ") 的递归调用树，一共 " + t.nodes.length + ' 次调用">';
+    t.edges.forEach(([p, c]) => { s += '<line class="edge" x1="' + px(p.x) + '" y1="' + py(p.d) + '" x2="' + px(c.x) + '" y2="' + py(c.d) + '"/>'; });
+    t.nodes.forEach((nd) => {
+      const cls = "node" + (nd.k <= 2 ? " base" : "") + (nd.k === hot ? " hot" : "");
+      s += '<g class="' + cls + '"><circle cx="' + px(nd.x) + '" cy="' + py(nd.d) + '" r="' + R + '"/><text x="' + px(nd.x) + '" y="' + py(nd.d) + '">f' + nd.k + "</text></g>";
+    });
+    return { svg: s + "</svg>", t };
+  }
+  let trN = 6, trK = 3;
+  function trDraw() {
+    $("trNs").querySelectorAll("[data-n]").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.n === trN)));
+    const { svg, t } = treeSVG(trN, trK);
+    const count = (k) => t.nodes.filter((x) => x.k === k).length;
+    $("trKs").innerHTML = Array.from({ length: trN - 1 }, (_, x) => x + 1).map((k) =>
+      '<button type="button" class="mono" data-k="' + k + '" aria-pressed="' + (k === trK) + '">f(' + k + ") × " + count(k) + "</button>").join("");
+    $("trChart").innerHTML = svg;
+    const c = count(trK);
+    $("trMsg").innerHTML = "算 f(" + trN + ") = " + ways(trN) + "，一共调用了 <strong>" + t.nodes.length + "</strong> 次函数。" +
+      '<span class="fix">f(' + trK + ")</span> " + (c > 1 ? "被调用了 " + c + " 次，每次都把它下面整棵子树重新算一遍，算出来都是 " + ways(trK) + "。其实算一次、记下来就够了。"
+        : "只出现了 1 次。换一个更小的 k 看看。");
+  }
+  $("trNs").innerHTML = [3, 4, 5, 6, 7].map((n) => '<button type="button" class="mono" data-n="' + n + '" aria-pressed="false">n = ' + n + "</button>").join("");
+  $("trNs").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-n]"); if (!b) return;
+    trN = +b.dataset.n; if (trK >= trN) trK = Math.max(1, trN - 2);
+    trDraw();
+  });
+  $("trKs").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-k]"); if (!b) return;
+    trK = +b.dataset.k; trDraw();
+    const nb = $("trKs").querySelector('[data-k="' + trK + '"]'); if (nb) nb.focus();
+  });
+  trDraw();
+
+  /* ---------- 08 DP 填表 ---------- */
+  const DP_CODE = [
+    "n = len(prices)",
+    "lo = [0] * n",
+    "dp = [0] * n",
+    "lo[0] = prices[0]",
+    "for i in range(1, n):",
+    "    dp[i] = max(dp[i - 1], prices[i] - lo[i - 1])",
+    "    lo[i] = min(lo[i - 1], prices[i])",
+    "return dp[n - 1]"
+  ];
+  renderCode($("dpCode"), DP_CODE);
+  function dpBuild(a) {
+    const n = a.length, F = [];
+    let lo = Array(n).fill(undefined), dp = Array(n).fill(undefined), sell = Array(n).fill(undefined);
+    const snap = (o) => F.push(Object.assign({ lo: lo.slice(), dp: dp.slice(), sell: sell.slice(), used: [], write: [], cur: null }, o));
+    snap({ line: 0, hl: "hl0", msg: "n = len(prices) = " + n + "。表格每一行是一天，从上往下填。" });
+    lo = lo.map(() => "ph");
+    snap({ line: 1, hl: "hl0", msg: "<code>[0] * n</code> 生成 " + n + " 个 0 组成的列表：先给 lo 占好 " + n + " 个格子，后面逐格填上真正的值。灰色 0 表示还没填。" });
+    dp = dp.map(() => "ph");
+    snap({ line: 2, hl: "hl0", msg: "dp 也先占好 " + n + " 个格子。" });
+    lo[0] = a[0]; dp[0] = 0; sell[0] = "—";
+    snap({ line: 3, hl: "hl5", cur: 0, write: [["lo", 0], ["dp", 0]], msg: "初始值：lo[0] = prices[0] = " + a[0] + "，只有一天，最低价就是它。dp[0] 本来就是 0，也正好是初始值：只有一天，没法卖，利润 0。" });
+    for (let i = 1; i < n; i++) {
+      snap({ line: 4, hl: "hl0", cur: i, msg: "i = " + i + "：填第 " + i + " 天这一行。它只会用到上一行（第 " + (i - 1) + " 天）。" });
+      sell[i] = a[i] - lo[i - 1];
+      snap({ line: 5, hl: "hl4", cur: i, used: [["p", i], ["lo", i - 1]], write: [["sell", i]], msg: "先算 max 的第二项。假如第 " + i + " 天卖：买入日在它之前，选最便宜的 lo[" + (i - 1) + "] = " + lo[i - 1] +
+        "，赚 prices[" + i + "] − lo[" + (i - 1) + "] = " + a[i] + " − " + lo[i - 1] + " = " + sell[i] + "。" + (sell[i] < 0 ? '<span class="bad">是负数，这天卖会亏。</span>' : "") });
+      const prev = dp[i - 1];
+      dp[i] = Math.max(prev, sell[i]);
+      snap({ line: 5, hl: "hl4", cur: i, used: [["dp", i - 1], ["sell", i]], write: [["dp", i]], msg: "dp[" + i + "] = max(dp[" + (i - 1) + "], " + sell[i] + ") = max(" + prev + ", " + sell[i] + ") = " + dp[i] + "。" +
+        (sell[i] > prev ? '<span class="ans">今天卖更好，刷新纪录。</span>' : "今天卖不比之前好，沿用 dp[" + (i - 1) + "]：第 " + i + " 天不卖。") });
+      const pl = lo[i - 1];
+      lo[i] = Math.min(pl, a[i]);
+      snap({ line: 6, hl: "hl5", cur: i, used: [["lo", i - 1], ["p", i]], write: [["lo", i]], msg: "lo[" + i + "] = min(lo[" + (i - 1) + "], prices[" + i + "]) = min(" + pl + ", " + a[i] + ") = " + lo[i] + "。" +
+        (a[i] < pl ? "今天更便宜，刷新最低价，后面的日子从今天买更划算。" : "最低价不变。") });
+    }
+    snap({ line: 7, hl: "hl4", cur: n - 1, write: [["dp", n - 1]], msg: "<code>return dp[n - 1]</code> = " + dp[n - 1] + "。" +
+      (dp[n - 1] > 0 ? "用上全部 " + n + " 天，最多赚 " + dp[n - 1] + "。每一格只算了一次，O(n)。" : "价格一路没涨过，不交易，利润 0。") });
+    return F;
+  }
+  let dpA = [];
+  const dpP = makePlayer("dp", (f) => {
+    const isIn = (list, col, i) => list.some(([c, k]) => c === col && k === i);
+    const cell = (col, i, v) => {
+      let cls = v === "ph" ? "ph" : "";
+      if (isIn(f.write, col, i)) cls = "write"; else if (isIn(f.used, col, i)) cls = "used";
+      const txt = v === undefined ? "" : v === "ph" ? "0" : v;
+      return "<td" + (cls ? ' class="' + cls + '"' : "") + ">" + txt + "</td>";
+    };
+    $("dpBody").innerHTML = dpA.map((p, i) => '<tr class="' + (i === f.cur ? "cur" : "") + '"><td>' + i + "</td>" +
+      cell("p", i, p) + cell("lo", i, f.lo[i]) + cell("sell", i, f.sell[i]) + cell("dp", i, f.dp[i]) + "</tr>").join("");
+    markLine($("dpCode"), f.line, f.hl);
+    $("dpMsg").innerHTML = f.msg;
+  });
+  function dpLoad() {
+    const r = parsePrices($("dpInput").value, 1, 10);
+    if (showErr("dpErr", r.err)) return;
+    dpA = r.arr;
+    dpP.load(dpBuild(dpA));
+  }
+  $("dpInput").addEventListener("input", dpLoad);
+  presets($("dpPresets"), ["[10,1,5,6,7,1]", "[7,1,5,3,6,4]", "[10,8,7,5,2]", "[3,5,1,4]", "随机"],
+    (p) => p, (p) => { $("dpInput").value = p === "随机" ? compact(randPrices().slice(0, 8)) : p; dpLoad(); });
+  dpLoad();
+
+  /* ---------- 09 两种写法对照、hold / free ---------- */
+  (function () {
+    const a = EX, n = a.length;
+    // 双指针取比较之前的 l，DP 取更新之前的 minBuy；maxP 取这一轮做完之后的值
+    let l = 0, mp = 0, minBuy = a[0], rows = "";
+    for (let r = 1; r < n; r++) {
+      const lb = l, mb = minBuy;
+      if (a[l] < a[r]) mp = Math.max(mp, a[r] - a[l]); else l = r;
+      minBuy = Math.min(minBuy, a[r]);
+      rows += "<tr><td>" + r + "</td><td>" + a[r] + "</td><td>" + lb + '</td><td class="hi">' + a[lb] + '</td><td class="hi">' + mb + "</td><td>" + mp + "</td></tr>";
+    }
+    $("eqBody").innerHTML = rows;
+
+    let hold = -a[0], free = 0, lo = a[0], dp = 0;
+    const row = (i) => "<tr><td>" + i + "</td><td>" + a[i] + "</td><td>" + sg(hold) + "</td><td>" + free + "</td><td>" + sg(-lo) + "</td><td>" + dp + "</td></tr>";
+    let hf = row(0);
+    for (let i = 1; i < n; i++) {
+      const nh = Math.max(hold, -a[i]), nf = Math.max(free, hold + a[i]);
+      dp = Math.max(dp, a[i] - lo); lo = Math.min(lo, a[i]);
+      hold = nh; free = nf;
+      hf += row(i);
+    }
+    $("hfBody").innerHTML = hf;
+  })();
+
+  /* ---------- 10 语言切换 ---------- */
+  document.querySelectorAll('.tabs [role="tab"]').forEach((t) => t.addEventListener("click", () => {
+    document.querySelectorAll('.tabs [role="tab"]').forEach((x) => x.setAttribute("aria-selected", x === t ? "true" : "false"));
+    ["py", "java", "cpp"].forEach((l) => { $("code-" + l).hidden = l !== t.dataset.lang; });
+  }));
+
+  /* ---------- 11 自测 ---------- */
+  const QUIZ = [
+    { q: "prices = [2, 4, 1]，最大利润是？", o: ["2", "3", "0", "1"], a: 0,
+      e: "第 0 天以 2 买、第 1 天以 4 卖，赚 2。最高 4 减最低 1 得 3，但 1 在 4 后面，不能先卖后买。" },
+    { q: "暴力解内层写 for j in range(i + 1, len(prices))，从 i + 1 开始是为了？", o: ["保证卖出日在买入日之后", "让循环跑得更快", "避免下标越界", "跳过第 0 天"], a: 0,
+      e: "j > i 就是“先买后卖”。从 0 开始等于允许先卖后买，结果和最高减最低一样错。" },
+    { q: "卖出日 j 固定了，最好的买入日是？", o: ["j 之前价格最低的那天", "整个数组价格最低的那天", "j 的前一天", "第 0 天"], a: 0,
+      e: "这一列的利润都是 prices[j] − prices[i]，prices[j] 固定，减数越小越好；而且买入日必须在 j 之前。" },
+    { q: "双指针跑 [7, 1, 5, 3, 6, 4]，l = 0，r = 1 时会？", o: ["l = 1，因为 1 不比 7 贵", "maxP 变成 6", "l 不动，r 往右走", "循环结束"], a: 0,
+      e: "prices[0] = 7 < prices[1] = 1 不成立，走 else：第 1 天更便宜，以后改在第 1 天买。" },
+    { q: "为什么可以直接 l = r，跳过中间那几天？", o: ["中间每天的价格都 ≥ prices[l] ≥ prices[r]，以后从 r 买至少一样好", "中间那几天已经卖过了", "题目规定只能看相邻两天", "为了让代码短一点"], a: 0,
+      e: "中间那些天要是比 prices[l] 便宜，l 早就跳过去了。现在 r 比 l 还便宜，它们更不可能是更好的买入日。" },
+    { q: "双指针每轮比较之前，prices[l] 一定是？", o: ["第 0 天到第 r − 1 天里的最低价", "整个数组的最低价", "prices[r − 1]", "到目前为止的最大利润"], a: 0,
+      e: "这就是 l 的含义：r 之前最便宜的那天。DP 写法里的 minBuy 也是这个数。" },
+    { q: "把 l = r 改成 l += 1，[3, 5, 1, 4] 返回？", o: ["2", "3", "0", "死循环"], a: 0,
+      e: "r 走到第 2 天（价格 1）时 l 只挪到第 1 天（价格 5），没指到最低价 1；第 3 天卖时用 5 当买入价，赚不到钱。最后只有第 0 天买、第 1 天卖的 2。" },
+    { q: "爬楼梯的递归 f(n) = f(n − 1) + f(n − 2) 为什么慢？", o: ["同一个 f(k) 被反复从头算了很多次", "递归本身就比循环慢 100 倍", "加法太多了", "Python 不支持递归"], a: 0,
+      e: "f(6) 里 f(3) 被算了 3 次，n = 40 时一共调用 2 亿多次。把算过的记下来，每个只算一次，就是 DP。" },
+    { q: "DP 四步的第一步是？", o: ["定义状态：说清楚 dp[i] 代表什么", "写出 for 循环", "找初始值", "压缩成两个变量"], a: 0,
+      e: "状态定义清楚了，转移通常就是把“最后一步”的几种可能列出来。" },
+    { q: "本题 dp[i] = max(dp[i − 1], prices[i] − lo[i − 1]) 里，dp[i − 1] 代表哪种情况？", o: ["第 i 天不卖", "第 i 天卖", "第 i 天买", "第 i − 1 天卖"], a: 0,
+      e: "第 i 天不卖，交易只能在前面的日子里完成，最多赚 dp[i − 1]。第二项是第 i 天卖。" },
+    { q: "一遍扫描写法把 minBuy 初始化成 0，[10, 1, 5, 6, 7, 1] 返回？", o: ["10", "6", "9", "0"], a: 0,
+      e: "价格都 ≥ 0，min(0, 任何价格) 还是 0，最后返回的是最高价 10 − 0。要用 prices[0] 或 float(\"inf\")。" },
+    { q: "一遍扫描（两个变量）的时间和额外空间是？", o: ["O(n) 时间，O(1) 空间", "O(n) 时间，O(n) 空间", "O(n²) 时间，O(1) 空间", "O(log n) 时间，O(1) 空间"], a: 0,
+      e: "每天看一次，只留 minBuy 和 maxP 两个变量。两张表的 DP 才是 O(n) 空间。" }
+  ];
+  const answered = {};
+  $("quizBox").innerHTML = QUIZ.map((it, qi) =>
+    '<div class="q"><div class="q-text">' + (qi + 1) + ". " + esc(it.q) + '</div><div class="opts">' +
+    it.o.map((o, oi) => ({ o, oi, r: (qi * 7 + oi * 5) % 4 })).sort((x, y) => x.r - y.r)
+      .map(({ o, oi }) => '<button type="button" class="opt" data-q="' + qi + '" data-o="' + oi + '">' + esc(o) + "</button>").join("") +
+    '</div><div class="explain" id="ex' + qi + '" hidden></div></div>').join("");
+  function score() {
+    const keys = Object.keys(answered), right = keys.filter((k) => answered[k]).length;
+    $("quizScore").textContent = keys.length ? "已作答 " + keys.length + " / " + QUIZ.length + "，答对 " + right + " 题" : "";
+  }
+  $("quizBox").addEventListener("click", (e) => {
+    const b = e.target.closest(".opt"); if (!b) return;
+    const qi = +b.dataset.q, oi = +b.dataset.o, it = QUIZ[qi], box = b.parentElement;
+    box.querySelectorAll(".opt").forEach((x) => x.classList.remove("right", "wrong"));
+    const ok = oi === it.a;
+    b.classList.add(ok ? "right" : "wrong");
+    if (!ok) box.querySelector('[data-o="' + it.a + '"]').classList.add("right");
+    if (!(qi in answered)) answered[qi] = ok;
+    const ex = $("ex" + qi); ex.hidden = false;
+    ex.textContent = (ok ? "答对了。" : "再想想。") + it.e;
+    score();
+  });
+
+  /* ---------- 掌握清单（仅保存在本浏览器） ---------- */
+  document.querySelectorAll("#checklist input").forEach((cb) => {
+    try { cb.checked = localStorage.getItem("stock1-" + cb.id) === "1"; } catch (e) {}
+    cb.addEventListener("change", () => { try { localStorage.setItem("stock1-" + cb.id, cb.checked ? "1" : "0"); } catch (e) {} });
+  });
+})();
+</script>
+</body>
+</html>
