@@ -1,0 +1,1150 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>最长重复字符替换</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* 版式：单栏教材，一章一个前置知识；左端 l 琥珀色，右端 r 蓝色（窗口下面的蓝色横条），保留的字母紫色，要换掉的字母红色虚线，合法/答案绿色，还没走到的字母变淡，贯穿全页 */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --ink: #17202b;
+  --muted: #586372;
+  --line: #dce1e7;
+  --edge: #b5bfcb;
+  --pre: #b86e0a;
+  --pre-soft: #fcefd8;
+  --suf: #1d6aa3;
+  --suf-soft: #e0edf8;
+  --fix: #7445b8;
+  --fix-soft: #efe7fa;
+  --ans: #2b7a4b;
+  --ans-soft: #e1f2e7;
+  --bad: #b3372f;
+  --bad-soft: #fbe5e3;
+  --bar: #5b6676;
+  --code-bg: #eef1f5;
+  --font-display: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151b; --surface: #19202a; --ink: #e5e9ef; --muted: #9ba6b4; --line: #2b3441; --edge: #4b5666;
+    --pre: #f0a845; --pre-soft: #3a2b14; --suf: #6cb2e8; --suf-soft: #142b3e;
+    --fix: #b893f2; --fix-soft: #2a2140;
+    --ans: #5fcb8c; --ans-soft: #153223; --bad: #f08379; --bad-soft: #3d1c1a;
+    --bar: #7d899b; --code-bg: #141a22;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151b; --surface: #19202a; --ink: #e5e9ef; --muted: #9ba6b4; --line: #2b3441; --edge: #4b5666;
+  --pre: #f0a845; --pre-soft: #3a2b14; --suf: #6cb2e8; --suf-soft: #142b3e;
+  --fix: #b893f2; --fix-soft: #2a2140;
+  --ans: #5fcb8c; --ans-soft: #153223; --bad: #f08379; --bad-soft: #3d1c1a;
+  --bar: #7d899b; --code-bg: #141a22;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.75;
+  font-variant-ligatures: none; /* 等宽字体的连字会把 <= 显示成 ≤，初学者容易抄错 */
+}
+.wrap {
+  max-width: 760px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 80px;
+  display: flex; flex-direction: column; gap: 56px;
+}
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.3; margin: 0; }
+h1 { font-size: clamp(28px, 6vw, 42px); font-weight: 800; }
+h2 { font-size: clamp(22px, 4.2vw, 28px); font-weight: 800; }
+h3 { font-size: 18px; font-weight: 600; }
+p { margin: 0; }
+section { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lead { font-size: 18px; color: var(--muted); }
+code, .mono { font-family: var(--font-mono); font-size: .92em; }
+:not(pre) > code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; }
+.pre { color: var(--pre); font-weight: 700; }
+.suf { color: var(--suf); font-weight: 700; }
+.fix { color: var(--fix); font-weight: 700; }
+.ans { color: var(--ans); font-weight: 700; }
+.bad { color: var(--bad); font-weight: 700; }
+a { color: var(--suf); }
+
+/* 题目卡 */
+.problem { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 99px; background: var(--ans-soft); color: var(--ans); }
+.example { font-family: var(--font-mono); font-size: 14px; background: var(--code-bg); border-radius: 6px; padding: 10px 12px; overflow-x: auto; white-space: pre; }
+
+/* 目录 */
+.toc { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; padding: 0; margin: 0; list-style: none; counter-reset: toc; }
+.toc li { counter-increment: toc; }
+.toc a { display: flex; gap: 10px; align-items: baseline; text-decoration: none; color: var(--ink); padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 15px; }
+.toc a::before { content: counter(toc, decimal-leading-zero); font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.toc a:hover, .toc a:focus-visible { border-color: var(--suf); }
+.toc-part { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+/* 章节编号 */
+.chap { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.chap .num { font-family: var(--font-mono); font-size: 14px; color: var(--muted); }
+
+/* 提示块 */
+.note { border-left: 3px solid var(--suf); padding: 4px 0 4px 14px; }
+.note.warn { border-color: var(--pre); }
+.note.ok { border-color: var(--ans); }
+.note.no { border-color: var(--bad); }
+.formula { font-family: var(--font-mono); font-size: 15px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; overflow-x: auto; white-space: pre; }
+
+/* 字母条：一格一个字母，下面是下标和 l / r */
+.strip-wrap { overflow-x: auto; padding: 2px 0 4px; position: relative; }
+.strip { display: flex; width: max-content; margin: 0 auto; }
+.tile { flex: none; width: 42px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 0 2px; border: 0; background: none; color: inherit; font: inherit; border-radius: 6px; transition: opacity .2s; }
+button.tile { cursor: pointer; padding: 0 2px; }
+button.tile:hover .box { border-color: var(--muted); }
+.tile .to { height: 16px; line-height: 16px; font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--fix); white-space: nowrap; }
+.tile .box { width: 38px; height: 40px; display: grid; place-items: center; font-family: var(--font-mono); font-size: 18px; font-weight: 600; border: 1.5px solid var(--line); border-radius: 6px; background: var(--surface); transition: background .2s, border-color .2s; }
+.tile.keep .box { background: var(--fix-soft); color: var(--fix); border-color: var(--fix); }
+.tile.swap .box { background: var(--bad-soft); color: var(--bad); border: 1.5px dashed var(--bad); }
+.tile .wl { height: 4px; width: calc(100% + 4px); margin: 2px -2px 0; background: transparent; }
+.tile.win .wl { background: var(--suf); }
+.tile.win.first .wl { border-radius: 2px 0 0 2px; margin-left: 2px; width: 100%; }
+.tile.win.last .wl { border-radius: 0 2px 2px 0; margin-right: 2px; width: 100%; }
+.tile.win.first.last .wl { width: calc(100% - 4px); border-radius: 2px; }
+.tile .ix { font-family: var(--font-mono); font-size: 11px; color: var(--muted); line-height: 1.3; }
+.tile .ptr { height: 18px; line-height: 18px; font-family: var(--font-mono); font-size: 13px; font-weight: 700; white-space: nowrap; }
+.tile .ptr .pl { color: var(--pre); }
+.tile .ptr .pr { color: var(--suf); }
+.tile.faded { opacity: .3; }
+button.tile:focus-visible { outline: 2px solid var(--suf); outline-offset: 1px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.legend i.keep { background: var(--fix-soft); border: 1.5px solid var(--fix); width: 12px; height: 12px; }
+.legend i.swap { background: var(--bad-soft); border: 1.5px dashed var(--bad); width: 12px; height: 12px; }
+.legend i.wl { background: var(--suf); width: 16px; height: 4px; vertical-align: 2px; }
+
+/* 计数条 */
+.cnt { display: flex; flex-direction: column; gap: 4px; font-family: var(--font-mono); font-size: 14px; }
+.cnt-cap { font-family: var(--font-body); font-size: 13px; color: var(--muted); }
+.cnt-row { display: grid; grid-template-columns: 16px minmax(0, 1fr) 26px auto; align-items: center; gap: 8px; }
+.cnt-row .track { display: block; height: 14px; min-width: 0; }
+.cnt-row .cb { display: block; height: 14px; max-width: 100%; border-radius: 3px; background: var(--bar); transition: width .2s; }
+.cnt-row.max { color: var(--fix); font-weight: 700; }
+.cnt-row.max .cb { background: var(--fix); }
+.cnt-row.zero { color: var(--muted); }
+.cnt-row .diff { font-size: 12px; color: var(--bad); font-weight: 700; white-space: nowrap; }
+
+/* 表格 */
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 13px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+td code { white-space: nowrap; }
+tr:last-child td, tr:last-child th { border-bottom: 0; }
+.num-tbl td, .num-tbl th { text-align: center; font-variant-numeric: tabular-nums; }
+.num-tbl td { font-family: var(--font-mono); white-space: nowrap; }
+.num-tbl td.hi { background: var(--fix-soft); color: var(--fix); font-weight: 700; }
+.num-tbl td.no { background: var(--bad-soft); color: var(--bad); font-weight: 700; }
+.num-tbl td.ok { color: var(--ans); font-weight: 700; }
+.num-tbl tr.on td { background: var(--ans-soft); }
+
+/* 暴力解的子串表 */
+.grid-wrap { overflow-x: auto; }
+table.grid { border-collapse: separate; border-spacing: 3px; width: auto; margin: 0 auto; }
+.grid th, .grid td { padding: 0; border: 0; text-align: center; vertical-align: middle; }
+.grid th { font-family: var(--font-mono); font-size: 11px; color: var(--muted); font-weight: 500; padding: 2px 6px; line-height: 1.35; }
+.grid th b { display: block; font-size: 13px; color: var(--ink); font-weight: 600; }
+.grid th.on-i b, .grid th.on-i { color: var(--pre); }
+.grid th.on-j b, .grid th.on-j { color: var(--suf); }
+.grid .corner { font-family: var(--font-body); font-size: 11px; text-align: left; }
+.grid td.na { color: var(--edge); font-family: var(--font-mono); font-size: 13px; min-width: 38px; }
+.cell { display: inline-block; font-family: var(--font-mono); font-size: 13px; min-width: 38px; padding: 5px 4px; line-height: 1.4; border-radius: 4px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+button.cell { cursor: pointer; }
+.cell.ok { background: var(--ans-soft); color: var(--ans); border-color: var(--ans-soft); }
+.cell.best { border: 2px solid var(--ans); font-weight: 700; padding: 4px 3px; }
+.cell.front { outline: 2.5px solid var(--fix); outline-offset: 1px; color: var(--fix); font-weight: 700; }
+.cell.sel { outline: 2px solid var(--suf); outline-offset: 1px; }
+
+/* 交互组件外壳 */
+.lab { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.lab-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button {
+  font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+}
+button:hover { border-color: var(--muted); }
+button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button.mono { font-family: var(--font-mono); }
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--suf); outline-offset: 2px; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+input[type=text] {
+  font-family: var(--font-mono); font-size: 15px; padding: 6px 10px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink); min-width: 0; width: 100%;
+  font-variant-ligatures: none;
+}
+.inrow { display: grid; grid-template-columns: minmax(0, 1fr) 88px; gap: 10px; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-size: 14px; font-weight: 700; }
+.err { color: var(--bad); font-size: 14px; }
+.modes { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.modes legend { font-size: 14px; font-weight: 700; margin-bottom: 6px; padding: 0; }
+.modes label { display: inline-flex; flex-wrap: wrap; max-width: 100%; align-items: center; gap: 6px; font-size: 14px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 99px; cursor: pointer; background: var(--bg); }
+.modes label:has(input:checked) { border-color: var(--ink); background: var(--surface); font-weight: 700; }
+.modes label:has(input:focus-visible) { outline: 2px solid var(--suf); outline-offset: 2px; }
+.modes input { accent-color: var(--fix); margin: 0; }
+
+/* 代码块 */
+pre.code { margin: 0; background: var(--code-bg); border-radius: 8px; padding: 12px 0; overflow-x: auto; font-family: var(--font-mono); font-size: 14px; line-height: 1.7; }
+pre.code .ln { display: block; padding: 0 14px; border-left: 3px solid transparent; white-space: pre; }
+pre.code .ln.hl0 { background: var(--line); border-left-color: var(--ink); }
+pre.code .ln.hl { background: var(--pre-soft); border-left-color: var(--pre); }
+pre.code .ln.hl2 { background: var(--suf-soft); border-left-color: var(--suf); }
+pre.code .ln.hl3 { background: var(--bad-soft); border-left-color: var(--bad); }
+pre.code .ln.hl4 { background: var(--ans-soft); border-left-color: var(--ans); }
+pre.code .ln.hl5 { background: var(--fix-soft); border-left-color: var(--fix); }
+pre.code .ln.mut .c { color: var(--bad); font-style: normal; font-weight: 600; }
+.k { color: var(--suf); font-weight: 600; }
+.c { color: var(--muted); font-style: italic; }
+.n { color: var(--pre); }
+.code-cap { font-size: 14px; color: var(--muted); }
+
+.msg { min-height: 3.5em; padding: 10px 14px; border-radius: 8px; background: var(--bg); font-size: 15px; }
+.progress { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+.pill { display: inline-block; font-family: var(--font-mono); font-size: 14px; padding: 2px 12px; border-radius: 99px; border: 1.5px solid var(--line); white-space: nowrap; }
+.pill.t { border-color: var(--ans); color: var(--ans); background: var(--ans-soft); }
+.pill.f { border-color: var(--bad); color: var(--bad); background: var(--bad-soft); }
+
+/* 单步执行 */
+.vars { display: flex; gap: 8px; flex-wrap: wrap; }
+.var { font-family: var(--font-mono); padding: 3px 12px; border-radius: 99px; font-size: 14px; border: 1.5px solid var(--line); white-space: pre; }
+.var.p { border-color: var(--pre); color: var(--pre); }
+.var.s { border-color: var(--suf); color: var(--suf); }
+.var.f { border-color: var(--fix); color: var(--fix); }
+.var.a { border-color: var(--ans); color: var(--ans); }
+.var.t { border-color: var(--ans); color: var(--ans); background: var(--ans-soft); }
+.var.x { border-color: var(--bad); color: var(--bad); background: var(--bad-soft); }
+.stepper-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+@media (min-width: 720px) { .stepper-grid { grid-template-columns: minmax(0, .85fr) minmax(0, 1.5fr); align-items: start; } }
+.viz { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+/* 测验 */
+.quiz { display: flex; flex-direction: column; gap: 18px; }
+.q { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.q-text { font-weight: 500; }
+.opts { display: flex; flex-direction: column; gap: 6px; }
+.opt { text-align: left; background: var(--bg); }
+.opt.right { background: var(--ans-soft); border-color: var(--ans); }
+.opt.wrong { background: var(--bad-soft); border-color: var(--bad); }
+.explain { font-size: 14px; color: var(--muted); }
+
+/* 清单 */
+.checklist { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.checklist label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.checklist input { margin-top: 6px; accent-color: var(--ans); width: 16px; height: 16px; flex: none; }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.code-group { display: flex; flex-direction: column; gap: 10px; }
+ul.plain, ol.plain { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
+footer { font-size: 13px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:14px">
+  <span class="eyebrow">NeetCode · Sliding Window · Medium</span>
+  <h1>最长重复字符替换</h1>
+  <p class="lead">Longest Repeating Character Replacement。先把题目翻译成一句话：一段子串里，留下出现最多的那个字母，其余的都换掉，换的个数不超过 k，这段就行。然后用暴力解把所有子串摆出来，从表格里看出一条规律，由它引出滑动窗口：r 往右扩，窗口不合法了 l 就往右收。最后讲 NeetCode 最优解里最反直觉的一步：记最多次数的 maxf 只增不减，为什么答案还是对的。</p>
+</header>
+
+<section class="problem" aria-label="题目">
+  <div><span class="tag">题目</span></div>
+  <p>给你一个只包含大写英文字母的字符串 <code>s</code> 和一个整数 <code>k</code>。你最多可以选 <code>k</code> 个字符，把每个都换成任意别的大写字母。</p>
+  <p>做完<strong>至多 k 次</strong>替换后，返回只包含<strong>一种字母</strong>的最长子串的长度。</p>
+  <div class="example">输入: s = "XYYX", k = 2
+输出: 4
+解释: 把两个 X 换成 Y，或者把两个 Y 换成 X，整串都一样
+
+输入: s = "AAABABB", k = 1
+输出: 5
+解释: 把下标 3 的 B 换成 A，得到 "AAAAABB"，前 5 个都是 A</div>
+  <p style="font-size:14px;color:var(--muted)">约束：1 ≤ s.length ≤ 100,000，0 ≤ k ≤ s.length，s 只包含大写英文字母。</p>
+</section>
+
+<nav aria-label="目录" style="display:flex;flex-direction:column;gap:10px">
+  <span class="eyebrow">学习路线</span>
+  <ol class="toc">
+    <li><a href="#need">一段要换几个字母</a></li>
+    <li><a href="#brute">暴力解：试遍每一段</a></li>
+    <li><a href="#mono">合法子串的规律</a></li>
+    <li><a href="#window">滑动窗口：r 扩，l 收</a></li>
+    <li><a href="#step">单步执行</a></li>
+    <li><a href="#maxf">maxf 为什么不用往回减</a></li>
+    <li><a href="#template">滑动窗口模板</a></li>
+    <li><a href="#code">完整代码与复杂度</a></li>
+    <li><a href="#quiz">自测</a></li>
+  </ol>
+  <p class="toc-part">01–03 把题目变成“这一段合不合法”的判断；04–05 是滑动窗口的标准写法；06 是 NeetCode 最优解的关键一步。</p>
+</nav>
+
+<!-- 01 -->
+<section id="need">
+  <div class="chap"><span class="num">01</span><h2>一段要换几个字母</h2></div>
+  <p><strong>子串</strong>是字符串里连续的一段。比如 <code>"AABABBA"</code> 里下标 1 到 4 的子串是 <code>"ABAB"</code>。跳着取的 <code>"AAA"</code>（下标 0、1、3）不算子串。</p>
+  <p>拿到一段子串，想把它变成同一个字母，最少要换几个？只需要决定<strong>留下哪个字母</strong>。留下 X，就要把所有不是 X 的都换掉，一共换 <code>长度 − X 的次数</code> 个。X 出现得越多，要换的越少，所以留下出现最多的那个：</p>
+  <div class="formula">最少要换几个 = 子串长度 − 子串里出现最多的字母的次数</div>
+  <p>这个数 ≤ k，这段就能变成同一个字母，下面把这样的子串叫<strong>合法</strong>的。题目问的就是：<strong>最长的合法子串有多长</strong>。</p>
+  <p>点一个字母当一端，再点一个当另一端，选出一段。下面的表列出留下每种字母各要换几个：</p>
+  <div class="lab">
+    <div id="ndIn"></div>
+    <p class="progress" id="ndHint"></p>
+    <div class="strip-wrap" id="ndStrip"></div>
+    <div class="legend"><span><i class="wl"></i>选中的一段</span><span><i class="keep"></i>留下的字母（出现最多）</span><span><i class="swap"></i>要换掉的字母</span></div>
+    <div class="tbl-wrap"><table class="num-tbl">
+      <thead><tr><th>留下哪个字母</th><th>这段里出现几次</th><th>要换几个</th></tr></thead>
+      <tbody id="ndBody"></tbody>
+    </table></div>
+    <div class="msg" id="ndMsg" aria-live="polite"></div>
+  </div>
+  <p class="note warn">题目没让你真的去换，也不用说换成哪个字母、换哪几个位置。判断一段合不合法，只要数两个数：长度、出现最多的次数，一减，再和 k 比。</p>
+</section>
+
+<!-- 02 -->
+<section id="brute">
+  <div class="chap"><span class="num">02</span><h2>暴力解：试遍每一段</h2></div>
+  <p>最直接的办法：枚举每一段子串，起点 i，终点 j（j ≥ i），算它要换几个，合法就用长度更新答案。</p>
+<pre class="code" data-lang="py">res = 0
+for i in range(len(s)):                 # i：子串起点
+    count = {}                          # 这一段里每个字母出现几次
+    maxf = 0                            # 这一段里出现最多的次数
+    for j in range(i, len(s)):          # j：子串终点，从 i 开始
+        count[s[j]] = 1 + count.get(s[j], 0)
+        maxf = max(maxf, count[s[j]])
+        if (j - i + 1) - maxf &lt;= k:     # 要换的个数不超过 k
+            res = max(res, j - i + 1)
+return res</pre>
+  <ul class="plain">
+    <li><code>count = {}</code> 是一个空<strong>字典</strong>，按 key 存值。这里 key 是字母，值是它出现了几次，比如 <code>{'A': 3, 'B': 1}</code>。</li>
+    <li><code>count.get(s[j], 0)</code>：字典里有这个字母就返回它的次数，没有就返回 0。所以 <code>count[s[j]] = 1 + count.get(s[j], 0)</code> 就是“这个字母的次数加一”，第一次出现时从 0 加到 1。</li>
+    <li>j 每往右一格，这一段就多一个字母 s[j]，只有 s[j] 的次数变了，所以 <code>maxf = max(maxf, count[s[j]])</code> 就能更新最多次数。这里只加不减，maxf 一定是对的。第 06 章还会见到这一行。</li>
+    <li>子串 [i, j] 两端都包含，长度是 <code>j - i + 1</code>，不是 j − i。</li>
+    <li>一共 n(n + 1) / 2 段，时间 <strong>O(n²)</strong>。n 最大 10 万，要试约 50 亿段，会超时。</li>
+  </ul>
+  <p>下面的表就是暴力解试过的全部子串：<strong>行</strong>是起点 i，<strong>列</strong>是终点 j，格子里是这一段最少要换几个。<span class="ans">绿色</span>格子 ≤ k，是合法的；粗框是其中最长的。点任意一格，上面画出这一段：</p>
+  <div class="lab">
+    <div id="bfIn"></div>
+    <div class="strip-wrap" id="bfStrip"></div>
+    <div class="grid-wrap"><table class="grid" id="bfGrid" aria-label="每一段子串最少要换几个字母"></table></div>
+    <div class="msg" id="bfMsg" aria-live="polite"></div>
+    <p id="bfSum" style="font-size:15px"></p>
+  </div>
+</section>
+
+<!-- 03 -->
+<section id="mono">
+  <div class="chap"><span class="num">03</span><h2>合法子串的规律</h2></div>
+  <p>从上一章的表格里能看出一条规律，滑动窗口就是靠它把 O(n²) 降到 O(n) 的。先看一个事实：</p>
+  <p class="note ok"><strong>合法的一段，去掉一头的一个字母，还是合法的。</strong></p>
+  <p>去掉一个字母，长度少 1；出现最多的次数要么不变，要么也少 1。两种情况下“长度 − 最多次数”都不会变大，所以要换的个数不会变多。反过来说：<strong>不合法的一段，往外加字母，还是不合法。</strong></p>
+  <p>按<strong>列</strong>看表格。第 r 列的右端固定是 r，从对角线往上走，起点 l 变小，段变长，要换的个数只增不减。所以每一列的绿色格子是从对角线往上<strong>连成一片</strong>的，到某一行为止，再往上全不合法。这一片最上面的那一格，起点叫做<strong>“最小合法 l”</strong>，它就是以 r 结尾的最长合法子串。</p>
+  <p>再看相邻两列。如果 [l, r + 1] 合法，去掉最右边的字母，[l, r] 也合法。所以第 r + 1 列的最小合法 l，不会比第 r 列的更小（更靠上）。<span class="fix">紫框</span>是每列的最小合法 l，连起来是一道往右下走的台阶：</p>
+  <div class="lab">
+    <div id="moIn"></div>
+    <div class="grid-wrap"><table class="grid" id="moGrid" aria-label="每列最小合法起点"></table></div>
+    <div class="legend"><span><i style="background:var(--ans-soft);border:1px solid var(--ans)"></i>合法：要换的 ≤ k</span><span><i style="background:transparent;border:2px solid var(--fix)"></i>每列最上面的绿格：最小合法 l</span></div>
+    <div class="tbl-wrap"><table class="num-tbl">
+      <thead><tr><th>右端 r</th><th>最小合法 l</th><th>以 r 结尾的最长合法子串</th><th>长度</th></tr></thead>
+      <tbody id="moBody"></tbody>
+    </table></div>
+    <p id="moSum" style="font-size:15px"></p>
+  </div>
+  <p class="note ok">r 往右走一格，最小合法 l 只会不动或往右走，<strong>永远不用往回退</strong>。所以不用每一列都从对角线重新往上找：沿着台阶，r 走一遍、l 也只往右走一遍，就能把每列的最长合法子串都找出来。答案是表格最后一列里最大的长度。</p>
+</section>
+
+<!-- 04 -->
+<section id="window">
+  <div class="chap"><span class="num">04</span><h2>滑动窗口：r 扩，l 收</h2></div>
+  <p>把 [l, r] 叫做一个<strong>窗口</strong>。r 每轮往右扩一格，把一个新字母放进窗口；窗口不合法了，就从左边把字母移出去，l 往右收，直到合法为止。这就是沿着上一章的台阶走。</p>
+<pre class="code" data-lang="py">count = {}                      # 窗口 [l, r] 里每个字母出现几次
+res = 0
+l = 0
+for r in range(len(s)):
+    count[s[r]] = 1 + count.get(s[r], 0)                # s[r] 进窗口
+    while (r - l + 1) - max(count.values()) &gt; k:     # 要换的超过 k 个
+        count[s[l]] -= 1                                # s[l] 出窗口
+        l += 1
+    res = max(res, r - l + 1)
+return res</pre>
+  <ul class="plain">
+    <li><code>for r in range(len(s))</code>：r 依次是 0、1、……、n − 1。<code>range(n)</code> 给出 0 到 n − 1，不含 n。</li>
+    <li><code>count.values()</code> 是字典里所有的次数，<code>max(count.values())</code> 取最大的，就是窗口里出现最多的字母的次数。所以 while 的条件就是第 01 章那个公式：<strong>窗口长度 − 最多次数 &gt; k</strong>，要换的太多。</li>
+    <li>收缩两步：<code>count[s[l]] -= 1</code>，最左边的字母离开窗口，次数减一；<code>l += 1</code>，左端往右一格。<code>x -= 1</code> 就是 <code>x = x - 1</code>。</li>
+    <li>while 结束时 [l, r] 合法，而且 l 是从上一轮的位置开始收的，第一个合法的位置就停，所以 [l, r] 正好是“以 r 结尾的最长合法子串”，也就是台阶上那一格。用它的长度 <code>r - l + 1</code> 更新 res。</li>
+    <li>字母的次数减到 0 之后还留在字典里，值是 0，不影响 max。</li>
+  </ul>
+  <p>也可以不用字典，用长度 26 的列表：<code>count = [0] * 26</code>，字母 c 存在 <code>count[ord(c) - ord('A')]</code>。<code>ord</code> 返回字母的编号，<code>'A'</code> 是 65，<code>'B'</code> 是 66，减去 <code>ord('A')</code> 就落在 0 到 25。Java、C++ 版本都是这么写的。</p>
+  <h3>为什么是 O(n)</h3>
+  <ul class="plain">
+    <li>r 从 0 走到 n − 1，一共 n 步。l 只往右走，最多也走 n 步，所以 while 里面的收缩<strong>加起来</strong>最多 n 次，不是每轮 n 次。</li>
+    <li>每次判断 while 条件要算一次 <code>max(count.values())</code>，最多看 26 个字母。所以总时间 O(26 · n)，也就是 O(n)。</li>
+  </ul>
+  <p class="note warn">这个 26 是常数，复杂度上不算。但每次都看一遍 26 个字母还是浪费，第 06 章会把它去掉。</p>
+</section>
+
+<!-- 05 -->
+<section id="step">
+  <div class="chap"><span class="num">05</span><h2>单步执行</h2></div>
+  <p>输入任意字符串，一步一步看窗口怎么滑。右边高亮当前执行的代码行，左下是代码里 count 记的次数。可以切换三种写法：写法二是第 06 章要讲的 NeetCode 最优解；第三种漏写了 <code>count[s[l]] -= 1</code>，题目的两个样例它都能过，用 <code>"AABABBA", k=1</code> 看它在哪一步出错。</p>
+  <div class="lab">
+    <div id="rpIn"></div>
+    <fieldset class="modes" id="rpModes"><legend>写法</legend>
+      <label><input type="radio" name="rpMode" value="re" checked>写法一：每次重算 <span class="mono">max(count.values())</span></label>
+      <label><input type="radio" name="rpMode" value="mf">写法二：<span class="mono">maxf</span> 只增不减</label>
+      <label><input type="radio" name="rpMode" value="nodec">漏写 <span class="mono">count[s[l]] -= 1</span></label>
+    </fieldset>
+    <div>
+      <div class="strip-wrap" id="rpStrip"></div>
+      <div class="legend"><span><i class="wl"></i>窗口 [l, r]</span><span><i class="keep"></i>留下的字母</span><span><i class="swap"></i>要换掉的字母</span><span>淡色：r 还没走到</span></div>
+    </div>
+    <div class="stepper-grid">
+      <div class="viz">
+        <div class="vars"><span class="var p" id="rpL"></span><span class="var s" id="rpR"></span><span class="var" id="rpLen"></span></div>
+        <div class="vars"><span class="var f" id="rpMf"></span><span class="var" id="rpTrue"></span></div>
+        <div class="vars"><span class="var" id="rpNeed"></span></div>
+        <div class="vars"><span class="var a" id="rpRes"></span><span id="rpOut" class="pill">运行中</span></div>
+        <div class="cnt" id="rpCnt"></div>
+      </div>
+      <pre class="code" id="rpCode"></pre>
+    </div>
+    <div class="msg" id="rpMsg" aria-live="polite"></div>
+    <div class="lab-head">
+      <div class="controls">
+        <button type="button" id="rpReset">重来</button>
+        <button type="button" id="rpPrev">上一步</button>
+        <button type="button" id="rpNext" class="primary">下一步</button>
+        <button type="button" id="rpPlay">自动播放</button>
+      </div>
+      <span class="progress" id="rpProg"></span>
+    </div>
+  </div>
+  <p style="font-size:14px;color:var(--muted)">写法一试试 <code>"AABA", k=0</code>：r 走到 B 时，while 一口气收了两格。写法二同一个输入，窗口一次最多收一格，长度从不变短。</p>
+</section>
+
+<!-- 06 -->
+<section id="maxf">
+  <div class="chap"><span class="num">06</span><h2>maxf 为什么不用往回减</h2></div>
+  <p>写法一每判断一次 while 条件，都要把 26 个字母看一遍找最大值。能不能像暴力解那样，用一个变量 <code>maxf</code> 记住“出现最多的次数”？</p>
+  <ul class="plain">
+    <li><strong>加字母时很容易</strong>：只有 s[r] 的次数变大了，<code>maxf = max(maxf, count[s[r]])</code> 就行。</li>
+    <li><strong>减字母时麻烦</strong>：s[l] 的次数减一以后，最多次数可能少 1，也可能不变（别的字母一样多），要重新找。</li>
+  </ul>
+  <p>NeetCode 的最优解干脆不管第二种情况：<strong>maxf 只增不减</strong>。</p>
+<pre class="code" data-lang="py">count = {}
+res = 0
+l = 0
+maxf = 0                        # 出现最多的次数，只增不减
+for r in range(len(s)):
+    count[s[r]] = 1 + count.get(s[r], 0)
+    maxf = max(maxf, count[s[r]])
+    while (r - l + 1) - maxf &gt; k:
+        count[s[l]] -= 1        # 次数照样减，但 maxf 不动
+        l += 1
+    res = max(res, r - l + 1)
+return res</pre>
+  <p>这样一来 maxf 经常比窗口里真实的最多次数大，代码算出的“要换几个”偏小，有时会放过一个其实不合法的窗口。可返回的答案还是对的。分三步看：</p>
+
+  <h3>1. 窗口从不变短</h3>
+  <p>每轮开始前，上一轮已经保证了 <code>len − maxf ≤ k</code>。r 右移一格：len 加 1，maxf 不变或加 1，所以 len − maxf 最多变成 k + 1。超了就收一格：len 减回原来的值，maxf 不动，又回到 ≤ k。</p>
+  <p class="note">所以写法二的 while <strong>最多跑一次</strong>，写成 if 也一样。窗口长度每轮要么加 1，要么不变，从不缩短，<strong>它一直等于 res</strong>。</p>
+
+  <h3>2. 答案不会偏小</h3>
+  <p>maxf 只会比真实的最多次数大，不会小：每个字母的次数变大时，maxf 都跟着更新过；之后次数只会减，maxf 不减。所以代码算出的要换个数 ≤ 真实要换的个数，<strong>真正合法的窗口，代码一定放行</strong>。</p>
+  <p>窗口想从长度 L 长到 L + 1 时，这一轮检查的正是“以 r 结尾、长度 L + 1”的那一段。只要它真的合法，窗口就一定能长上去。设最长的合法子串是 [a, b]，它的每一段前缀 [a, r] 都合法（合法的段去掉一头还合法）。r 从 a 走到 b 的每一轮，窗口要么已经不比 [a, r] 短，要么上一轮正好和 [a, r − 1] 一样长，这一轮检查的就是 [a, r]，它合法，于是长一格追上。r 走到 b 时，窗口长度至少是 b − a + 1。</p>
+
+  <h3>3. 答案不会偏大</h3>
+  <p>while 保证了窗口长度永远 ≤ maxf + k。maxf 是某一轮窗口里某个字母<strong>真实</strong>出现的次数：maxf 变大的那一轮，len 和 maxf 都加了 1，len − maxf 没变，while 不会执行，所以那一轮的窗口真的合法，里面有 maxf 个相同的字母，长度 ≤ maxf + k。把它往两边扩到长度 maxf + k（不超过 s 的长度），扩进来的字母都换掉，要换的个数还是 ≤ k。所以长度 maxf + k 的合法子串真实存在，res 不会超过真正的答案。</p>
+
+  <p class="note ok">一句话：<strong>答案要变长，必须出现比以前更多的相同字母</strong>，所以只需要盯住 maxf 什么时候变大。它该变小的时候，窗口反正不会缩短，不用管。去掉了每次 26 个字母的 max，时间是严格的 O(n)。</p>
+
+  <p>下表是两种写法每轮结束时的窗口（括号里是长度）。<span class="fix">紫色</span>表示 maxf 比窗口里真实的最多次数大，过时了；<span class="bad">红色</span>表示写法二这一轮的窗口其实不合法。注意红色那几轮，窗口长度都和上一轮一样，res 没有因为它变大：</p>
+  <div class="lab">
+    <div id="mxIn"></div>
+    <div class="tbl-wrap"><table class="num-tbl">
+      <thead><tr><th>r</th><th>s[r]</th><th>写法一的窗口</th><th>写法二的窗口</th><th>maxf</th><th>窗口里真实最多</th><th>res</th></tr></thead>
+      <tbody id="mxBody"></tbody>
+    </table></div>
+    <p id="mxSum" style="font-size:15px"></p>
+  </div>
+  <p class="note warn">写法二的窗口只代表“目前最长的长度”，不一定是一段合法的子串。题目只要长度，所以没关系；要是题目让你返回子串本身，就得用写法一，或者在 res 变大的那一轮把 [l, r] 记下来（那一轮的窗口一定合法）。</p>
+</section>
+
+<!-- 07 -->
+<section id="template">
+  <div class="chap"><span class="num">07</span><h2>滑动窗口模板</h2></div>
+  <p>“最长的、满足某个条件的连续子串”，几乎都是同一个骨架：</p>
+<pre class="code" data-lang="py">l = 0
+for r in range(len(s)):
+    把 s[r] 加进窗口                # 更新计数
+    while 窗口不合法:
+        把 s[l] 移出窗口            # 计数也要跟着减
+        l += 1
+    用 r - l + 1 更新答案</pre>
+  <p>不同的题只换两处：窗口里记什么，什么叫不合法。</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>题目</th><th>窗口里记什么</th><th>什么时候要收缩</th></tr>
+    <tr><td>Best Time to Buy and Sell Stock</td><td>l 指着最便宜的那天</td><td>r 那天比 l 还便宜：l 直接跳到 r</td></tr>
+    <tr><td>Longest Substring Without Repeating Characters</td><td>窗口里有哪些字母（集合）</td><td>s[r] 已经在窗口里，出现了重复</td></tr>
+    <tr><td><strong>本题</strong></td><td>每个字母的次数、maxf</td><td>长度 − 最多次数 &gt; k</td></tr>
+    <tr><td>Permutation in String</td><td>每个字母的次数</td><td>窗口长度固定，每轮都收一格</td></tr>
+  </table></div>
+  <h3>下次怎么想到</h3>
+  <ol class="plain">
+    <li>题目要找<strong>连续</strong>的一段（子串、子数组），而且问最长或最短。</li>
+    <li>判断一段合不合法，能在“加一个字母”“减一个字母”时顺手更新，不用整段重算。本题是计数。</li>
+    <li>合法的段去掉一头还合法（或者不合法的段加长还不合法）。有了这一条，l 就只需要往右走。</li>
+  </ol>
+  <p class="note ok">先写出暴力的双重循环，再问“固定右端 r，最好的左端 l 会不会随着 r 只往右走”。会，就是滑动窗口。</p>
+</section>
+
+<!-- 08 -->
+<section id="code">
+  <div class="chap"><span class="num">08</span><h2>完整代码与复杂度</h2></div>
+  <div class="tabs" role="tablist" aria-label="语言">
+    <button type="button" role="tab" aria-selected="true" data-lang="py">Python</button>
+    <button type="button" role="tab" aria-selected="false" data-lang="java">Java</button>
+    <button type="button" role="tab" aria-selected="false" data-lang="cpp">C++</button>
+  </div>
+  <div class="code-group" id="code-py">
+    <p class="code-cap">写法二：maxf 只增不减（NeetCode 最优解）</p>
+<pre class="code" data-lang="py">class Solution:
+    def characterReplacement(self, s: str, k: int) -&gt; int:
+        count = {}
+        res = 0
+        l = 0
+        maxf = 0
+        for r in range(len(s)):
+            count[s[r]] = 1 + count.get(s[r], 0)
+            maxf = max(maxf, count[s[r]])
+            while (r - l + 1) - maxf &gt; k:
+                count[s[l]] -= 1
+                l += 1
+            res = max(res, r - l + 1)
+        return res</pre>
+    <p class="code-cap">写法一：每次重算最多次数</p>
+<pre class="code" data-lang="py">class Solution:
+    def characterReplacement(self, s: str, k: int) -&gt; int:
+        count = {}
+        res = 0
+        l = 0
+        for r in range(len(s)):
+            count[s[r]] = 1 + count.get(s[r], 0)
+            while (r - l + 1) - max(count.values()) &gt; k:
+                count[s[l]] -= 1
+                l += 1
+            res = max(res, r - l + 1)
+        return res</pre>
+  </div>
+  <div class="code-group" id="code-java" hidden>
+    <p class="code-cap">写法二：maxf 只增不减（NeetCode 最优解）</p>
+<pre class="code" data-lang="java">class Solution {
+    public int characterReplacement(String s, int k) {
+        int[] count = new int[26];       // count[0] 是 'A' 的次数，以此类推
+        int l = 0, maxf = 0, res = 0;
+        for (int r = 0; r &lt; s.length(); r++) {
+            count[s.charAt(r) - 'A']++;
+            maxf = Math.max(maxf, count[s.charAt(r) - 'A']);
+            while ((r - l + 1) - maxf &gt; k) {
+                count[s.charAt(l) - 'A']--;
+                l++;
+            }
+            res = Math.max(res, r - l + 1);
+        }
+        return res;
+    }
+}</pre>
+    <p class="code-cap">写法一：每次重算最多次数</p>
+<pre class="code" data-lang="java">class Solution {
+    public int characterReplacement(String s, int k) {
+        int[] count = new int[26];
+        int l = 0, res = 0;
+        for (int r = 0; r &lt; s.length(); r++) {
+            count[s.charAt(r) - 'A']++;
+            while ((r - l + 1) - maxOf(count) &gt; k) {
+                count[s.charAt(l) - 'A']--;
+                l++;
+            }
+            res = Math.max(res, r - l + 1);
+        }
+        return res;
+    }
+
+    private int maxOf(int[] count) {
+        int m = 0;
+        for (int c : count) m = Math.max(m, c);
+        return m;
+    }
+}</pre>
+  </div>
+  <div class="code-group" id="code-cpp" hidden>
+    <p class="code-cap">写法二：maxf 只增不减（NeetCode 最优解）</p>
+<pre class="code" data-lang="cpp">class Solution {
+public:
+    int characterReplacement(string s, int k) {
+        vector&lt;int&gt; count(26, 0);        // count[0] 是 'A' 的次数，以此类推
+        int l = 0, maxf = 0, res = 0;
+        for (int r = 0; r &lt; (int)s.size(); r++) {
+            count[s[r] - 'A']++;
+            maxf = max(maxf, count[s[r] - 'A']);
+            while ((r - l + 1) - maxf &gt; k) {
+                count[s[l] - 'A']--;
+                l++;
+            }
+            res = max(res, r - l + 1);
+        }
+        return res;
+    }
+};</pre>
+    <p class="code-cap">写法一：每次重算最多次数</p>
+<pre class="code" data-lang="cpp">class Solution {
+public:
+    int characterReplacement(string s, int k) {
+        vector&lt;int&gt; count(26, 0);
+        int l = 0, res = 0;
+        for (int r = 0; r &lt; (int)s.size(); r++) {
+            count[s[r] - 'A']++;
+            while ((r - l + 1) - *max_element(count.begin(), count.end()) &gt; k) {
+                count[s[l] - 'A']--;
+                l++;
+            }
+            res = max(res, r - l + 1);
+        }
+        return res;
+    }
+};</pre>
+  </div>
+  <p style="font-size:14px;color:var(--muted)"><code>class Solution:</code> 和 <code>def characterReplacement(self, s: str, k: int) -&gt; int:</code> 是 NeetCode 给定的外壳。<code>str</code>、<code>int</code> 和 <code>-&gt; int</code> 是类型提示，表示参数和返回值的类型，不影响运行。Java 的 <code>s.charAt(r) - 'A'</code> 和 Python 的 <code>ord(s[r]) - ord('A')</code> 是一回事。</p>
+
+  <h3>复杂度</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>解法</th><th>时间</th><th>额外空间</th><th>说明</th></tr>
+    <tr><td>暴力：试遍每一段</td><td>O(n²)</td><td>O(1)</td><td>n(n + 1) / 2 段</td></tr>
+    <tr><td>写法一：重算最多次数</td><td>O(26 · n)</td><td>O(1)</td><td>l、r 各走一遍，每次判断看 26 个字母</td></tr>
+    <tr><td>写法二：maxf 只增不减</td><td class="ans">O(n)</td><td class="ans">O(1)</td><td>每轮 O(1)</td></tr>
+  </table></div>
+  <p style="font-size:14px;color:var(--muted)">额外空间是 O(1)：count 最多 26 个字母，不随 n 变大。</p>
+
+  <h3>最容易写错的四个地方</h3>
+  <ul class="plain">
+    <li><strong>收缩时漏写 <code>count[s[l]] -= 1</code></strong>：离开窗口的字母还被算在里面，最多次数偏大，窗口被放得太长。<code>"AABABBA", k=1</code> 返回 5，正确是 4。两个样例却都能过。</li>
+    <li><strong>用 <code>count[s[r]]</code> 代替最多次数</strong>：刚进来的字母不一定是最多的。<code>"AAB", k=1</code> 走到 B 时算成要换 3 − 1 = 2 个，把窗口收短了，返回 2，正确是 3（把 B 换成 A）。</li>
+    <li><strong>长度写成 <code>r - l</code></strong>：[l, r] 两端都包含，长度是 r − l + 1。</li>
+    <li><strong>用写法二的窗口当答案子串</strong>：maxf 过时的时候，窗口可能不合法，它只有长度是对的。</li>
+  </ul>
+</section>
+
+<!-- 09 -->
+<section id="quiz">
+  <div class="chap"><span class="num">09</span><h2>自测</h2></div>
+  <p>点选答案，立即判分。全部答对说明前置知识已经过关。</p>
+  <div class="quiz" id="quizBox"></div>
+  <p class="progress" id="quizScore"></p>
+
+  <h3 style="margin-top:12px">掌握清单</h3>
+  <ul class="checklist" id="checklist">
+    <li><label><input type="checkbox" id="ck1"><span>能说出一段能不能变成同一个字母，只看“长度 − 出现最多的次数 ≤ k”。</span></label></li>
+    <li><label><input type="checkbox" id="ck2"><span>能写出暴力解，说出它为什么是 O(n²)。</span></label></li>
+    <li><label><input type="checkbox" id="ck3"><span>能解释“合法的段去掉一头还合法”，以及为什么 l 永远不用往回退。</span></label></li>
+    <li><label><input type="checkbox" id="ck4"><span>能写出滑动窗口写法一，说清楚 while 里每一行在做什么。</span></label></li>
+    <li><label><input type="checkbox" id="ck5"><span>能说出写法二里 maxf 只增不减，答案为什么既不会偏小也不会偏大。</span></label></li>
+    <li><label><input type="checkbox" id="ck6"><span>知道漏写 <code>count[s[l]] -= 1</code> 时样例能过、<code>"AABABBA", k=1</code> 会错。</span></label></li>
+    <li><label><input type="checkbox" id="ck7"><span>能默写“r 扩、l 收、更新答案”的滑动窗口模板。</span></label></li>
+    <li><label><input type="checkbox" id="ck8"><span>不看本页，10 分钟内写出可以通过的代码。</span></label></li>
+  </ul>
+</section>
+
+<footer>同类题型：Longest Substring Without Repeating Characters 用的是第 07 章同一个模板，不合法的条件换成“出现重复字母”；Permutation in String 是长度固定的窗口加计数；Minimum Window Substring 求最短，窗口合法时才收缩。Best Time to Buy and Sell Stock 是同向双指针的入门题。</footer>
+</main>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  function showErr(id, msg) { $(id).textContent = msg || ""; $(id).hidden = !msg; return !!msg; }
+
+  /* ---------- 基础计算 ---------- */
+  const letters = (s) => [...new Set(s)].sort();
+  function counts(s, l, r) { const c = {}; for (let i = l; i <= r; i++) c[s[i]] = (c[s[i]] || 0) + 1; return c; }
+  const maxOf = (c) => Math.max(0, ...Object.values(c));
+  // 出现最多的字母；一样多时取字母表靠前的
+  function topLetter(c) { let b = null; Object.keys(c).sort().forEach((ch) => { if (b === null || c[ch] > c[b]) b = ch; }); return b; }
+  function needOf(s, l, r) { return (r - l + 1) - maxOf(counts(s, l, r)); }
+  // 暴力求真正的答案和一段最长的合法子串
+  function best(s, k) {
+    let res = 0, bi = 0, bj = 0;
+    for (let i = 0; i < s.length; i++) {
+      const c = {}; let mf = 0;
+      for (let j = i; j < s.length; j++) {
+        c[s[j]] = (c[s[j]] || 0) + 1; mf = Math.max(mf, c[s[j]]);
+        if (j - i + 1 - mf <= k && j - i + 1 > res) { res = j - i + 1; bi = i; bj = j; }
+      }
+    }
+    return { res, i: bi, j: bj };
+  }
+  // 每个右端 r 的最小合法 l
+  function minL(s, k) { const out = []; let l = 0; for (let r = 0; r < s.length; r++) { while (needOf(s, l, r) > k) l++; out.push(l); } return out; }
+
+  // 接受 AABABBA、"AABABBA"、小写也行；k 是 0 到 s.length 的整数
+  function parseSK(sText, kText, maxLen) {
+    const t = sText.trim().replace(/^["'“”‘’]+|["'“”‘’]+$/g, "").replace(/\s+/g, "").toUpperCase();
+    if (!t) return { err: "请输入字符串 s，例如 AABABBA" };
+    if (!/^[A-Z]+$/.test(t)) return { err: "s 只能包含英文字母 A 到 Z" };
+    if (t.length > maxLen) return { err: "演示里 s 最多 " + maxLen + " 个字母，方便看清" };
+    const kt = kText.trim();
+    if (!/^\d+$/.test(kt)) return { err: "k 要是一个不小于 0 的整数" };
+    const k = +kt;
+    if (k > t.length) return { err: "题目规定 0 ≤ k ≤ s.length，这里 s 只有 " + t.length + " 个字母" };
+    return { s: t, k };
+  }
+  function randSK() {
+    const n = 7 + Math.floor(Math.random() * 6), al = Math.random() < .5 ? "AB" : "ABC";
+    const s = Array.from({ length: n }, () => al[Math.floor(Math.random() * al.length)]).join("");
+    return [s, Math.floor(Math.random() * 3)];
+  }
+  function inputsHTML(p, s, k) {
+    return '<div class="inrow"><div class="field"><label for="' + p + 'S">s =</label>' +
+      '<input type="text" id="' + p + 'S" value="' + s + '" autocomplete="off" spellcheck="false" autocapitalize="characters" aria-describedby="' + p + 'Err"></div>' +
+      '<div class="field"><label for="' + p + 'K">k =</label>' +
+      '<input type="text" id="' + p + 'K" value="' + k + '" inputmode="numeric" autocomplete="off" aria-describedby="' + p + 'Err"></div></div>' +
+      '<div class="controls" id="' + p + 'Presets" style="margin-top:10px"></div><span class="err" id="' + p + 'Err" hidden></span>';
+  }
+  function presets(el, list, label, apply) {
+    el.innerHTML = list.map((p, k) => '<button type="button" class="mono" data-k="' + k + '">' + esc(label(p)) + "</button>").join("");
+    el.addEventListener("click", (e) => { const b = e.target.closest("[data-k]"); if (b) apply(list[+b.dataset.k]); });
+  }
+  // 输入框 + 预设按钮，s、k 合法时调用 load(s, k)
+  function wire(p, init, list, maxLen, load) {
+    $(p + "In").innerHTML = inputsHTML(p, init[0], init[1]);
+    const run = () => { const r = parseSK($(p + "S").value, $(p + "K").value, maxLen); if (showErr(p + "Err", r.err)) return; load(r.s, r.k); };
+    $(p + "S").addEventListener("input", run);
+    $(p + "K").addEventListener("input", run);
+    presets($(p + "Presets"), list, (x) => (x === "随机" ? "随机" : '"' + x[0] + '", k=' + x[1]), (x) => {
+      const v = x === "随机" ? randSK() : x; $(p + "S").value = v[0]; $(p + "K").value = String(v[1]); run();
+    });
+    run();
+  }
+
+  /* ---------- 语法高亮 ---------- */
+  const KW = /\b(class|def|for|in|range|if|elif|else|not|and|or|while|return|break|continue|len|max|min|self|None|True|False|str|int|public|private|new|String|string|vector|Math)\b|\b(\d+)\b/g;
+  function hlCode(text, lang) {
+    const marker = lang === "py" ? "#" : "//";
+    const pos = text.indexOf(marker);
+    const codePart = pos >= 0 ? text.slice(0, pos) : text;
+    const comPart = pos >= 0 ? text.slice(pos) : "";
+    const body = esc(codePart).replace(KW, (m, k, n) => k ? '<span class="k">' + k + "</span>" : '<span class="n">' + n + "</span>");
+    return body + (comPart ? '<span class="c">' + esc(comPart) + "</span>" : "");
+  }
+  document.querySelectorAll("pre.code[data-lang]").forEach((pre) => {
+    const lang = pre.dataset.lang;
+    pre.innerHTML = pre.textContent.split("\n").map((l) => '<span class="ln">' + (hlCode(l, lang) || " ") + "</span>").join("");
+  });
+  function renderCode(el, lines, mut) {
+    el.innerHTML = lines.map((l, k) => '<span class="ln' + (k === mut ? " mut" : "") + '" data-k="' + k + '">' + (hlCode(l, "py") || " ") + "</span>").join("");
+  }
+  function markLine(el, line, hl) {
+    const set = [].concat(line);
+    el.querySelectorAll(".ln").forEach((x) => {
+      x.classList.remove("hl0", "hl", "hl2", "hl3", "hl4", "hl5");
+      if (set.includes(+x.dataset.k)) x.classList.add(hl);
+    });
+  }
+
+  /* ---------- 字母条 ---------- */
+  // o.l / o.r：窗口（可以为 null）；o.ptrs：[[下标, 文字, 颜色类]]；o.fade(i)；o.click：字母可点
+  function stripHTML(s, o) {
+    o = o || {};
+    const n = s.length, has = o.l !== null && o.l !== undefined && o.r !== null && o.r !== undefined && o.r >= o.l;
+    const keep = has ? topLetter(counts(s, o.l, o.r)) : null;
+    const ptrAt = {};
+    (o.ptrs || []).forEach(([i, t, c]) => { if (i >= 0 && i < n) (ptrAt[i] = ptrAt[i] || []).push('<span class="' + c + '">' + t + "</span>"); });
+    const tag = o.click ? "button" : "div";
+    let h = '<div class="strip"' + (o.click ? ' role="group" aria-label="点字母选一段"' : ' role="img" aria-label="' + esc(o.label || 's = "' + s + '"') + '"') + ">";
+    for (let i = 0; i < n; i++) {
+      const inW = has && i >= o.l && i <= o.r;
+      let cls = "tile";
+      if (inW) cls += " win" + (s[i] === keep ? " keep" : " swap") + (i === o.l ? " first" : "") + (i === o.r ? " last" : "");
+      if (o.fade && o.fade(i)) cls += " faded";
+      h += "<" + tag + (o.click ? ' type="button" data-i="' + i + '" aria-label="第 ' + i + " 个字母 " + s[i] + '"' : "") + ' class="' + cls + '">' +
+        '<span class="to">' + (inW && s[i] !== keep ? "→" + keep : "") + "</span>" +
+        '<span class="box">' + s[i] + "</span>" +
+        '<span class="wl"></span><span class="ix">' + i + "</span>" +
+        '<span class="ptr">' + (ptrAt[i] ? ptrAt[i].join(" ") : "") + "</span></" + tag + ">";
+    }
+    return h + "</div>";
+  }
+  // 手机上字母条比框宽时横向滚动：窗口两端放得下就都露出来，放不下就只露出刚动的那个
+  function keepStrip(wrap, idxs, focus) {
+    const tiles = wrap.querySelectorAll(".tile"); if (!tiles.length) return;
+    const w = wrap.clientWidth;
+    if (wrap.scrollWidth <= w + 1) { wrap.scrollLeft = 0; return; }
+    const xs = idxs.filter((i) => i !== null && i !== undefined && tiles[i]);
+    if (!xs.length) return;
+    const L0 = (i) => tiles[i].offsetLeft, R0 = (i) => tiles[i].offsetLeft + tiles[i].offsetWidth;
+    let L = Math.min(...xs.map(L0)), R = Math.max(...xs.map(R0));
+    if (R - L + 8 > w) { const f = xs.includes(focus) ? focus : xs[xs.length - 1]; L = L0(f); R = R0(f); }
+    const pad = Math.max(4, Math.min(16, (w - (R - L)) / 2));
+    if (L - pad < wrap.scrollLeft) wrap.scrollLeft = L - pad;
+    else if (R + pad > wrap.scrollLeft + w) wrap.scrollLeft = R + pad - w;
+  }
+
+  function makePlayer(p, draw) {
+    const S = { frames: [], idx: 0, timer: null };
+    const el = (s) => $(p + s);
+    function render() {
+      draw(S.frames[S.idx]);
+      el("Prog").textContent = "第 " + (S.idx + 1) + " / " + S.frames.length + " 步";
+      el("Prev").disabled = S.idx === 0;
+      el("Next").disabled = S.idx === S.frames.length - 1;
+    }
+    function stop() { if (S.timer) { clearInterval(S.timer); S.timer = null; } el("Play").textContent = "自动播放"; }
+    el("Next").addEventListener("click", () => { stop(); if (S.idx < S.frames.length - 1) { S.idx++; render(); } });
+    el("Prev").addEventListener("click", () => { stop(); if (S.idx > 0) { S.idx--; render(); } });
+    el("Reset").addEventListener("click", () => { stop(); S.idx = 0; render(); });
+    el("Play").addEventListener("click", () => {
+      if (S.timer) { stop(); return; }
+      if (S.idx === S.frames.length - 1) { S.idx = 0; render(); }
+      el("Play").textContent = "暂停";
+      S.timer = setInterval(() => { if (S.idx < S.frames.length - 1) { S.idx++; render(); } else stop(); }, 1000);
+    });
+    return { load(frames) { stop(); S.frames = frames; S.idx = 0; render(); } };
+  }
+
+  /* ---------- 01 一段要换几个 ---------- */
+  const nd = { s: "", k: 0, l: 0, r: 0, stage: 0 };
+  function ndDraw(refocus) {
+    const { s, k, l, r } = nd, c = counts(s, l, r), len = r - l + 1, top = topLetter(c), mf = c[top], need = len - mf;
+    $("ndStrip").innerHTML = stripHTML(s, { l, r, ptrs: [[l, "l", "pl"], [r, "r", "pr"]], click: true });
+    keepStrip($("ndStrip"), [l, r], r);
+    $("ndBody").innerHTML = letters(s).map((ch) => {
+      const v = c[ch] || 0;
+      return "<tr" + (ch === top ? ' class="on"' : "") + "><td>" + ch + "</td><td>" + v + "</td><td" + (ch === top ? ' class="ok"' : "") + ">" +
+        len + " − " + v + " = " + (len - v) + "</td></tr>";
+    }).join("");
+    $("ndHint").textContent = nd.stage === 0 ? "点一个字母，从它开始重新选一段。" : "再点一个字母当另一端。";
+    const sub = s.slice(l, r + 1), ok = need <= k;
+    $("ndMsg").innerHTML = "选中 [" + l + ", " + r + "] = \"" + sub + "\"，长度 " + len + "。出现最多的是 <span class=\"fix\">" + top + "</span>（" + mf + " 次），留下它，" +
+      (need ? "把另外 " + need + " 个换成 " + top + "。" : "一个都不用换。") + "要换 " + need + " 个，" +
+      (ok ? '≤ k = ' + k + '，<span class="ans">合法</span>：能变成长度 ' + len + " 的“" + top.repeat(len) + "”。"
+        : '&gt; k = ' + k + '，<span class="bad">不合法</span>：只能换 ' + k + " 个，不够。");
+    if (refocus) { const t = $("ndStrip").querySelector('[data-i="' + refocus.i + '"]'); if (t) t.focus(); }
+  }
+  $("ndStrip").addEventListener("click", (e) => {
+    const t = e.target.closest("[data-i]"); if (!t) return;
+    const i = +t.dataset.i;
+    if (nd.stage === 0) { nd.l = nd.r = i; nd.stage = 1; }
+    else { const a = nd.l; nd.l = Math.min(a, i); nd.r = Math.max(a, i); nd.stage = 0; }
+    ndDraw({ i });
+  });
+  wire("nd", ["AABABBA", 1], [["AABABBA", 1], ["AAABABB", 1], ["XYYX", 2], ["ABCAB", 1]], 16, (s, k) => {
+    const b = best(s, k); Object.assign(nd, { s, k, l: b.i, r: b.j, stage: 0 }); ndDraw();
+  });
+
+  /* ---------- 02 / 03 子串表 ---------- */
+  // o.click：格子可点；o.front：每列的最小合法 l 画紫框
+  function gridHTML(s, k, o) {
+    const n = s.length, b = best(s, k).res, ml = o.front ? minL(s, k) : null;
+    let h = '<thead><tr><th class="corner">起点 i ↓<br>终点 j →</th>';
+    for (let j = 0; j < n; j++) h += '<th data-col="' + j + '">j = ' + j + "<b>" + s[j] + "</b></th>";
+    h += "</tr></thead><tbody>";
+    for (let i = 0; i < n; i++) {
+      h += '<tr><th data-row="' + i + '">i = ' + i + "<b>" + s[i] + "</b></th>";
+      const c = {}; let mf = 0;
+      for (let j = 0; j < n; j++) {
+        if (j < i) { h += '<td class="na">·</td>'; continue; }
+        c[s[j]] = (c[s[j]] || 0) + 1; mf = Math.max(mf, c[s[j]]);
+        const len = j - i + 1, nd = len - mf, ok = nd <= k;
+        const cls = "cell" + (ok ? " ok" : "") + (ok && len === b && !o.front ? " best" : "") + (ml && ml[j] === i ? " front" : "");
+        const lab = "起点 " + i + "、终点 " + j + "，长度 " + len + "，要换 " + nd + " 个，" + (ok ? "合法" : "不合法");
+        h += o.click
+          ? '<td><button type="button" class="' + cls + '" data-i="' + i + '" data-j="' + j + '" aria-label="' + lab + '">' + nd + "</button></td>"
+          : '<td><span class="' + cls + '" title="' + lab + '">' + nd + "</span></td>";
+      }
+      h += "</tr>";
+    }
+    return h + "</tbody>";
+  }
+
+  const bf = { s: "", k: 0, i: 0, j: 0 };
+  function bfSelect() {
+    const { s, k, i, j } = bf, len = j - i + 1, c = counts(s, i, j), top = topLetter(c), nd = len - c[top], b = best(s, k).res;
+    $("bfStrip").innerHTML = stripHTML(s, { l: i, r: j, ptrs: [[i, "i", "pl"], [j, "j", "pr"]], label: "起点 " + i + "，终点 " + j });
+    keepStrip($("bfStrip"), [i, j], j);
+    $("bfGrid").querySelectorAll(".cell").forEach((x) => x.classList.toggle("sel", +x.dataset.i === i && +x.dataset.j === j));
+    $("bfGrid").querySelectorAll("[data-row]").forEach((x) => x.classList.toggle("on-i", +x.dataset.row === i));
+    $("bfGrid").querySelectorAll("[data-col]").forEach((x) => x.classList.toggle("on-j", +x.dataset.col === j));
+    $("bfMsg").innerHTML = "起点 " + i + "，终点 " + j + "：\"" + s.slice(i, j + 1) + "\"，长度 " + len + "。出现最多的 " + top + " 有 " + c[top] + " 次，要换 " +
+      len + " − " + c[top] + " = " + nd + " 个，" + (nd <= k
+        ? '≤ k = ' + k + '，<span class="ans">合法</span>' + (len === b ? "，而且是最长的合法子串。" : "。")
+        : '&gt; k = ' + k + '，<span class="bad">不合法</span>。');
+  }
+  $("bfGrid").addEventListener("click", (e) => {
+    const c = e.target.closest(".cell"); if (!c) return;
+    bf.i = +c.dataset.i; bf.j = +c.dataset.j; bfSelect();
+  });
+  wire("bf", ["AABABBA", 1], [["AABABBA", 1], ["AAABABB", 1], ["XYYX", 2], ["ABAB", 0], "随机"], 10, (s, k) => {
+    const b = best(s, k);
+    Object.assign(bf, { s, k, i: b.i, j: b.j });
+    $("bfGrid").innerHTML = gridHTML(s, k, { click: true });
+    const n = s.length;
+    $("bfSum").innerHTML = "一共 " + n + " × " + (n + 1) + " / 2 = " + n * (n + 1) / 2 + " 段。最长的合法子串长 <span class=\"ans\">" + b.res + "</span>（粗框），答案就是它。";
+    bfSelect();
+  });
+
+  wire("mo", ["AABABBA", 1], [["AABABBA", 1], ["AAABABB", 1], ["ABBBAAB", 1], ["ABAB", 0], "随机"], 10, (s, k) => {
+    $("moGrid").innerHTML = gridHTML(s, k, { front: true });
+    const ml = minL(s, k), b = best(s, k).res;
+    $("moBody").innerHTML = ml.map((l, r) => {
+      const len = r - l + 1;
+      return "<tr" + (len === b ? ' class="on"' : "") + "><td>" + r + "</td><td>" + l + "</td><td>\"" + s.slice(l, r + 1) + "\"</td><td" + (len === b ? ' class="ok"' : "") + ">" + len + "</td></tr>";
+    }).join("");
+    const mono = ml.every((l, r) => r === 0 || l >= ml[r - 1]);
+    $("moSum").innerHTML = "最小合法 l 依次是 " + ml.join("、") + "：" + (mono ? "只增不减。" : "") + "最长的长度是 <span class=\"ans\">" + b + "</span>，就是答案。";
+  });
+
+  /* ---------- 05 单步执行 ---------- */
+  const RP_CODE = {
+    re: [
+      "count = {}",
+      "res = 0",
+      "l = 0",
+      "for r in range(len(s)):",
+      "    count[s[r]] = 1 + count.get(s[r], 0)",
+      "    while (r - l + 1) - max(count.values()) > k:",
+      "        count[s[l]] -= 1",
+      "        l += 1",
+      "    res = max(res, r - l + 1)",
+      "return res"
+    ],
+    mf: [
+      "count = {}",
+      "res = 0",
+      "l = 0",
+      "maxf = 0",
+      "for r in range(len(s)):",
+      "    count[s[r]] = 1 + count.get(s[r], 0)",
+      "    maxf = max(maxf, count[s[r]])",
+      "    while (r - l + 1) - maxf > k:",
+      "        count[s[l]] -= 1",
+      "        l += 1",
+      "    res = max(res, r - l + 1)",
+      "return res"
+    ]
+  };
+  RP_CODE.nodec = RP_CODE.mf.slice();
+  RP_CODE.nodec[8] = "        # count[s[l]] -= 1    ← 漏写了这一行";
+  const RP_LN = {
+    re: { init: [0, 1, 2], add: [3, 4], chk: 5, shr: [6, 7], res: 8, ret: 9 },
+    mf: { init: [0, 1, 2, 3], add: [4, 5, 6], chk: 7, shr: [8, 9], res: 10, ret: 11 }
+  };
+  RP_LN.nodec = RP_LN.mf;
+  const q = (ch) => "'" + ch + "'";
+
+  function rpBuild(s, k, mode) {
+    const n = s.length, L = RP_LN[mode], stale = mode !== "re", truth = best(s, k).res, F = [];
+    let count = {}, res = 0, l = 0, maxf = 0, r = null;
+    const codeMax = () => maxOf(count);
+    const push = (o) => F.push(Object.assign({ l, r, count: Object.assign({}, count), maxf: stale ? maxf : codeMax(), res, verdict: null, chk: null, focus: r }, o));
+    push({ line: L.init, hl: "hl0", msg: "count = {}：空字典，记窗口里每个字母出现几次。res = 0 记最长长度，l = 0 是窗口左端。" +
+      (stale ? "maxf = 0 记“出现最多的次数”，只增不减。" : "") });
+    for (r = 0; r < n; r++) {
+      const ch = s[r], old = count[ch] || 0;
+      count[ch] = old + 1;
+      let extra = "";
+      if (stale) {
+        const om = maxf; maxf = Math.max(maxf, count[ch]);
+        extra = "maxf = max(" + om + ", " + count[ch] + ") = " + maxf + (maxf > om ? "，变大了。" : "，没变。");
+      }
+      push({ line: L.add, hl: "hl2", msg: "r = " + r + "：s[" + r + "] = " + q(ch) + " 进窗口，count[" + q(ch) + "] 从 " + old + " 变成 " + count[ch] + "。" + extra });
+      for (let g = 0; g < 80; g++) {
+        const len = r - l + 1, m = stale ? maxf : codeMax(), need = len - m;
+        const tm = maxOf(counts(s, l, r)), tn = len - tm, bad = need > k;
+        let msg = "窗口 [" + l + ", " + r + "] = \"" + s.slice(l, r + 1) + "\"，长度 " + len + "。" + (stale ? "len − maxf" : "len − 最多次数") + " = " + len + " − " + m + " = " + need +
+          (bad ? " &gt; " : " ≤ ") + "k = " + k + (bad ? '：<span class="bad">要换的太多，收缩</span>。' : '：<span class="ans">不用收</span>。');
+        if (tn !== need) {
+          msg += mode === "nodec"
+            ? '<span class="bad">count 里的数已经和窗口对不上了：窗口里真实最多的只有 ' + tm + " 次，真要换 " + tn + " 个。</span>"
+            : "窗口里真实最多的只有 " + tm + " 次（maxf 过时了），真要换 " + tn + " 个。" +
+              (tn > k && !bad ? '<span class="bad">这个窗口其实不合法</span>，但它的长度 ' + len + " 和上一轮一样，不会让 res 变大。" : "");
+        }
+        push({ line: L.chk, hl: bad ? "hl3" : "hl4", chk: { len, m, need, tm, tn }, msg });
+        if (!bad) break;
+        const out = s[l], o2 = count[out];
+        if (mode !== "nodec") count[out] = o2 - 1;
+        l++;
+        const smsg = mode === "nodec"
+          ? '<span class="bad">漏写了 count[s[l]] -= 1</span>：s[' + (l - 1) + "] = " + q(out) + " 已经离开窗口，count[" + q(out) + "] 却还是 " + o2 + "。l 右移到 " + l + "。"
+          : "s[" + (l - 1) + "] = " + q(out) + " 离开窗口：count[" + q(out) + "] 从 " + o2 + " 变成 " + (o2 - 1) + "，l 右移到 " + l + "。" +
+            (stale ? "maxf 不动，还是 " + maxf + "。" : "");
+        push({ line: L.shr, hl: mode === "nodec" ? "hl3" : "hl", focus: l, msg: smsg });
+      }
+      const len = r - l + 1, or = res; res = Math.max(res, len);
+      push({ line: L.res, hl: "hl4", msg: "res = max(" + or + ", " + len + ") = " + res + (res > or ? '，<span class="ans">更长了</span>。' : "。") });
+    }
+    r = n - 1;
+    const ok = res === truth;
+    let msg = "<code>return res</code>：返回 " + res + "。";
+    if (ok) {
+      msg += '<span class="ans">正确</span>。';
+      if (mode === "re") msg += "r 走了一遍，l 也只往右走，一共收缩了 " + l + " 次。";
+      if (mode === "mf") msg += "窗口长度一路只增不减，最后等于答案。";
+      if (mode === "nodec") msg += "这个输入碰巧没出错，换成 \"AABABBA\", k=1 试试。";
+    } else {
+      msg += '<span class="bad">错了</span>，正确答案是 ' + truth + "。count 只加不减，离开窗口的字母还被算在里面，maxf 被撑大，窗口就被放得太长。";
+    }
+    push({ line: L.ret, hl: ok ? "hl4" : "hl3", verdict: ok ? "ok" : "bad", focus: l, msg });
+    return F;
+  }
+
+  const rp = { s: "", k: 0, mode: "re" };
+  const rpP = makePlayer("rp", (f) => {
+    const s = rp.s, stale = rp.mode !== "re", hasR = f.r !== null, k = rp.k;
+    $("rpStrip").innerHTML = stripHTML(s, { l: hasR ? f.l : null, r: f.r, ptrs: hasR ? [[f.l, "l", "pl"], [f.r, "r", "pr"]] : [[0, "l", "pl"]],
+      fade: (i) => !hasR || i > f.r, label: hasR ? "窗口 [" + f.l + ", " + f.r + "]" : "还没开始" });
+    keepStrip($("rpStrip"), [f.l, f.r], f.focus);
+    const tc = hasR ? counts(s, f.l, f.r) : {}, len = hasR ? f.r - f.l + 1 : 0, tm = maxOf(tc);
+    $("rpL").textContent = "l = " + f.l;
+    $("rpR").textContent = "r = " + (hasR ? f.r : "—");
+    $("rpLen").textContent = "len = " + (hasR ? len : "—");
+    $("rpMf").textContent = (stale ? "maxf = " : "最多次数 = ") + f.maxf;
+    const tEl = $("rpTrue");
+    tEl.hidden = !stale;
+    tEl.textContent = "窗口里真实最多 = " + (hasR ? tm : "—");
+    tEl.className = "var" + (stale && hasR && tm !== f.maxf ? " x" : "");
+    const need = len - f.maxf, nEl = $("rpNeed");
+    if (hasR) {
+      nEl.textContent = "要换 = " + len + " − " + f.maxf + " = " + need + (need > k ? " > " : " ≤ ") + "k = " + k;
+      nEl.className = "var " + (need > k ? "x" : "t");
+    } else { nEl.textContent = "k = " + k; nEl.className = "var"; }
+    $("rpRes").textContent = "res = " + f.res;
+    const out = $("rpOut");
+    out.className = "pill" + (f.verdict === "ok" ? " t" : f.verdict ? " f" : "");
+    out.textContent = f.verdict === "ok" ? "返回 " + f.res + " ✓" : f.verdict === "bad" ? "返回 " + f.res + " ✗" : "运行中";
+    const hiVal = f.maxf;
+    $("rpCnt").innerHTML = '<span class="cnt-cap">count（代码里记的次数）' + (stale ? "，紫色：等于 maxf" : "，紫色：最多的") + "</span>" +
+      letters(s).map((ch) => {
+        const has = ch in f.count, v = has ? f.count[ch] : 0, tv = tc[ch] || 0;
+        return '<div class="cnt-row' + (v > 0 && v === hiVal ? " max" : "") + (v ? "" : " zero") + '"><span>' + ch + '</span><span class="track"><span class="cb" style="width:' + v * 14 + 'px"></span></span><span>' +
+          (has ? v : "—") + "</span>" + (hasR && v !== tv ? '<span class="diff">窗口里其实是 ' + tv + "</span>" : "<span></span>") + "</div>";
+      }).join("");
+    markLine($("rpCode"), f.line, f.hl);
+    $("rpMsg").innerHTML = f.msg;
+  });
+  const rpMode = () => { const c = document.querySelector('input[name="rpMode"]:checked'); return c ? c.value : "re"; };
+  function rpLoad(s, k) {
+    if (s !== undefined) { rp.s = s; rp.k = k; }
+    rp.mode = rpMode();
+    renderCode($("rpCode"), RP_CODE[rp.mode], rp.mode === "nodec" ? 8 : -1);
+    rpP.load(rpBuild(rp.s, rp.k, rp.mode));
+    $("rpStrip").scrollLeft = 0;
+  }
+  $("rpModes").addEventListener("change", () => rpLoad());
+  wire("rp", ["AABABBA", 1], [["AABABBA", 1], ["AAABABB", 1], ["XYYX", 2], ["AABA", 0], ["ABBB", 2], "随机"], 16, rpLoad);
+
+  /* ---------- 06 两种写法对照 ---------- */
+  wire("mx", ["AABABBA", 1], [["AABABBA", 1], ["AAABABB", 1], ["ABBBAAB", 1], ["AABA", 0], "随机"], 16, (s, k) => {
+    let c1 = {}, l1 = 0, c2 = {}, l2 = 0, mf = 0, res = 0, rows = "", staleRows = 0, badRows = 0;
+    for (let r = 0; r < s.length; r++) {
+      c1[s[r]] = (c1[s[r]] || 0) + 1;
+      while (r - l1 + 1 - maxOf(c1) > k) { c1[s[l1]]--; l1++; }
+      c2[s[r]] = (c2[s[r]] || 0) + 1; mf = Math.max(mf, c2[s[r]]);
+      while (r - l2 + 1 - mf > k) { c2[s[l2]]--; l2++; }
+      res = Math.max(res, r - l2 + 1);
+      const tm = maxOf(counts(s, l2, r)), len2 = r - l2 + 1, bad = len2 - tm > k, st = mf > tm;
+      if (st) staleRows++; if (bad) badRows++;
+      rows += "<tr><td>" + r + "</td><td>" + s[r] + "</td><td>" + s.slice(l1, r + 1) + " (" + (r - l1 + 1) + ")</td><td" + (bad ? ' class="no"' : "") + ">" +
+        s.slice(l2, r + 1) + " (" + len2 + ")" + (bad ? " ✗" : "") + "</td><td" + (st ? ' class="hi"' : "") + ">" + mf + "</td><td>" + tm + "</td><td>" + res + "</td></tr>";
+    }
+    $("mxBody").innerHTML = rows;
+    $("mxSum").innerHTML = "两种写法都返回 <span class=\"ans\">" + res + "</span>。" +
+      (staleRows ? "maxf 过时了 " + staleRows + " 轮" + (badRows ? "，其中 " + badRows + " 轮写法二的窗口其实不合法" : "") + "，答案都没受影响。" : "这个输入 maxf 一直没过时，换成 \"AABABBA\", k=1 看看。");
+  });
+
+  /* ---------- 08 语言切换 ---------- */
+  document.querySelectorAll('.tabs [role="tab"]').forEach((t) => t.addEventListener("click", () => {
+    document.querySelectorAll('.tabs [role="tab"]').forEach((x) => x.setAttribute("aria-selected", x === t ? "true" : "false"));
+    ["py", "java", "cpp"].forEach((l) => { $("code-" + l).hidden = l !== t.dataset.lang; });
+  }));
+
+  /* ---------- 09 自测 ---------- */
+  const QUIZ = [
+    { q: "s = \"ABAB\"，k = 2，答案是？", o: ["4", "3", "2", "5"], a: 0,
+      e: "留下 A，把两个 B 换成 A（或者反过来），整串都是同一个字母，长度 4。" },
+    { q: "子串 \"BABBA\" 最少要换几个字母，才能变成同一个字母？", o: ["2", "3", "1", "5"], a: 0,
+      e: "长度 5，B 出现 3 次最多。留下 B，换掉 2 个 A：5 − 3 = 2。" },
+    { q: "判断一段子串能不能变成同一个字母，要算的是？", o: ["长度 − 出现最多的字母的次数，再和 k 比", "有几种不同的字母，再和 k 比", "出现最少的字母的次数，再和 k 比", "长度直接和 k 比"], a: 0,
+      e: "留下出现最多的那个，其余都换掉。比如 \"AABC\" 有 3 种字母，但只要换 2 个。" },
+    { q: "暴力解（枚举起点 i、终点 j，边走边更新 maxf）的时间复杂度是？", o: ["O(n²)", "O(n)", "O(n log n)", "O(2ⁿ)"], a: 0,
+      e: "一共 n(n + 1) / 2 段，每段 O(1) 更新计数和 maxf。" },
+    { q: "一段合法的子串，去掉最左边的一个字母，会？", o: ["一定还合法", "一定变得不合法", "不一定，要重新算", "长度不变"], a: 0,
+      e: "长度少 1，最多次数最多少 1，“长度 − 最多次数”不会变大。" },
+    { q: "为什么 l 永远不用往左退？", o: ["r 右移后，最小合法 l 只会不变或变大", "题目规定 l 只能加", "因为 k 不会变", "因为字符串只有大写字母"], a: 0,
+      e: "[l, r + 1] 合法，去掉最右边的字母，[l, r] 也合法。所以 r + 1 的最小合法 l 不会比 r 的更小。" },
+    { q: "写法一里，while 循环结束后的 [l, r] 是？", o: ["以 r 结尾的最长合法子串", "整个字符串里最长的合法子串", "以 l 开头的最长合法子串", "长度正好是 k 的子串"], a: 0,
+      e: "while 从上一轮的 l 开始收，遇到第一个合法的位置就停，正好是第 03 章台阶上的那一格。" },
+    { q: "收缩时为什么要写 count[s[l]] -= 1？", o: ["s[l] 离开了窗口，它的次数要减掉", "为了让 l 往右走", "为了让 maxf 变小", "防止下标越界"], a: 0,
+      e: "count 记的是窗口里的次数。漏写的话，离开的字母还被算在里面，最多次数偏大，窗口被放得太长。" },
+    { q: "写法二里 maxf 只增不减，它和窗口里真实的最多次数相比？", o: ["大于或等于", "一定相等", "小于或等于", "没有固定关系"], a: 0,
+      e: "每个字母的次数变大时 maxf 都更新过；之后次数会减，maxf 不减。所以只会偏大，不会偏小。" },
+    { q: "写法二的 while 循环每轮最多执行几次？", o: ["1 次", "k 次", "26 次", "不确定，可能很多次"], a: 0,
+      e: "每轮开始前 len − maxf ≤ k；加一个字母后最多超出 1，收一格就回来了。所以窗口长度从不变短。" },
+    { q: "写法二里 maxf 会过时，为什么答案不会偏大？", o: ["窗口长度 ≤ maxf + k，而长度 maxf + k 的合法子串真实存在", "最后会再重新检查一遍", "res 之后会减回去", "因为 k 很小"], a: 0,
+      e: "maxf 变大的那一轮，窗口真的合法，里面有 maxf 个相同字母；往两边扩到长度 maxf + k，扩进来的都换掉，还是合法。" },
+    { q: "漏写 count[s[l]] -= 1，输入 \"AABABBA\"，k = 1，返回？", o: ["5", "4", "7", "3"], a: 0,
+      e: "count 只加不减，最后 A 被算成 4 次，窗口被放到 4 + 1 = 5。正确答案是 4。题目的两个样例它却都能过。" },
+    { q: "写法二的时间和额外空间是？", o: ["O(n) 时间，O(1) 空间", "O(n²) 时间，O(1) 空间", "O(n) 时间，O(n) 空间", "O(n log n) 时间，O(1) 空间"], a: 0,
+      e: "r 走 n 步，l 最多走 n 步，每步 O(1)；count 最多 26 个字母，是常数。" }
+  ];
+  const answered = {};
+  $("quizBox").innerHTML = QUIZ.map((it, qi) =>
+    '<div class="q"><div class="q-text">' + (qi + 1) + ". " + esc(it.q) + '</div><div class="opts">' +
+    it.o.map((o, oi) => ({ o, oi, r: (qi * 7 + oi * 5) % 4 })).sort((x, y) => x.r - y.r)
+      .map(({ o, oi }) => '<button type="button" class="opt" data-q="' + qi + '" data-o="' + oi + '">' + esc(o) + "</button>").join("") +
+    '</div><div class="explain" id="ex' + qi + '" hidden></div></div>').join("");
+  function score() {
+    const keys = Object.keys(answered), right = keys.filter((k) => answered[k]).length;
+    $("quizScore").textContent = keys.length ? "已作答 " + keys.length + " / " + QUIZ.length + "，答对 " + right + " 题" : "";
+  }
+  $("quizBox").addEventListener("click", (e) => {
+    const b = e.target.closest(".opt"); if (!b) return;
+    const qi = +b.dataset.q, oi = +b.dataset.o, it = QUIZ[qi], box = b.parentElement;
+    box.querySelectorAll(".opt").forEach((x) => x.classList.remove("right", "wrong"));
+    const ok = oi === it.a;
+    b.classList.add(ok ? "right" : "wrong");
+    if (!ok) box.querySelector('[data-o="' + it.a + '"]').classList.add("right");
+    if (!(qi in answered)) answered[qi] = ok;
+    const ex = $("ex" + qi); ex.hidden = false;
+    ex.textContent = (ok ? "答对了。" : "再想想。") + it.e;
+    score();
+  });
+
+  /* ---------- 掌握清单（仅保存在本浏览器） ---------- */
+  document.querySelectorAll("#checklist input").forEach((cb) => {
+    try { cb.checked = localStorage.getItem("lrcr-" + cb.id) === "1"; } catch (e) {}
+    cb.addEventListener("change", () => { try { localStorage.setItem("lrcr-" + cb.id, cb.checked ? "1" : "0"); } catch (e) {} });
+  });
+})();
+</script>
+</body>
+</html>
