@@ -1,0 +1,1200 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>反转链表</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* 版式：单栏教材，一章一个前置知识；prev 琥珀色，curr 蓝色，nxt 紫色，已经掉头的箭头绿色，原方向的箭头灰色，丢掉的节点红色变淡，贯穿全页 */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --ink: #17202b;
+  --muted: #586372;
+  --line: #dce1e7;
+  --edge: #b5bfcb;
+  --pre: #b86e0a;
+  --pre-soft: #fcefd8;
+  --suf: #1d6aa3;
+  --suf-soft: #e0edf8;
+  --fix: #7445b8;
+  --fix-soft: #efe7fa;
+  --ans: #2b7a4b;
+  --ans-soft: #e1f2e7;
+  --bad: #b3372f;
+  --bad-soft: #fbe5e3;
+  --code-bg: #eef1f5;
+  --font-display: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151b; --surface: #19202a; --ink: #e5e9ef; --muted: #9ba6b4; --line: #2b3441; --edge: #4b5666;
+    --pre: #f0a845; --pre-soft: #3a2b14; --suf: #6cb2e8; --suf-soft: #142b3e;
+    --fix: #b893f2; --fix-soft: #2a2140;
+    --ans: #5fcb8c; --ans-soft: #153223; --bad: #f08379; --bad-soft: #3d1c1a;
+    --code-bg: #141a22;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151b; --surface: #19202a; --ink: #e5e9ef; --muted: #9ba6b4; --line: #2b3441; --edge: #4b5666;
+  --pre: #f0a845; --pre-soft: #3a2b14; --suf: #6cb2e8; --suf-soft: #142b3e;
+  --fix: #b893f2; --fix-soft: #2a2140;
+  --ans: #5fcb8c; --ans-soft: #153223; --bad: #f08379; --bad-soft: #3d1c1a;
+  --code-bg: #141a22;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.75;
+  font-variant-ligatures: none; /* 等宽字体的连字会把 -> 显示成箭头，初学者容易抄错 */
+}
+.wrap {
+  max-width: 760px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 80px;
+  display: flex; flex-direction: column; gap: 56px;
+}
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.3; margin: 0; }
+h1 { font-size: clamp(28px, 6vw, 42px); font-weight: 800; }
+h2 { font-size: clamp(22px, 4.2vw, 28px); font-weight: 800; }
+h3 { font-size: 18px; font-weight: 600; }
+p { margin: 0; }
+section { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lead { font-size: 18px; color: var(--muted); }
+code, .mono { font-family: var(--font-mono); font-size: .92em; }
+:not(pre) > code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; }
+.pre { color: var(--pre); font-weight: 700; }
+.suf { color: var(--suf); font-weight: 700; }
+.fix { color: var(--fix); font-weight: 700; }
+.ans { color: var(--ans); font-weight: 700; }
+.bad { color: var(--bad); font-weight: 700; }
+.hd { color: var(--muted); font-weight: 700; }
+a { color: var(--suf); }
+
+/* 题目卡 */
+.problem { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 99px; background: var(--ans-soft); color: var(--ans); }
+.example { font-family: var(--font-mono); font-size: 14px; background: var(--code-bg); border-radius: 6px; padding: 10px 12px; overflow-x: auto; white-space: pre; }
+
+/* 目录 */
+.toc { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; padding: 0; margin: 0; list-style: none; counter-reset: toc; }
+.toc li { counter-increment: toc; }
+.toc a { display: flex; gap: 10px; align-items: baseline; text-decoration: none; color: var(--ink); padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 15px; }
+.toc a::before { content: counter(toc, decimal-leading-zero); font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.toc a:hover, .toc a:focus-visible { border-color: var(--suf); }
+.toc-part { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+.chap { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.chap .num { font-family: var(--font-mono); font-size: 14px; color: var(--muted); }
+
+.note { border-left: 3px solid var(--suf); padding: 4px 0 4px 14px; }
+.note.warn { border-color: var(--pre); }
+.note.ok { border-color: var(--ans); }
+.note.no { border-color: var(--bad); }
+
+/* 链表图：一个节点一个方框，箭头画在节点之间；往右的是原方向（灰），往左的是掉过头的（绿） */
+.lab > * { min-width: 0; }
+.lwrap { overflow-x: auto; padding: 2px 0; max-width: 100%; }
+.lwrap svg { display: block; margin: 0 auto; }
+.lwrap .empty { font-family: var(--font-mono); font-size: 14px; color: var(--muted); text-align: center; padding: 18px 0; }
+.ls .nd { fill: var(--surface); stroke: var(--edge); stroke-width: 1.5; }
+.ls .nd.ring { stroke: var(--suf); stroke-width: 2.4; }
+.ls .nv { font-family: var(--font-mono); font-size: 16px; font-weight: 600; fill: var(--ink); text-anchor: middle; dominant-baseline: central; }
+.ls g.lost { opacity: .32; }
+.ls .ar { stroke-width: 1.8; stroke-linecap: round; }
+.ls .ar.hot { stroke-width: 3; }
+.ls .halo { stroke: var(--ans-soft); stroke-width: 12; stroke-linecap: round; }
+.ls .ar.fw { stroke: var(--muted); }
+.ls .ah.fw { fill: var(--muted); }
+.ls .ar.bw { stroke: var(--ans); }
+.ls .ah.bw { fill: var(--ans); }
+.ls .ar.nn { stroke: var(--edge); }
+.ls .ah.nn { fill: var(--edge); }
+.ls .nt { font-family: var(--font-mono); font-size: 11px; fill: var(--muted); dominant-baseline: central; }
+.ls .nt.end { text-anchor: end; }
+.ls .nt.mid { text-anchor: middle; }
+.ls .lb { font-family: var(--font-mono); font-size: 12px; font-weight: 700; text-anchor: middle; }
+.ls .lb.head { fill: var(--muted); }
+.ls .lb.prev { fill: var(--pre); }
+.ls .lb.curr { fill: var(--suf); }
+.ls .lb.nxt { fill: var(--fix); }
+.ls .lb.new { fill: var(--ans); }
+.ls .lb.lost { fill: var(--bad); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: 3px; }
+.legend i.fw { background: var(--muted); }
+.legend i.bw { background: var(--ans); }
+.legend i.hot { background: var(--ans); height: 6px; vertical-align: 2px; box-shadow: 0 0 0 3px var(--ans-soft); }
+.legend i.lost { width: 12px; height: 12px; vertical-align: -1px; border: 1.5px solid var(--edge); opacity: .4; border-radius: 3px; }
+.reads { display: flex; flex-direction: column; gap: 4px; font-family: var(--font-mono); font-size: 14px; }
+.reads .rl { overflow-wrap: anywhere; }
+.reads .rl b { font-weight: 700; }
+
+/* 表格 */
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 13px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+td code { white-space: nowrap; }
+tr:last-child td, tr:last-child th { border-bottom: 0; }
+
+/* 交互组件外壳 */
+.lab { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.lab-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button {
+  font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+}
+button:hover { border-color: var(--muted); }
+button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button.mono { font-family: var(--font-mono); }
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--suf); outline-offset: 2px; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+input[type=text] {
+  font-family: var(--font-mono); font-size: 15px; padding: 6px 10px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink); min-width: 0; width: 100%;
+  font-variant-ligatures: none;
+}
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-size: 14px; font-weight: 700; }
+.err { color: var(--bad); font-size: 14px; }
+.modes { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.modes legend { font-size: 14px; font-weight: 700; margin-bottom: 6px; padding: 0; }
+.modes label { display: inline-flex; flex-wrap: wrap; max-width: 100%; align-items: center; gap: 6px; font-size: 14px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 99px; cursor: pointer; background: var(--bg); }
+.modes label:has(input:checked) { border-color: var(--ink); background: var(--surface); font-weight: 700; }
+.modes label:has(input:focus-visible) { outline: 2px solid var(--suf); outline-offset: 2px; }
+.modes input { accent-color: var(--fix); margin: 0; }
+
+/* 代码块 */
+pre.code { margin: 0; background: var(--code-bg); border-radius: 8px; padding: 12px 0; overflow-x: auto; font-family: var(--font-mono); font-size: 14px; line-height: 1.7; }
+pre.code .ln { display: block; padding: 0 14px; border-left: 3px solid transparent; white-space: pre; }
+pre.code .ln.hl0 { background: var(--line); border-left-color: var(--ink); }
+pre.code .ln.hl { background: var(--pre-soft); border-left-color: var(--pre); }
+pre.code .ln.hl2 { background: var(--suf-soft); border-left-color: var(--suf); }
+pre.code .ln.hl3 { background: var(--bad-soft); border-left-color: var(--bad); }
+pre.code .ln.hl4 { background: var(--ans-soft); border-left-color: var(--ans); }
+pre.code .ln.hl5 { background: var(--fix-soft); border-left-color: var(--fix); }
+pre.code .ln.mut .c { color: var(--bad); font-style: normal; font-weight: 600; }
+.k { color: var(--suf); font-weight: 600; }
+.c { color: var(--muted); font-style: italic; }
+.n { color: var(--pre); }
+.code-cap { font-size: 14px; color: var(--muted); }
+
+.msg { min-height: 3.5em; padding: 10px 14px; border-radius: 8px; background: var(--bg); font-size: 15px; }
+.progress { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+.pill { display: inline-block; font-family: var(--font-mono); font-size: 14px; padding: 2px 12px; border-radius: 99px; border: 1.5px solid var(--line); white-space: nowrap; }
+.pill.t { border-color: var(--ans); color: var(--ans); background: var(--ans-soft); }
+.pill.f { border-color: var(--bad); color: var(--bad); background: var(--bad-soft); }
+
+/* 单步执行 */
+.vars { display: flex; gap: 8px; flex-wrap: wrap; }
+.var { font-family: var(--font-mono); padding: 3px 12px; border-radius: 99px; font-size: 14px; border: 1.5px solid var(--line); white-space: pre; }
+.var.p { border-color: var(--pre); color: var(--pre); }
+.var.s { border-color: var(--suf); color: var(--suf); }
+.var.f { border-color: var(--fix); color: var(--fix); }
+.var.a { border-color: var(--ans); color: var(--ans); }
+.var.h { border-color: var(--edge); color: var(--muted); }
+.stepper-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+@media (min-width: 720px) { .stepper-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); align-items: start; } }
+.viz { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.outbox { font-family: var(--font-mono); font-size: 14px; background: var(--bg); border-radius: 6px; padding: 6px 12px; }
+
+/* 调用栈 */
+.stk { display: flex; flex-direction: column; gap: 4px; }
+.stk-cap { font-size: 13px; color: var(--muted); }
+.fr { font-family: var(--font-mono); font-size: 13px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--muted); overflow-wrap: anywhere; }
+.fr.on { border-color: var(--suf); color: var(--ink); background: var(--suf-soft); }
+.fr.none { border-style: dashed; }
+
+/* 测验 */
+.quiz { display: flex; flex-direction: column; gap: 18px; }
+.q { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.q-text { font-weight: 500; }
+.opts { display: flex; flex-direction: column; gap: 6px; }
+.opt { text-align: left; background: var(--bg); }
+.opt.right { background: var(--ans-soft); border-color: var(--ans); }
+.opt.wrong { background: var(--bad-soft); border-color: var(--bad); }
+.explain { font-size: 14px; color: var(--muted); }
+
+.checklist { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.checklist label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.checklist input { margin-top: 6px; accent-color: var(--ans); width: 16px; height: 16px; flex: none; }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.code-group { display: flex; flex-direction: column; gap: 10px; }
+ul.plain, ol.plain { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
+footer { font-size: 13px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:14px">
+  <span class="eyebrow">NeetCode · Linked List · Easy</span>
+  <h1>反转链表</h1>
+  <p class="lead">Reverse Linked List。先讲清楚链表是什么，以及“挪变量”和“改箭头”是两件不同的事。然后把题目翻译成一句话：节点都不动，每根箭头掉个头。最后用三个指针 prev、curr、nxt 一次翻一根箭头，再看递归写法里那行最绕的 <code>head.next.next = head</code>。</p>
+</header>
+
+<section class="problem" aria-label="题目">
+  <div><span class="tag">题目</span></div>
+  <p>给你单链表的头节点 <code>head</code>，把链表反转过来，返回反转后链表的头节点。</p>
+  <div class="example">输入: head = [0,1,2,3]
+输出: [3,2,1,0]
+
+输入: head = []
+输出: []</div>
+  <p style="font-size:14px;color:var(--muted)">约束：链表长度 0 到 1000，−1000 ≤ Node.val ≤ 1000。</p>
+</section>
+
+<nav aria-label="目录" style="display:flex;flex-direction:column;gap:10px">
+  <span class="eyebrow">学习路线</span>
+  <ol class="toc">
+    <li><a href="#node">链表是什么</a></li>
+    <li><a href="#ptr">挪变量 vs 改箭头</a></li>
+    <li><a href="#brute">笨办法：先抄到数组里</a></li>
+    <li><a href="#idea">每根箭头掉个头</a></li>
+    <li><a href="#step">单步执行：迭代</a></li>
+    <li><a href="#rec">递归写法</a></li>
+    <li><a href="#template">反转模板与同类题</a></li>
+    <li><a href="#code">完整代码与复杂度</a></li>
+    <li><a href="#quiz">自测</a></li>
+  </ol>
+  <p class="toc-part">01–02 是链表的前置知识，后面所有操作都靠它；03–05 是迭代解法；06 是递归解法。</p>
+</nav>
+
+<!-- 01 -->
+<section id="node">
+  <div class="chap"><span class="num">01</span><h2>链表是什么</h2></div>
+  <p>数组把元素挨着放在一整块内存里，所以能用下标 <code>a[2]</code> 直接跳到第 3 个。链表不是这样：每个元素是一个单独的<strong>节点</strong>，散在内存各处，节点里除了值，还存着“下一个节点在哪”。</p>
+<pre class="code" data-lang="py">class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val      # 这个节点存的值
+        self.next = next    # 下一个节点；没有下一个就是 None</pre>
+  <ul class="plain">
+    <li>每个节点有两样东西：<code>val</code> 是值，<code>next</code> 指向下一个节点。下面的图里，节点画成方框，<code>next</code> 画成箭头。</li>
+    <li>最后一个节点的 <code>next</code> 是 <code>None</code>，表示到头了。</li>
+    <li><code>head</code> 是指向第一个节点的变量。题目只给你 head，其它节点都要顺着箭头一个一个走过去才能拿到。</li>
+    <li>空链表就是 <code>head = None</code>，一个节点都没有（题目的样例 2）。</li>
+    <li>题目里写的 <code>[0,1,2,3]</code> 只是方便你看，实际传进来的是节点 0，<code>0 → 1 → 2 → 3 → None</code>。</li>
+  </ul>
+  <p>想把每个值都看一遍，只能从 head 出发，顺着箭头走。下面一步一步看这段代码怎么走完一条链表：</p>
+  <div class="lab">
+    <div id="trIn"></div>
+    <div class="lwrap" id="trList"></div>
+    <div class="stepper-grid">
+      <div class="viz">
+        <div class="vars"><span class="var h" id="trHead"></span><span class="var s" id="trCur"></span></div>
+        <div class="outbox" id="trOut"></div>
+      </div>
+      <pre class="code" id="trCode"></pre>
+    </div>
+    <div class="msg" id="trMsg" aria-live="polite"></div>
+    <div class="lab-head">
+      <div class="controls">
+        <button type="button" id="trReset">重来</button>
+        <button type="button" id="trPrev">上一步</button>
+        <button type="button" id="trNext" class="primary">下一步</button>
+        <button type="button" id="trPlay">自动播放</button>
+      </div>
+      <span class="progress" id="trProg"></span>
+    </div>
+  </div>
+  <p class="note warn"><code>while cur:</code> 的意思是“cur 不是 None 就继续”。Python 里 None 当作假，一个节点对象当作真。这是遍历链表的标准写法，后面的反转也是这个循环。</p>
+</section>
+
+<!-- 02 -->
+<section id="ptr">
+  <div class="chap"><span class="num">02</span><h2>挪变量 vs 改箭头</h2></div>
+  <p>链表题几乎所有的 bug 都出在分不清这两种赋值。看等号<strong>左边</strong>是什么：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>写法</th><th>改了什么</th><th>链表变没变</th></tr>
+    <tr><td><code>a = a.next</code></td><td>变量 a 改成指向下一个节点。变量只是贴在节点上的<strong>名字标签</strong>，这一步只是把标签挪了</td><td>没变</td></tr>
+    <tr><td><code>a.next = None</code></td><td>a 指着的那个节点，它里面的 next 被改了，也就是这个节点的<strong>箭头</strong>改了</td><td>变了</td></tr>
+  </table></div>
+  <p>箭头一改，原来箭头指着的节点就可能<strong>丢了</strong>：没有任何变量指着它，也没有任何箭头通向它，再也拿不到。所以改箭头之前，要先想好：后面的节点还有没有别人指着？没有就先用一个变量把它记下来。</p>
+  <p>下面用链表 <code>1 → 2 → 3</code> 演示。切换两种做法，比较最后一步：</p>
+  <div class="lab">
+    <fieldset class="modes" id="sbModes"><legend>做法</legend>
+      <label><input type="radio" name="sbMode" value="cut" checked>直接断开</label>
+      <label><input type="radio" name="sbMode" value="save">先存再断</label>
+    </fieldset>
+    <div class="lwrap" id="sbList"></div>
+    <div class="legend"><span><i class="hot"></i>刚改过的箭头</span><span><i class="lost"></i>丢了的节点</span></div>
+    <div class="stepper-grid">
+      <div class="viz"><div class="reads" id="sbReads"></div></div>
+      <pre class="code" id="sbCode"></pre>
+    </div>
+    <div class="msg" id="sbMsg" aria-live="polite"></div>
+    <div class="lab-head">
+      <div class="controls">
+        <button type="button" id="sbReset">重来</button>
+        <button type="button" id="sbPrev">上一步</button>
+        <button type="button" id="sbNext" class="primary">下一步</button>
+        <button type="button" id="sbPlay">自动播放</button>
+      </div>
+      <span class="progress" id="sbProg"></span>
+    </div>
+  </div>
+  <p class="note ok">记住一句话：<strong>改箭头之前，先把箭头另一头的节点存起来</strong>。反转链表的迭代写法里，<code>nxt = curr.next</code> 这一行就是干这个的。</p>
+</section>
+
+<!-- 03 -->
+<section id="brute">
+  <div class="chap"><span class="num">03</span><h2>笨办法：先抄到数组里</h2></div>
+  <p>链表不能往回走，但数组可以。最直接的想法：先走一遍，把值都抄进数组；再走一遍，从数组末尾往回填。</p>
+<pre class="code" data-lang="py">vals = []
+cur = head
+while cur:                  # 第一遍：把值按顺序抄下来
+    vals.append(cur.val)
+    cur = cur.next
+cur = head
+while cur:                  # 第二遍：从最后一个值开始往回填
+    cur.val = vals.pop()    # pop() 取出并删掉数组最后一个
+    cur = cur.next
+return head</pre>
+  <ul class="plain">
+    <li>能过，时间 O(n)。但多开了一个长度 n 的数组，额外空间 <strong>O(n)</strong>。</li>
+    <li>它改的是节点里的<strong>值</strong>，节点和箭头都没动。题目真正想考的是改箭头：如果节点里存的不是一个数，而是一大坨数据，挨个搬值就很笨。面试官一般会追问“能不能 O(1) 额外空间”。</li>
+  </ul>
+  <p>下一章不开数组，直接把箭头反过来。</p>
+</section>
+
+<!-- 04 -->
+<section id="idea">
+  <div class="chap"><span class="num">04</span><h2>每根箭头掉个头</h2></div>
+  <p>把反转前后画在一起看。节点一个都没动，变的只有箭头：</p>
+  <div class="lab">
+    <p style="font-size:14px;font-weight:700">反转前</p>
+    <div class="lwrap" id="s4a"></div>
+    <p style="font-size:14px;font-weight:700">反转后</p>
+    <div class="lwrap" id="s4b"></div>
+    <div class="legend"><span><i class="fw"></i>原来的方向</span><span><i class="bw"></i>掉过头的箭头</span></div>
+  </div>
+  <p>所以题目可以翻译成：<strong>每个节点的 next，改成指向它原来的前一个节点</strong>。第一个节点没有前一个，改成指向 None；原来最后一个节点 3 就成了新的头，要返回它。</p>
+  <p>从左往右，一次改一个节点。改到一半的时候，链表被分成两段：</p>
+  <div class="lab">
+    <div class="lwrap" id="s4c"></div>
+    <div class="reads" id="s4cReads"></div>
+  </div>
+  <ul class="plain">
+    <li><span class="pre">prev</span>：已经改好的那一段的头。从它出发读，是反过来的前半段。</li>
+    <li><span class="suf">curr</span>：下一个要改的节点。从它出发读，是还没动过的后半段。</li>
+    <li><span class="fix">nxt</span>：curr 后面那个节点。curr 的箭头马上要改掉，改之前得先把它存下来（第 02 章那句话）。</li>
+  </ul>
+  <p>处理 curr 一共四行，顺序不能换：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>代码</th><th>做什么</th><th>为什么在这个位置</th></tr>
+    <tr><td><code>nxt = curr.next</code></td><td>存下 curr 后面的节点</td><td>下一行就要改 curr.next，不先存，后半段就丢了</td></tr>
+    <tr><td><code>curr.next = prev</code></td><td>curr 的箭头掉头，指向前一个</td><td>这是唯一真正“反转”的一行</td></tr>
+    <tr><td><code>prev = curr</code></td><td>prev 往前走一格</td><td>要在 curr 被改掉之前，用 curr 的值</td></tr>
+    <tr><td><code>curr = nxt</code></td><td>curr 往前走一格</td><td>用的是第一行存的 nxt，不能写 <code>curr.next</code>，它已经指回去了</td></tr>
+  </table></div>
+  <p>开始时还没有改好的部分，<code>prev = None</code>，<code>curr = head</code>。这正好让第一个节点的箭头指向 None。curr 变成 None 时，所有节点都改完了，prev 停在原来的最后一个节点上，返回 prev。</p>
+<pre class="code" data-lang="py">prev, curr = None, head
+while curr:
+    nxt = curr.next      # 1. 先存后面
+    curr.next = prev     # 2. 箭头掉头
+    prev = curr          # 3. prev 前进
+    curr = nxt           # 4. curr 前进
+return prev</pre>
+  <p style="font-size:14px;color:var(--muted)"><code>prev, curr = None, head</code> 是 Python 的一次给两个变量赋值，等于 <code>prev = None</code> 再 <code>curr = head</code>。NeetCode 视频里把 nxt 叫做 temp，是同一个东西。</p>
+</section>
+
+<!-- 05 -->
+<section id="step">
+  <div class="chap"><span class="num">05</span><h2>单步执行：迭代</h2></div>
+  <p>输入任意链表，一步一步看箭头怎么掉头。右边高亮当前执行的代码行。可以切换成漏写 <code>nxt = curr.next</code> 的版本，看后半段是怎么丢的。</p>
+  <div class="lab">
+    <div id="itIn"></div>
+    <fieldset class="modes" id="itModes"><legend>写法</legend>
+      <label><input type="radio" name="itMode" value="ok" checked>正确：先存 <span class="mono">nxt</span></label>
+      <label><input type="radio" name="itMode" value="lost">漏写 <span class="mono">nxt = curr.next</span></label>
+    </fieldset>
+    <div>
+      <div class="lwrap" id="itList"></div>
+      <div class="legend"><span><i class="fw"></i>原来的方向</span><span><i class="bw"></i>掉过头</span><span><i class="hot"></i>这一步改的</span><span><i class="lost"></i>丢了</span></div>
+    </div>
+    <div class="stepper-grid">
+      <div class="viz">
+        <div class="vars"><span class="var p" id="itPrev"></span><span class="var s" id="itCurr"></span><span class="var f" id="itNxt"></span></div>
+        <div class="reads" id="itReads"></div>
+        <div><span id="itOut" class="pill">运行中</span></div>
+      </div>
+      <pre class="code" id="itCode"></pre>
+    </div>
+    <div class="msg" id="itMsg" aria-live="polite"></div>
+    <div class="lab-head">
+      <div class="controls">
+        <button type="button" id="itReset">重来</button>
+        <button type="button" id="itPrev2">上一步</button>
+        <button type="button" id="itNext" class="primary">下一步</button>
+        <button type="button" id="itPlay">自动播放</button>
+      </div>
+      <span class="progress" id="itProg"></span>
+    </div>
+  </div>
+  <p style="font-size:14px;color:var(--muted)">留意灰色的 head 标签：它从头到尾都指着节点 0。反转完 0 是尾巴，所以返回 head 是错的，要返回 prev。</p>
+</section>
+
+<!-- 06 -->
+<section id="rec">
+  <div class="chap"><span class="num">06</span><h2>递归写法</h2></div>
+  <p>换个角度想：要反转 <code>0 → 1 → 2 → 3</code>，假如有人已经帮你把后面的 <code>1 → 2 → 3</code> 反好了，变成 <code>3 → 2 → 1 → None</code>，你还差什么？</p>
+  <p>只差把 0 接到 1 后面。而 0 的箭头这时还指着 1，所以 <code>head.next</code> 就是 1，<code>head.next.next = head</code> 就是“让 1 的箭头指向 0”。再把 0 的箭头改成 None，0 就成了新的尾巴。</p>
+  <p>“有人帮你反好后面”就是递归调用自己。一直往后递归，直到只剩一个节点：一个节点反转后还是它自己，直接返回。</p>
+<pre class="code" data-lang="py">def reverseList(head):
+    if not head:                  # 空链表
+        return None
+    newHead = head                # 只有一个节点时，它自己就是新的头
+    if head.next:
+        newHead = reverseList(head.next)    # 先把后面那段反好
+        head.next.next = head     # 后面那段的尾巴（原来的 head.next）指回 head
+    head.next = None              # head 变成尾巴
+    return newHead</pre>
+  <ul class="plain">
+    <li><code>head.next.next = head</code> 从左往右读：<code>head.next</code> 是 head 后面的节点，再 <code>.next</code> 是那个节点的箭头，把它改成指向 head。</li>
+    <li>反好的后半段，尾巴正好是原来的 <code>head.next</code>，所以不用从 newHead 一路走到尾巴去找它。</li>
+    <li><code>newHead</code> 是原来最后一个节点，它在最深的一层被找到，然后每一层都原样往上传，没人改它。</li>
+    <li>执行完 <code>head.next.next = head</code> 的那一刻，head 和后面那个节点<strong>互相指着</strong>，是一个小环。下一行 <code>head.next = None</code> 把它剪断。漏了这一行，最外层的 0 和 1 会一直互相指，链表就走不完了。</li>
+  </ul>
+  <p>下面看递归怎么一层层进去、再一层层回来。左下是<strong>调用栈</strong>：每调用一次就压上一层，返回一次就弹掉一层，最上面那层是正在执行的。</p>
+  <div class="lab">
+    <div id="rcIn"></div>
+    <fieldset class="modes" id="rcModes"><legend>写法</legend>
+      <label><input type="radio" name="rcMode" value="ok" checked>完整</label>
+      <label><input type="radio" name="rcMode" value="nocut">漏写 <span class="mono">head.next = None</span></label>
+    </fieldset>
+    <div>
+      <div class="lwrap" id="rcList"></div>
+      <div class="legend"><span><i class="fw"></i>原来的方向</span><span><i class="bw"></i>掉过头</span><span><i class="hot"></i>这一步改的</span></div>
+    </div>
+    <div class="stepper-grid">
+      <div class="viz">
+        <div class="stk" id="rcStack"></div>
+        <div class="reads" id="rcReads"></div>
+        <div><span id="rcOut" class="pill">运行中</span></div>
+      </div>
+      <pre class="code" id="rcCode"></pre>
+    </div>
+    <div class="msg" id="rcMsg" aria-live="polite"></div>
+    <div class="lab-head">
+      <div class="controls">
+        <button type="button" id="rcReset">重来</button>
+        <button type="button" id="rcPrev">上一步</button>
+        <button type="button" id="rcNext" class="primary">下一步</button>
+        <button type="button" id="rcPlay">自动播放</button>
+      </div>
+      <span class="progress" id="rcProg"></span>
+    </div>
+  </div>
+  <p class="note warn">递归写法时间也是 O(n)，但每一层调用都要在调用栈里占一份空间，n 个节点就是 n 层，额外空间 <strong>O(n)</strong>。链表很长时（比如十万个节点）Python 会报递归太深。面试首选迭代写法，递归写法用来展示你理解递归。</p>
+</section>
+
+<!-- 07 -->
+<section id="template">
+  <div class="chap"><span class="num">07</span><h2>反转模板与同类题</h2></div>
+  <p>这四行是链表题里用得最多的一段代码，值得背下来：</p>
+<pre class="code" data-lang="py">prev, curr = None, head
+while curr:
+    nxt = curr.next      # 先存后面
+    curr.next = prev     # 箭头掉头
+    prev, curr = curr, nxt
+# 结束时 prev 是新的头</pre>
+  <p>很多题都是“找到一段，把它反过来，再接回去”：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>题目</th><th>反转用在哪</th></tr>
+    <tr><td><strong>本题</strong></td><td>整条链表反转</td></tr>
+    <tr><td>Reorder List</td><td>用快慢指针找到中点，后半段反转，再和前半段交替合并</td></tr>
+    <tr><td>Palindrome Linked List</td><td>后半段反转，和前半段逐个比较</td></tr>
+    <tr><td>Reverse Linked List II</td><td>只反转第 left 到第 right 个节点，反完要把两头接回去</td></tr>
+    <tr><td>Reverse Nodes in k-Group</td><td>每 k 个节点反转一次，一段一段接起来</td></tr>
+  </table></div>
+  <h3>下次怎么想到</h3>
+  <ol class="plain">
+    <li>链表只能往后走。要“往回指”，就得自己用一个变量（prev）记住刚走过的节点。</li>
+    <li>每改一根箭头，先问：箭头原来指着的节点，还有没有别的变量指着？没有就先存（nxt）。</li>
+    <li>画图。在纸上画出三四个节点，每执行一行就改一根箭头或挪一个标签，比在脑子里想可靠得多。</li>
+  </ol>
+</section>
+
+<!-- 08 -->
+<section id="code">
+  <div class="chap"><span class="num">08</span><h2>完整代码与复杂度</h2></div>
+  <div class="tabs" role="tablist" aria-label="语言">
+    <button type="button" role="tab" aria-selected="true" data-lang="py">Python</button>
+    <button type="button" role="tab" aria-selected="false" data-lang="java">Java</button>
+    <button type="button" role="tab" aria-selected="false" data-lang="cpp">C++</button>
+  </div>
+  <div class="code-group" id="code-py">
+    <p class="code-cap">迭代（推荐）</p>
+<pre class="code" data-lang="py">class Solution:
+    def reverseList(self, head: Optional[ListNode]) -&gt; Optional[ListNode]:
+        prev, curr = None, head
+        while curr:
+            nxt = curr.next
+            curr.next = prev
+            prev = curr
+            curr = nxt
+        return prev</pre>
+    <p class="code-cap">递归</p>
+<pre class="code" data-lang="py">class Solution:
+    def reverseList(self, head: Optional[ListNode]) -&gt; Optional[ListNode]:
+        if not head:
+            return None
+        newHead = head
+        if head.next:
+            newHead = self.reverseList(head.next)
+            head.next.next = head
+        head.next = None
+        return newHead</pre>
+  </div>
+  <div class="code-group" id="code-java" hidden>
+    <p class="code-cap">迭代（推荐）</p>
+<pre class="code" data-lang="java">class Solution {
+    public ListNode reverseList(ListNode head) {
+        ListNode prev = null, curr = head;
+        while (curr != null) {
+            ListNode nxt = curr.next;
+            curr.next = prev;
+            prev = curr;
+            curr = nxt;
+        }
+        return prev;
+    }
+}</pre>
+    <p class="code-cap">递归</p>
+<pre class="code" data-lang="java">class Solution {
+    public ListNode reverseList(ListNode head) {
+        if (head == null) return null;
+        ListNode newHead = head;
+        if (head.next != null) {
+            newHead = reverseList(head.next);
+            head.next.next = head;
+        }
+        head.next = null;
+        return newHead;
+    }
+}</pre>
+  </div>
+  <div class="code-group" id="code-cpp" hidden>
+    <p class="code-cap">迭代（推荐）</p>
+<pre class="code" data-lang="cpp">class Solution {
+public:
+    ListNode* reverseList(ListNode* head) {
+        ListNode* prev = nullptr;
+        ListNode* curr = head;
+        while (curr != nullptr) {
+            ListNode* nxt = curr-&gt;next;
+            curr-&gt;next = prev;
+            prev = curr;
+            curr = nxt;
+        }
+        return prev;
+    }
+};</pre>
+    <p class="code-cap">递归</p>
+<pre class="code" data-lang="cpp">class Solution {
+public:
+    ListNode* reverseList(ListNode* head) {
+        if (head == nullptr) return nullptr;
+        ListNode* newHead = head;
+        if (head-&gt;next != nullptr) {
+            newHead = reverseList(head-&gt;next);
+            head-&gt;next-&gt;next = head;
+        }
+        head-&gt;next = nullptr;
+        return newHead;
+    }
+};</pre>
+  </div>
+  <p style="font-size:14px;color:var(--muted)"><code>Optional[ListNode]</code> 是类型提示，意思是“一个 ListNode 或者 None”，不影响运行。递归写法在类里要写 <code>self.reverseList(...)</code> 调用自己。Java 里的 <code>null</code>、C++ 里的 <code>nullptr</code> 就是 Python 的 None；C++ 用 <code>-&gt;</code> 访问指针指着的节点的成员。</p>
+
+  <h3>复杂度</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>解法</th><th>时间</th><th>额外空间</th><th>说明</th></tr>
+    <tr><td>抄到数组再填回去</td><td>O(n)</td><td>O(n)</td><td>数组存 n 个值，改的是值不是箭头</td></tr>
+    <tr><td>迭代：三个指针</td><td class="ans">O(n)</td><td class="ans">O(1)</td><td>每个节点改一次箭头，只用 prev、curr、nxt 三个变量</td></tr>
+    <tr><td>递归</td><td>O(n)</td><td>O(n)</td><td>调用栈有 n 层</td></tr>
+  </table></div>
+
+  <h3>最容易写错的四个地方</h3>
+  <ul class="plain">
+    <li><strong>没先存 <code>curr.next</code></strong>：先写 <code>curr.next = prev</code> 再 <code>curr = curr.next</code>，curr 会退回 prev。<code>[0,1,2,3]</code> 只返回 <code>[0]</code>，后面的节点全丢了。</li>
+    <li><strong>返回 curr 或 head</strong>：循环结束时 curr 是 None；head 还指着原来的第一个节点，它已经是尾巴了。返回 head 得到的是 <code>[0]</code>。要返回 prev。</li>
+    <li><strong>递归漏写 <code>head.next = None</code></strong>：原来的头节点 0 和节点 1 互相指着，形成环，链表走不完。</li>
+    <li><strong>递归不判断空链表</strong>：<code>head = None</code> 时直接访问 <code>head.next</code> 会报错，所以第一行要 <code>if not head: return None</code>。</li>
+  </ul>
+</section>
+
+<!-- 09 -->
+<section id="quiz">
+  <div class="chap"><span class="num">09</span><h2>自测</h2></div>
+  <p>点选答案，立即判分。全部答对说明前置知识已经过关。</p>
+  <div class="quiz" id="quizBox"></div>
+  <p class="progress" id="quizScore"></p>
+
+  <h3 style="margin-top:12px">掌握清单</h3>
+  <ul class="checklist" id="checklist">
+    <li><label><input type="checkbox" id="ck1"><span>能说出链表节点里有什么，为什么不能用下标直接跳到第 k 个。</span></label></li>
+    <li><label><input type="checkbox" id="ck2"><span>能分清 <code>a = a.next</code>（挪标签）和 <code>a.next = ...</code>（改箭头）。</span></label></li>
+    <li><label><input type="checkbox" id="ck3"><span>能说出“改箭头之前先存后面”，以及不存会怎样。</span></label></li>
+    <li><label><input type="checkbox" id="ck4"><span>能说出 prev、curr、nxt 各自指着什么，四行代码为什么是这个顺序。</span></label></li>
+    <li><label><input type="checkbox" id="ck5"><span>知道循环结束时 curr 是 None，要返回 prev。</span></label></li>
+    <li><label><input type="checkbox" id="ck6"><span>能解释递归里的 <code>head.next.next = head</code> 和 <code>head.next = None</code>。</span></label></li>
+    <li><label><input type="checkbox" id="ck7"><span>能说出迭代 O(1) 空间、递归 O(n) 空间的原因。</span></label></li>
+    <li><label><input type="checkbox" id="ck8"><span>不看本页，5 分钟内写出可以通过的迭代代码。</span></label></li>
+  </ul>
+</section>
+
+<footer>同类题型：Merge Two Sorted Lists 也是一边走一边改 next；Reorder List 和 Palindrome Linked List 都要先把后半段反转；Reverse Nodes in k-Group 是本题的进阶版，每 k 个节点套一次这里的反转模板。Linked List Cycle 讲怎么判断链表里有没有环，就是第 06 章漏写一行时出现的那种环。</footer>
+</main>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  function showErr(id, msg) { $(id).textContent = msg || ""; $(id).hidden = !msg; return !!msg; }
+
+  /* ---------- 链表基础：节点用下标 0..n-1 表示，next[i] 是下一个节点的下标，-1 是 None ---------- */
+  const chain = (n) => Array.from({ length: n }, (_, i) => (i < n - 1 ? i + 1 : -1));
+  const valid = (x, n) => x !== null && x !== undefined && x !== -1 && x < n;
+  function readFrom(vals, next, s) {
+    if (!valid(s, vals.length)) return "None";
+    const seen = new Set(), out = [];
+    let c = s;
+    while (c !== -1) {
+      if (seen.has(c)) return out.join(" → ") + ' → <span class="bad">' + vals[c] + " → …（绕回去了，永远走不完）</span>";
+      seen.add(c); out.push(vals[c]); c = next[c];
+    }
+    return out.concat("None").join(" → ");
+  }
+  function reach(next, roots) {
+    const s = new Set();
+    roots.forEach((r) => { let c = r; while (c !== -1 && c !== null && c !== undefined && !s.has(c)) { s.add(c); c = next[c]; } });
+    return s;
+  }
+  const fmt = (vals) => "[" + vals.join(",") + "]";
+
+  // 接受 [0,1,2,3]、0,1,2,3、0 1 2 3、[]
+  function parseList(text, maxLen) {
+    const t = text.trim().replace(/^[\[［]/, "").replace(/[\]］]$/, "").trim();
+    if (!t) return { vals: [] };
+    const parts = t.split(/[\s,，]+/).filter(Boolean);
+    if (!parts.every((p) => /^-?\d+$/.test(p))) return { err: "请输入整数，用逗号或空格隔开，例如 [0,1,2,3]" };
+    const vals = parts.map(Number);
+    if (vals.some((v) => v < -1000 || v > 1000)) return { err: "题目规定 −1000 ≤ Node.val ≤ 1000" };
+    if (vals.length > maxLen) return { err: "演示里最多 " + maxLen + " 个节点，方便看清" };
+    return { vals };
+  }
+  function randList() {
+    const n = 3 + Math.floor(Math.random() * 4);
+    return Array.from({ length: n }, () => Math.floor(Math.random() * 19) - 4);
+  }
+  function wire(p, init, list, maxLen, load) {
+    $(p + "In").innerHTML = '<div class="field"><label for="' + p + 'H">head =</label>' +
+      '<input type="text" id="' + p + 'H" value="' + fmt(init) + '" autocomplete="off" spellcheck="false" aria-describedby="' + p + 'Err"></div>' +
+      '<div class="controls" id="' + p + 'Presets" style="margin-top:10px"></div><span class="err" id="' + p + 'Err" hidden></span>';
+    const run = () => { const r = parseList($(p + "H").value, maxLen); if (showErr(p + "Err", r.err)) return; load(r.vals); };
+    $(p + "H").addEventListener("input", run);
+    const el = $(p + "Presets");
+    el.innerHTML = list.map((x, k) => '<button type="button" class="mono" data-k="' + k + '">' + (x === "随机" ? "随机" : fmt(x)) + "</button>").join("");
+    el.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-k]"); if (!b) return;
+      const x = list[+b.dataset.k], v = x === "随机" ? randList() : x;
+      $(p + "H").value = fmt(v); run();
+    });
+    run();
+  }
+
+  /* ---------- 链表图 ---------- */
+  const NW = 46, NH = 38, GAP = 52, PADX = 58, TOP0 = 34;
+  const nx = (i) => PADX + i * (NW + GAP);
+  function hArrow(x1, x2, y, cls, hot) {
+    const d = x2 > x1 ? 1 : -1, b = x2 - d * 7;
+    return (hot ? '<line class="halo" x1="' + x1 + '" y1="' + y + '" x2="' + x2 + '" y2="' + y + '"/>' : "") +
+      '<line class="ar ' + cls + (hot ? " hot" : "") + '" x1="' + x1 + '" y1="' + y + '" x2="' + b + '" y2="' + y + '"/>' +
+      '<polygon class="ah ' + cls + '" points="' + x2 + "," + y + " " + b + "," + (y - 5) + " " + b + "," + (y + 5) + '"/>';
+  }
+  function upArrow(x, y1, y2, cls, hot) {
+    const b = y2 + 7;
+    return (hot ? '<line class="halo" x1="' + x + '" y1="' + y1 + '" x2="' + x + '" y2="' + y2 + '"/>' : "") +
+      '<line class="ar ' + cls + (hot ? " hot" : "") + '" x1="' + x + '" y1="' + y1 + '" x2="' + x + '" y2="' + b + '"/>' +
+      '<polygon class="ah ' + cls + '" points="' + x + "," + y2 + " " + (x - 5) + "," + b + " " + (x + 5) + "," + b + '"/>';
+  }
+  // o.ptrs：[[名字, 节点下标, 颜色类]]；o.roots：哪些变量还活着（用来找丢了的节点）；o.changed：这一步改了谁的箭头；o.ring：描边的节点；o.rows：标签留几行
+  function listSVG(vals, next, o) {
+    o = o || {};
+    const n = vals.length, rows = o.rows || 3;
+    if (!n) return '<p class="empty">head = None：空链表，一个节点都没有</p>';
+    const W = PADX * 2 + n * NW + (n - 1) * GAP, H = TOP0 + NH + 8 + rows * 15;
+    const alive = o.roots ? reach(next, o.roots) : null;
+    const gaps = {}, ups = [];
+    const put = (g, lane, it) => { (gaps[g] = gaps[g] || {})[lane] = it; };
+    for (let i = 0; i < n; i++) {
+      const j = next[i];
+      if (j === -1) {
+        if (i === n - 1) put(n - 1, "top", { t: "NR", i });
+        else if (i === 0) put(-1, "bot", { t: "NL", i });
+        else ups.push(i);
+      } else if (j === i + 1) put(i, "top", { t: "R", i });
+      else if (j === i - 1) put(i - 1, "bot", { t: "L", i });
+    }
+    let arrows = "";
+    Object.keys(gaps).forEach((gk) => {
+      const g = gaps[gk], both = g.top && g.bot;
+      [["top", TOP0 + 12], ["bot", TOP0 + NH - 12]].forEach(([lane, y0]) => {
+        const it = g[lane]; if (!it) return;
+        const y = both ? y0 : TOP0 + NH / 2, i = it.i, hot = o.changed === i;
+        if (it.t === "R") arrows += hArrow(nx(i) + NW + 3, nx(i + 1) - 3, y, "fw", hot);
+        else if (it.t === "L") arrows += hArrow(nx(i) - 3, nx(i - 1) + NW + 3, y, "bw", hot);
+        else if (it.t === "NR") arrows += hArrow(nx(i) + NW + 3, nx(i) + NW + 18, y, "nn", hot) + '<text class="nt" x="' + (nx(i) + NW + 21) + '" y="' + y + '">None</text>';
+        else arrows += hArrow(nx(i) - 3, nx(i) - 18, y, "nn", hot) + '<text class="nt end" x="' + (nx(i) - 21) + '" y="' + y + '">None</text>';
+      });
+    });
+    ups.forEach((i) => {
+      const cx = nx(i) + NW / 2;
+      arrows += upArrow(cx, TOP0 - 3, 17, "nn", o.changed === i) + '<text class="nt mid" x="' + cx + '" y="8">None</text>';
+    });
+    const byNode = {};
+    (o.ptrs || []).forEach(([name, idx, cls]) => { if (valid(idx, n)) (byNode[idx] = byNode[idx] || []).push([name, cls]); });
+    let nodes = "";
+    for (let i = 0; i < n; i++) {
+      const lost = alive && !alive.has(i);
+      if (lost) (byNode[i] = byNode[i] || []).push(["丢了", "lost"]);
+      nodes += "<g" + (lost ? ' class="lost"' : "") + '><rect class="nd' + (o.ring === i ? " ring" : "") + '" x="' + nx(i) + '" y="' + TOP0 + '" width="' + NW + '" height="' + NH + '" rx="7"/>' +
+        '<text class="nv" x="' + (nx(i) + NW / 2) + '" y="' + (TOP0 + NH / 2) + '">' + vals[i] + "</text></g>";
+    }
+    let labs = "";
+    Object.keys(byNode).forEach((k) => byNode[k].forEach(([name, cls], r) => {
+      labs += '<text class="lb ' + cls + '" x="' + (nx(+k) + NW / 2) + '" y="' + (TOP0 + NH + 16 + r * 15) + '">' + esc(name) + "</text>";
+    }));
+    const label = o.label || "链表图";
+    return '<svg class="ls" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + esc(label) + '">' + arrows + nodes + labs + "</svg>";
+  }
+  // 手机上图比框宽时横向滚动，让关注的节点停在中间
+  function focusNode(wrap, i) {
+    const svg = wrap.querySelector("svg");
+    if (!svg || wrap.scrollWidth <= wrap.clientWidth + 1) return;
+    if (i === null || i === undefined || i < 0) return;
+    const off = svg.getBoundingClientRect().left - wrap.getBoundingClientRect().left + wrap.scrollLeft;
+    wrap.scrollLeft = off + nx(i) + NW / 2 - wrap.clientWidth / 2;
+  }
+  const readLine = (name, cls, text) => '<span class="rl">从 <b class="' + cls + '">' + name + "</b> 读：" + text + "</span>";
+
+  /* ---------- 语法高亮 ---------- */
+  const KW = /\b(class|def|for|in|range|if|else|not|and|or|while|return|print|self|None|True|False|Optional|ListNode|public|private|new|null|nullptr)\b|\b(\d+)\b/g;
+  function hlCode(text, lang) {
+    const marker = lang === "py" ? "#" : "//";
+    const pos = text.indexOf(marker);
+    const codePart = pos >= 0 ? text.slice(0, pos) : text;
+    const comPart = pos >= 0 ? text.slice(pos) : "";
+    const body = esc(codePart).replace(KW, (m, k, n) => k ? '<span class="k">' + k + "</span>" : '<span class="n">' + n + "</span>");
+    return body + (comPart ? '<span class="c">' + esc(comPart) + "</span>" : "");
+  }
+  document.querySelectorAll("pre.code[data-lang]").forEach((pre) => {
+    const lang = pre.dataset.lang;
+    pre.innerHTML = pre.textContent.split("\n").map((l) => '<span class="ln">' + (hlCode(l, lang) || " ") + "</span>").join("");
+  });
+  function renderCode(el, lines, mut) {
+    el.innerHTML = lines.map((l, k) => '<span class="ln' + (k === mut ? " mut" : "") + '" data-k="' + k + '">' + (hlCode(l, "py") || " ") + "</span>").join("");
+  }
+  function markLine(el, line, hl) {
+    const set = [].concat(line);
+    el.querySelectorAll(".ln").forEach((x) => {
+      x.classList.remove("hl0", "hl", "hl2", "hl3", "hl4", "hl5");
+      if (set.includes(+x.dataset.k)) x.classList.add(hl);
+    });
+  }
+
+  function makePlayer(p, draw, prevId) {
+    const S = { frames: [], idx: 0, timer: null };
+    const el = (s) => $(p + s), prevBtn = $(prevId || p + "Prev");
+    function render() {
+      draw(S.frames[S.idx]);
+      el("Prog").textContent = "第 " + (S.idx + 1) + " / " + S.frames.length + " 步";
+      prevBtn.disabled = S.idx === 0;
+      el("Next").disabled = S.idx === S.frames.length - 1;
+    }
+    function stop() { if (S.timer) { clearInterval(S.timer); S.timer = null; } el("Play").textContent = "自动播放"; }
+    el("Next").addEventListener("click", () => { stop(); if (S.idx < S.frames.length - 1) { S.idx++; render(); } });
+    prevBtn.addEventListener("click", () => { stop(); if (S.idx > 0) { S.idx--; render(); } });
+    el("Reset").addEventListener("click", () => { stop(); S.idx = 0; render(); });
+    el("Play").addEventListener("click", () => {
+      if (S.timer) { stop(); return; }
+      if (S.idx === S.frames.length - 1) { S.idx = 0; render(); }
+      el("Play").textContent = "暂停";
+      S.timer = setInterval(() => { if (S.idx < S.frames.length - 1) { S.idx++; render(); } else stop(); }, 1100);
+    });
+    return { load(frames) { stop(); S.frames = frames; S.idx = 0; render(); } };
+  }
+  const radio = (name, def) => { const c = document.querySelector('input[name="' + name + '"]:checked'); return c ? c.value : def; };
+
+  /* ---------- 01 遍历 ---------- */
+  const TR_CODE = ["cur = head", "while cur:", "    print(cur.val)", "    cur = cur.next"];
+  renderCode($("trCode"), TR_CODE, -1);
+  function trBuild(vals) {
+    const n = vals.length, next = chain(n), F = [], out = [];
+    let cur = n ? 0 : -1;
+    const nm = (i) => (i === -1 ? "None" : "节点 " + vals[i]);
+    const push = (o) => F.push(Object.assign({ cur, out: out.slice() }, o));
+    push({ line: 0, hl: "hl0", msg: n ? "cur = head：cur 和 head 指向同一个节点 " + vals[0] + "。没有复制节点，只是多了一个指着它的名字。" : "cur = head：head 是 None，cur 也是 None。" });
+    for (;;) {
+      if (cur === -1) {
+        push({ line: 1, hl: "hl3", msg: "cur 是 None，<code>while cur</code> 为假，循环结束。" + (n ? "链表有 " + n + " 个节点，就走了 " + n + " 步。想拿第 k 个节点，也只能这样从头走 k 步。" : "空链表一次都不进循环。") });
+        break;
+      }
+      push({ line: 1, hl: "hl4", msg: "cur 指着节点 " + vals[cur] + "，不是 None，进入循环。" });
+      out.push(vals[cur]);
+      push({ line: 2, hl: "hl5", msg: "print(cur.val)：输出 " + vals[cur] + "。" });
+      const old = cur; cur = next[cur];
+      push({ line: 3, hl: "hl2", msg: "cur = cur.next：顺着 " + vals[old] + " 的箭头走到 " + nm(cur) + "。箭头一根都没动，只是 cur 换了个节点指。" });
+    }
+    return F;
+  }
+  const tr = { vals: [] };
+  const trP = makePlayer("tr", (f) => {
+    const v = tr.vals;
+    $("trList").innerHTML = listSVG(v, chain(v.length), { ptrs: [["head", 0, "head"], ["cur", f.cur, "curr"]], ring: f.cur, rows: 2, label: "链表 " + fmt(v) });
+    focusNode($("trList"), f.cur);
+    $("trHead").textContent = "head → " + (v.length ? v[0] : "None");
+    $("trCur").textContent = "cur = " + (f.cur === -1 ? "None" : "节点 " + v[f.cur]);
+    $("trOut").textContent = "输出：" + (f.out.length ? f.out.join(" ") : "（还没有）");
+    markLine($("trCode"), f.line, f.hl);
+    $("trMsg").innerHTML = f.msg;
+  });
+  wire("tr", [0, 1, 2, 3], [[0, 1, 2, 3], [7, 4, 9], [5], [], "随机"], 8, (v) => { tr.vals = v; trP.load(trBuild(v)); });
+
+  /* ---------- 02 挪变量 vs 改箭头 ---------- */
+  const SB_CODE = { cut: ["a = head", "a = a.next", "a.next = None"], save: ["a = head", "a = a.next", "b = a.next", "a.next = None"] };
+  function sbBuild(mode) {
+    const next = [1, 2, -1], F = [];
+    let a = null, b = null;
+    const push = (o) => F.push(Object.assign({ next: next.slice(), a, b, changed: -1 }, o));
+    push({ line: -1, hl: "hl0", msg: "head 指向节点 1：1 → 2 → 3 → None。点“下一步”一行一行执行右边的代码。" });
+    a = 0;
+    push({ line: 0, hl: "hl2", msg: "a = head：a 和 head 现在贴在同一个节点 1 上。只是多了一个名字，没有新建节点。" });
+    a = 1;
+    push({ line: 1, hl: "hl2", msg: "a = a.next：先读出 a.next（节点 2），再让 a 改指它。<strong>只有 a 这个标签挪了</strong>，三根箭头一根都没动，从 head 读还是 1 → 2 → 3 → None。" });
+    if (mode === "save") {
+      b = 2;
+      push({ line: 2, hl: "hl5", msg: "b = a.next：让 b 指着节点 3，把它保住。" });
+    }
+    next[1] = -1;
+    push({
+      line: mode === "save" ? 3 : 2, hl: mode === "save" ? "hl4" : "hl3", changed: 1,
+      msg: mode === "save"
+        ? "a.next = None：等号左边是 <code>a.next</code>，改的是节点 2 的箭头。从 head 读只剩 1 → 2 → None，<span class=\"ans\">但 b 还指着节点 3</span>，它没丢，以后还能接回来。"
+        : "a.next = None：等号左边是 <code>a.next</code>，改的是<strong>节点 2 里面的 next</strong>，箭头真的变了。从 head 读只剩 1 → 2 → None。<span class=\"bad\">节点 3 没有任何变量指着，也没有箭头通向它，丢了。</span>"
+    });
+    return F;
+  }
+  const sbVals = [1, 2, 3];
+  const sbP = makePlayer("sb", (f) => {
+    const ptrs = [["head", 0, "head"], ["a", f.a, "curr"], ["b", f.b, "nxt"]];
+    $("sbList").innerHTML = listSVG(sbVals, f.next, { ptrs, roots: [0, f.a, f.b], changed: f.changed, rows: 3, label: "从 head 读：" + readFrom(sbVals, f.next, 0) });
+    let r = readLine("head", "hd", readFrom(sbVals, f.next, 0));
+    if (f.a !== null) r += readLine("a", "suf", readFrom(sbVals, f.next, f.a));
+    if (f.b !== null) r += readLine("b", "fix", readFrom(sbVals, f.next, f.b));
+    $("sbReads").innerHTML = r;
+    markLine($("sbCode"), f.line, f.hl);
+    $("sbMsg").innerHTML = f.msg;
+  });
+  function sbLoad() { const m = radio("sbMode", "cut"); renderCode($("sbCode"), SB_CODE[m], -1); sbP.load(sbBuild(m)); }
+  $("sbModes").addEventListener("change", sbLoad);
+  sbLoad();
+
+  /* ---------- 04 静态图 ---------- */
+  (function () {
+    const v = [0, 1, 2, 3];
+    $("s4a").innerHTML = listSVG(v, [1, 2, 3, -1], { ptrs: [["head", 0, "head"]], rows: 1, label: "反转前：0 → 1 → 2 → 3 → None" });
+    $("s4b").innerHTML = listSVG(v, [-1, 0, 1, 2], { ptrs: [["新的头", 3, "new"]], rows: 1, label: "反转后：3 → 2 → 1 → 0 → None" });
+    const mid = [-1, 0, 3, -1];
+    $("s4c").innerHTML = listSVG(v, mid, { ptrs: [["prev", 1, "prev"], ["curr", 2, "curr"], ["nxt", 3, "nxt"]], ring: 2, rows: 1, label: "改到一半：prev 指着 1，curr 指着 2" });
+    $("s4cReads").innerHTML = readLine("prev", "pre", readFrom(v, mid, 1) + "　（已经反好）") + readLine("curr", "suf", readFrom(v, mid, 2) + "　（还没动）");
+  })();
+
+  /* ---------- 05 迭代单步 ---------- */
+  const IT_CODE = {
+    ok: [
+      "prev, curr = None, head",
+      "while curr:",
+      "    nxt = curr.next",
+      "    curr.next = prev",
+      "    prev = curr",
+      "    curr = nxt",
+      "return prev"
+    ],
+    lost: [
+      "prev, curr = None, head",
+      "while curr:",
+      "    # nxt = curr.next   ← 漏写了这一行",
+      "    curr.next = prev",
+      "    prev = curr",
+      "    curr = curr.next    # 这时 curr.next 已经是 prev 了",
+      "return prev"
+    ]
+  };
+  function itBuild(vals, mode) {
+    const n = vals.length, next = chain(n), F = [];
+    let prev = -1, curr = n ? 0 : -1, nxt = null;
+    const nm = (i) => (i === -1 ? "None" : "节点 " + vals[i]);
+    const push = (o) => F.push(Object.assign({ next: next.slice(), prev, curr, nxt, changed: -1, verdict: null, focus: curr !== -1 ? curr : prev }, o));
+    push({ line: 0, hl: "hl0", msg: "prev = None：还没有反好的部分。curr = head：从第一个节点开始改。" + (n ? "" : "head 是 None，curr 也是 None。") });
+    for (let g = 0; g < 20; g++) {
+      if (curr === -1) { push({ line: 1, hl: "hl3", msg: "curr 是 None，循环结束。" }); break; }
+      push({ line: 1, hl: "hl4", msg: "curr 指着节点 " + vals[curr] + "，不是 None，进入循环，处理它。" });
+      if (mode === "ok") {
+        nxt = next[curr];
+        push({ line: 2, hl: "hl5", msg: "nxt = curr.next：先把 curr 后面的 " + nm(nxt) + " 记下来。下一行就要改 curr.next，不记就找不到后面了。" });
+      }
+      const old = next[curr]; next[curr] = prev;
+      let m = "curr.next = prev：把节点 " + vals[curr] + " 的箭头从指向 " + nm(old) + " 改成指向 " + nm(prev) + "。";
+      if (prev === -1) m += "它是原来的第一个节点，反转后是尾巴，所以指向 None。";
+      if (mode === "ok" && nxt !== -1) m += "后半段还被 nxt 指着，没丢。";
+      if (mode === "lost" && old !== -1) m += '<span class="bad">' + nm(old) + " 以后的节点再也没有变量指着了，丢了。</span>";
+      push({ line: 3, hl: "hl4", changed: curr, msg: m });
+      prev = curr;
+      push({ line: 4, hl: "hl", msg: "prev = curr：prev 走到节点 " + vals[prev] + "。从 prev 读，就是已经反好的一段：" + readFrom(vals, next, prev) + "。" });
+      if (mode === "ok") {
+        curr = nxt;
+        push({ line: 5, hl: "hl2", msg: "curr = nxt：curr 走到刚才存下的 " + nm(curr) + "。" + (curr === -1 ? "后面没有节点了。" : "") });
+      } else {
+        curr = next[curr];
+        push({ line: 5, hl: "hl3", msg: "curr = curr.next：可是 curr.next 刚在上上行被改成了 " + nm(curr) + "。curr 没往前走，<span class=\"bad\">反而退回去了</span>。" });
+      }
+    }
+    const want = vals.slice().reverse(), got = [];
+    for (let c = prev, k = 0; c !== -1 && k <= n; c = next[c], k++) got.push(vals[c]);
+    const ok = got.length === want.length && got.every((x, i) => x === want[i]);
+    let msg = "return prev：返回 " + (prev === -1 ? "None" : "节点 " + vals[prev]) + "，读出来是 " + fmt(got) + "。";
+    if (ok) {
+      msg += '<span class="ans">正确</span>。';
+      if (!n) msg += "空链表一次循环都不进，prev 还是 None，正好就是答案。";
+      else if (mode === "ok") msg += "prev 停在原来的最后一个节点上，它就是新的头。每个节点的箭头恰好改了一次。";
+      else msg += "只有一个节点时碰巧对了，换成 [0,1,2,3] 试试。";
+    } else {
+      msg += '<span class="bad">错了</span>，应该是 ' + fmt(want) + "。第一轮改完箭头，curr 就退回了 None，循环直接结束，后面的节点全丢了。";
+    }
+    push({ line: 6, hl: ok ? "hl4" : "hl3", verdict: ok ? "ok" : "bad", result: got, msg });
+    return F;
+  }
+  const it = { vals: [], mode: "ok" };
+  const itP = makePlayer("it", (f) => {
+    const v = it.vals, n = v.length;
+    const ptrs = [["head", 0, "head"], ["prev", f.prev, "prev"], ["curr", f.curr, "curr"]];
+    if (f.nxt !== null) ptrs.push(["nxt", f.nxt, "nxt"]);
+    $("itList").innerHTML = listSVG(v, f.next, { ptrs, roots: [0, f.prev, f.curr, f.nxt].filter((x) => valid(x, n)), changed: f.changed, ring: f.curr, rows: 4, label: "从 prev 读：" + readFrom(v, f.next, f.prev) });
+    focusNode($("itList"), f.focus);
+    const pv = (x) => (x === null ? "还没定义" : x === -1 ? "None" : "→ " + v[x]);
+    $("itPrev").textContent = "prev " + (f.prev === -1 ? "= None" : pv(f.prev));
+    $("itCurr").textContent = "curr " + (f.curr === -1 ? "= None" : pv(f.curr));
+    const nEl = $("itNxt");
+    nEl.hidden = it.mode !== "ok";
+    nEl.textContent = "nxt " + (f.nxt === null ? "还没定义" : f.nxt === -1 ? "= None" : pv(f.nxt));
+    $("itReads").innerHTML = readLine("prev", "pre", readFrom(v, f.next, f.prev)) + readLine("curr", "suf", readFrom(v, f.next, f.curr));
+    const out = $("itOut");
+    out.className = "pill" + (f.verdict === "ok" ? " t" : f.verdict ? " f" : "");
+    out.textContent = f.verdict === "ok" ? "返回 " + fmt(f.result) + " ✓" : f.verdict === "bad" ? "返回 " + fmt(f.result) + " ✗" : "运行中";
+    markLine($("itCode"), f.line, f.hl);
+    $("itMsg").innerHTML = f.msg;
+  }, "itPrev2");
+  function itLoad(v) {
+    if (v !== undefined) it.vals = v;
+    it.mode = radio("itMode", "ok");
+    renderCode($("itCode"), IT_CODE[it.mode], it.mode === "lost" ? 2 : -1);
+    itP.load(itBuild(it.vals, it.mode));
+    $("itList").scrollLeft = 0;
+  }
+  $("itModes").addEventListener("change", () => itLoad());
+  wire("it", [0, 1, 2, 3], [[0, 1, 2, 3], [1, 2], [5], [], [4, 8, 15, 16, 23, 42], "随机"], 8, itLoad);
+
+  /* ---------- 06 递归单步 ---------- */
+  const RC_CODE = [
+    "def reverseList(head):",
+    "    if not head:",
+    "        return None",
+    "    newHead = head",
+    "    if head.next:",
+    "        newHead = reverseList(head.next)",
+    "        head.next.next = head",
+    "    head.next = None",
+    "    return newHead"
+  ];
+  const RC_NOCUT = RC_CODE.slice();
+  RC_NOCUT[7] = "    # head.next = None    ← 漏写了这一行";
+  function rcBuild(vals, mode) {
+    const n = vals.length, next = chain(n), F = [], stack = [];
+    const nm = (i) => (i === -1 ? "None" : "节点 " + vals[i]);
+    const push = (o) => F.push(Object.assign({ next: next.slice(), stack: stack.map((s) => Object.assign({}, s)), changed: -1, verdict: null, hn: -1, res: null }, o));
+    function call(h) {
+      stack.push({ h, nh: null });
+      const top = stack[stack.length - 1], d = stack.length;
+      push({ line: 0, hl: "hl0", msg: "第 " + d + " 层：调用 reverseList(" + nm(h) + ")。" + (d > 1 ? "上一层停在 <code>newHead = reverseList(head.next)</code> 那行等它的结果。" : "") });
+      if (h === -1) {
+        push({ line: 1, hl: "hl3", msg: "head 是 None，空链表。" });
+        push({ line: 2, hl: "hl3", msg: "return None：空链表反转后还是空的。" });
+        stack.pop();
+        return -1;
+      }
+      push({ line: 1, hl: "hl4", msg: "head 是节点 " + vals[h] + "，不是空的，往下走。" });
+      top.nh = h;
+      push({ line: 3, hl: "hl5", msg: "newHead = head：先假设自己就是反转后的头。只有后面没节点时，这个假设才成立。" });
+      const has = next[h] !== -1;
+      push({ line: 4, hl: has ? "hl4" : "hl3", hn: next[h], msg: has
+        ? "head.next 是节点 " + vals[next[h]] + "，后面还有节点。先递归把从 " + vals[next[h]] + " 开始的那一段反过来。"
+        : "head.next 是 None，节点 " + vals[h] + " 是最后一个。一个节点反转后还是它自己，newHead 就是它，这里不再往下递归。" });
+      if (has) {
+        const t = next[h];
+        push({ line: 5, hl: "hl2", hn: t, msg: "调用 reverseList(head.next)，也就是 reverseList(节点 " + vals[t] + ")。第 " + d + " 层先停在这里。" });
+        const r = call(t);
+        top.nh = r;
+        push({ line: 5, hl: "hl2", hn: t, msg: "回到第 " + d + " 层（head = 节点 " + vals[h] + "）：拿到 newHead = " + nm(r) + "。后面那段已经反好：" + readFrom(vals, next, r) +
+          "。它的尾巴是节点 " + vals[t] + "，而 head 的箭头还指着 " + vals[t] + "。" });
+        next[t] = h;
+        push({ line: 6, hl: "hl4", hn: t, changed: t, msg: "head.next.next = head：head.next 是节点 " + vals[t] + "，把它的箭头改成指向 head（节点 " + vals[h] + "）。" +
+          '现在 ' + vals[h] + " 和 " + vals[t] + ' <span class="bad">互相指着</span>，从 newHead 读会绕圈。' });
+      }
+      if (mode === "ok") {
+        const was = next[h];
+        next[h] = -1;
+        push({ line: 7, hl: "hl", changed: was !== -1 ? h : -1, msg: was !== -1
+          ? "head.next = None：剪断 " + vals[h] + " → " + vals[was] + "，节点 " + vals[h] + " 成了反好那段的新尾巴，环解开了。"
+          : "head.next = None：本来就是 None，没变。" });
+      }
+      push({ line: 8, hl: "hl4", msg: "return newHead：把 " + nm(top.nh) + " 交给" + (d > 1 ? "第 " + (d - 1) + " 层" : "最外面的调用者") + "。从它读：" + readFrom(vals, next, top.nh) + "。" });
+      stack.pop();
+      return top.nh;
+    }
+    const r = call(n ? 0 : -1);
+    const want = vals.slice().reverse(), got = [];
+    let cyc = false;
+    const seen = new Set();
+    for (let c = r; c !== -1; c = next[c]) { if (seen.has(c)) { cyc = true; break; } seen.add(c); got.push(vals[c]); }
+    const ok = !cyc && got.length === want.length && got.every((x, i) => x === want[i]);
+    let msg = "调用栈空了，最终返回 " + nm(r) + "：" + readFrom(vals, next, r) + "。";
+    msg += ok ? '<span class="ans">正确</span>。' + (n ? "每一层只做两件事：让后面的节点指回自己，再把自己的箭头剪断。" : "")
+      : '<span class="bad">错了</span>：最外层没有剪断 ' + vals[0] + " → " + vals[1] + "，" + vals[0] + " 和 " + vals[1] + " 一直互相指着。" + (n > 2 ? "中间的节点没事，是因为它们的箭头后来被上一层的 <code>head.next.next = head</code> 改掉了。" : "");
+    push({ line: -1, hl: "hl0", verdict: ok ? "ok" : "bad", res: r, cyc, got, msg });
+    return F;
+  }
+  const rc = { vals: [], mode: "ok" };
+  const rcP = makePlayer("rc", (f) => {
+    const v = rc.vals, n = v.length, top = f.stack[f.stack.length - 1];
+    const ptrs = [];
+    if (top && top.h !== -1) ptrs.push(["head", top.h, "curr"]);
+    if (top && valid(top.nh, n)) ptrs.push(["newHead", top.nh, "new"]);
+    if (valid(f.hn, n)) ptrs.push(["head.next", f.hn, "nxt"]);
+    if (f.res !== null && valid(f.res, n)) ptrs.push(["返回值", f.res, "new"]);
+    const roots = [0].concat(f.stack.map((s) => s.h), f.stack.map((s) => s.nh), [f.res]).filter((x) => valid(x, n));
+    $("rcList").innerHTML = listSVG(v, f.next, { ptrs, roots, changed: f.changed, ring: top ? top.h : null, rows: 3, label: "递归中的链表" });
+    focusNode($("rcList"), top ? top.h : f.res);
+    let sh = '<span class="stk-cap">调用栈（最上面是正在执行的一层）</span>';
+    if (!f.stack.length) sh += '<div class="fr none">空：所有调用都返回了</div>';
+    for (let k = f.stack.length - 1; k >= 0; k--) {
+      const s = f.stack[k];
+      sh += '<div class="fr' + (k === f.stack.length - 1 ? " on" : "") + '">第 ' + (k + 1) + " 层 · head = " + (s.h === -1 ? "None" : "节点 " + v[s.h]) +
+        " · newHead = " + (s.nh === null ? "?" : s.nh === -1 ? "None" : "节点 " + v[s.nh]) + "</div>";
+    }
+    $("rcStack").innerHTML = sh;
+    let r = "";
+    if (top && valid(top.nh, n)) r += readLine("newHead", "ans", readFrom(v, f.next, top.nh));
+    if (top && valid(top.h, n)) r += readLine("head", "suf", readFrom(v, f.next, top.h));
+    if (f.res !== null) r += readLine("返回值", "ans", readFrom(v, f.next, f.res));
+    $("rcReads").innerHTML = r;
+    const out = $("rcOut");
+    out.className = "pill" + (f.verdict === "ok" ? " t" : f.verdict ? " f" : "");
+    out.textContent = f.verdict === "ok" ? "返回 " + fmt(f.got) + " ✓" : f.verdict === "bad" ? "返回值绕圈 ✗" : "运行中";
+    markLine($("rcCode"), f.line, f.hl);
+    $("rcMsg").innerHTML = f.msg;
+  });
+  function rcLoad(v) {
+    if (v !== undefined) rc.vals = v;
+    rc.mode = radio("rcMode", "ok");
+    renderCode($("rcCode"), rc.mode === "ok" ? RC_CODE : RC_NOCUT, rc.mode === "ok" ? -1 : 7);
+    rcP.load(rcBuild(rc.vals, rc.mode));
+    $("rcList").scrollLeft = 0;
+  }
+  $("rcModes").addEventListener("change", () => rcLoad());
+  wire("rc", [0, 1, 2, 3], [[0, 1, 2, 3], [1, 2], [5], [], "随机"], 7, rcLoad);
+
+  /* ---------- 08 语言切换 ---------- */
+  document.querySelectorAll('.tabs [role="tab"]').forEach((t) => t.addEventListener("click", () => {
+    document.querySelectorAll('.tabs [role="tab"]').forEach((x) => x.setAttribute("aria-selected", x === t ? "true" : "false"));
+    ["py", "java", "cpp"].forEach((l) => { $("code-" + l).hidden = l !== t.dataset.lang; });
+  }));
+
+  /* ---------- 09 自测 ---------- */
+  const QUIZ = [
+    { q: "为什么不能像数组那样用下标直接拿到链表的第 3 个节点？", o: ["节点散在内存各处，只能从 head 顺着 next 一个个走", "Python 不允许", "链表的值没有顺序", "因为链表是空的"], a: 0,
+      e: "数组挨着放，能直接算出第 k 个在哪；链表只知道下一个在哪，所以要走 k 步。" },
+    { q: "执行 a = a.next 之后，链表本身？", o: ["没变，只是变量 a 改指下一个节点", "a 原来指的节点被删掉了", "a 原来指的节点的箭头变了", "整条链表往前挪了一格"], a: 0,
+      e: "等号左边是变量 a，只是把名字标签挪了。箭头一根都没动。" },
+    { q: "执行 a.next = None 之后，原来 a 后面的节点会怎样？", o: ["如果没有别的变量指着它，就丢了", "自动接到 a 前面", "一定还在链表里", "会报错"], a: 0,
+      e: "等号左边是 a.next，改的是节点的箭头。原来箭头指着的节点如果没人指着，就再也拿不到了。" },
+    { q: "迭代写法里，为什么第一步要 nxt = curr.next？", o: ["下一行要改 curr.next，不先存就找不到后面的节点", "为了让 prev 往前走", "为了判断循环什么时候结束", "可有可无，只是习惯"], a: 0,
+      e: "curr.next = prev 之后，curr 的箭头指回前面了。后半段只能靠 nxt 找到。" },
+    { q: "漏写 nxt = curr.next，把最后一行写成 curr = curr.next，输入 [0,1,2,3] 返回？", o: ["[0]", "[3,2,1,0]", "[]", "死循环"], a: 0,
+      e: "第一轮 0 的箭头改成 None，curr = curr.next 就变成 None，循环结束，返回 prev = 节点 0，后面全丢了。" },
+    { q: "循环结束时，curr 和 prev 分别是？", o: ["curr 是 None，prev 是原来的最后一个节点", "curr 是原来的最后一个节点，prev 是 None", "都是 None", "都指着 head"], a: 0,
+      e: "curr 走过最后一个节点才变成 None，prev 就停在最后一个节点上，它是新的头。" },
+    { q: "反转完返回 head 会得到什么？（输入 [0,1,2,3]）", o: ["[0]", "[3,2,1,0]", "[]", "[0,1,2,3]"], a: 0,
+      e: "head 变量一直指着节点 0，而 0 反转后是尾巴，箭头指向 None，所以只读到一个 0。" },
+    { q: "输入空链表 head = None，迭代写法返回？", o: ["None，正确", "报错", "[0]", "死循环"], a: 0,
+      e: "curr = None，while 一次都不执行，返回 prev = None。不需要特判。" },
+    { q: "每轮循环结束时，从 prev 出发读到的是？", o: ["已经处理过的节点，顺序是反过来的", "还没处理的节点", "整条原链表", "只有一个节点"], a: 0,
+      e: "prev 是已经改好的那一段的头。每处理一个节点，这一段就多一个。" },
+    { q: "递归写法里 head.next.next = head 做了什么？", o: ["让 head 后面那个节点的箭头指回 head", "让 head 跳过一个节点", "把 head 往后挪两格", "把 head 的箭头改成 None"], a: 0,
+      e: "head.next 是 head 后面的节点，它的 .next 改成 head，这根箭头就掉头了。" },
+    { q: "递归写法漏写 head.next = None，输入 [0,1,2,3] 会怎样？", o: ["0 和 1 互相指着，链表走不完", "返回 [0]", "完全没影响", "返回 []"], a: 0,
+      e: "中间节点的箭头之后会被上一层改掉，只有最外层的 0 没人管，一直指着 1，而 1 指着 0。" },
+    { q: "递归写法里，newHead 一路返回上来的是？", o: ["原来的最后一个节点", "每一层的 head", "原来的第一个节点", "None"], a: 0,
+      e: "最深一层找到最后一个节点，之后每层都原样往上传，没人改它。" },
+    { q: "迭代和递归的额外空间分别是？", o: ["O(1) 和 O(n)", "都是 O(1)", "都是 O(n)", "O(n) 和 O(1)"], a: 0,
+      e: "迭代只用三个变量；递归有 n 层调用，每层在调用栈里占一份。" }
+  ];
+  const answered = {};
+  $("quizBox").innerHTML = QUIZ.map((it, qi) =>
+    '<div class="q"><div class="q-text">' + (qi + 1) + ". " + esc(it.q) + '</div><div class="opts">' +
+    it.o.map((o, oi) => ({ o, oi, r: (qi * 7 + oi * 5) % 4 })).sort((x, y) => x.r - y.r)
+      .map(({ o, oi }) => '<button type="button" class="opt" data-q="' + qi + '" data-o="' + oi + '">' + esc(o) + "</button>").join("") +
+    '</div><div class="explain" id="ex' + qi + '" hidden></div></div>').join("");
+  function score() {
+    const keys = Object.keys(answered), right = keys.filter((k) => answered[k]).length;
+    $("quizScore").textContent = keys.length ? "已作答 " + keys.length + " / " + QUIZ.length + "，答对 " + right + " 题" : "";
+  }
+  $("quizBox").addEventListener("click", (e) => {
+    const b = e.target.closest(".opt"); if (!b) return;
+    const qi = +b.dataset.q, oi = +b.dataset.o, it = QUIZ[qi], box = b.parentElement;
+    box.querySelectorAll(".opt").forEach((x) => x.classList.remove("right", "wrong"));
+    const ok = oi === it.a;
+    b.classList.add(ok ? "right" : "wrong");
+    if (!ok) box.querySelector('[data-o="' + it.a + '"]').classList.add("right");
+    if (!(qi in answered)) answered[qi] = ok;
+    const ex = $("ex" + qi); ex.hidden = false;
+    ex.textContent = (ok ? "答对了。" : "再想想。") + it.e;
+    score();
+  });
+
+  /* ---------- 掌握清单（仅保存在本浏览器） ---------- */
+  document.querySelectorAll("#checklist input").forEach((cb) => {
+    try { cb.checked = localStorage.getItem("rll-" + cb.id) === "1"; } catch (e) {}
+    cb.addEventListener("change", () => { try { localStorage.setItem("rll-" + cb.id, cb.checked ? "1" : "0"); } catch (e) {} });
+  });
+})();
+</script>
+</body>
+</html>
