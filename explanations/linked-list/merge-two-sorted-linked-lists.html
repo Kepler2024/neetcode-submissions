@@ -1,0 +1,1212 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>合并两个有序链表</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* 版式：单栏教材，一章一个前置知识；list1 琥珀色（上排），list2 蓝色（下排），tail 紫色，已经接进结果的箭头绿色，还没定下来的箭头灰色，没接上的节点变淡，贯穿全页 */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --ink: #17202b;
+  --muted: #586372;
+  --line: #dce1e7;
+  --edge: #b5bfcb;
+  --pre: #b86e0a;
+  --pre-soft: #fcefd8;
+  --suf: #1d6aa3;
+  --suf-soft: #e0edf8;
+  --fix: #7445b8;
+  --fix-soft: #efe7fa;
+  --ans: #2b7a4b;
+  --ans-soft: #e1f2e7;
+  --bad: #b3372f;
+  --bad-soft: #fbe5e3;
+  --code-bg: #eef1f5;
+  --font-display: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151b; --surface: #19202a; --ink: #e5e9ef; --muted: #9ba6b4; --line: #2b3441; --edge: #4b5666;
+    --pre: #f0a845; --pre-soft: #3a2b14; --suf: #6cb2e8; --suf-soft: #142b3e;
+    --fix: #b893f2; --fix-soft: #2a2140;
+    --ans: #5fcb8c; --ans-soft: #153223; --bad: #f08379; --bad-soft: #3d1c1a;
+    --code-bg: #141a22;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151b; --surface: #19202a; --ink: #e5e9ef; --muted: #9ba6b4; --line: #2b3441; --edge: #4b5666;
+  --pre: #f0a845; --pre-soft: #3a2b14; --suf: #6cb2e8; --suf-soft: #142b3e;
+  --fix: #b893f2; --fix-soft: #2a2140;
+  --ans: #5fcb8c; --ans-soft: #153223; --bad: #f08379; --bad-soft: #3d1c1a;
+  --code-bg: #141a22;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.75;
+  font-variant-ligatures: none; /* 等宽字体的连字会把 <= 显示成一个符号，初学者容易抄错 */
+}
+.wrap {
+  max-width: 760px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 80px;
+  display: flex; flex-direction: column; gap: 56px;
+}
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.3; margin: 0; }
+h1 { font-size: clamp(28px, 6vw, 42px); font-weight: 800; }
+h2 { font-size: clamp(22px, 4.2vw, 28px); font-weight: 800; }
+h3 { font-size: 18px; font-weight: 600; }
+p { margin: 0; }
+section { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lead { font-size: 18px; color: var(--muted); }
+code, .mono { font-family: var(--font-mono); font-size: .92em; }
+:not(pre) > code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; }
+.l1 { color: var(--pre); font-weight: 700; }
+.l2 { color: var(--suf); font-weight: 700; }
+.fix { color: var(--fix); font-weight: 700; }
+.ans { color: var(--ans); font-weight: 700; }
+.bad { color: var(--bad); font-weight: 700; }
+.hd { color: var(--muted); font-weight: 700; }
+a { color: var(--suf); }
+
+/* 题目卡 */
+.problem { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 99px; background: var(--ans-soft); color: var(--ans); }
+.example { font-family: var(--font-mono); font-size: 14px; background: var(--code-bg); border-radius: 6px; padding: 10px 12px; overflow-x: auto; white-space: pre; }
+
+/* 目录 */
+.toc { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; padding: 0; margin: 0; list-style: none; counter-reset: toc; }
+.toc li { counter-increment: toc; }
+.toc a { display: flex; gap: 10px; align-items: baseline; text-decoration: none; color: var(--ink); padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 15px; }
+.toc a::before { content: counter(toc, decimal-leading-zero); font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.toc a:hover, .toc a:focus-visible { border-color: var(--suf); }
+.toc-part { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+.chap { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.chap .num { font-family: var(--font-mono); font-size: 14px; color: var(--muted); }
+
+.note { border-left: 3px solid var(--suf); padding: 4px 0 4px 14px; }
+.note.warn { border-color: var(--pre); }
+.note.ok { border-color: var(--ans); }
+.note.no { border-color: var(--bad); }
+
+/* 链表图：上排 list1，下排 list2，左边虚线框是 dummy；节点左右位置 = 它在答案里的位置 */
+.lab > * { min-width: 0; }
+.lwrap { overflow-x: auto; padding: 2px 0; max-width: 100%; }
+.lwrap svg { display: block; margin: 0 auto; }
+.lwrap .empty { font-family: var(--font-mono); font-size: 14px; color: var(--muted); text-align: center; padding: 18px 0; }
+.ls .nd { fill: var(--surface); stroke: var(--edge); stroke-width: 1.5; }
+.ls .nd.a { fill: var(--pre-soft); stroke: var(--pre); }
+.ls .nd.b { fill: var(--suf-soft); stroke: var(--suf); }
+.ls .nd.d { fill: var(--surface); stroke: var(--muted); stroke-dasharray: 4 3; }
+.ls .nd.ring { stroke-width: 3.2; }
+.ls .nv { font-family: var(--font-mono); font-size: 16px; font-weight: 600; fill: var(--ink); text-anchor: middle; dominant-baseline: central; }
+.ls .nv.d { font-size: 11px; font-weight: 400; fill: var(--muted); }
+.ls g.lost { opacity: .3; }
+.ls .ar { stroke-width: 1.8; stroke-linecap: round; }
+.ls .ar.hot { stroke-width: 3; }
+.ls .halo { stroke: var(--ans-soft); stroke-width: 12; stroke-linecap: round; }
+.ls .ar.fw { stroke: var(--muted); }
+.ls .ah.fw { fill: var(--muted); }
+.ls .ar.ok { stroke: var(--ans); }
+.ls .ah.ok { fill: var(--ans); }
+.ls .ar.nn { stroke: var(--edge); }
+.ls .ah.nn { fill: var(--edge); }
+.ls .nt { font-family: var(--font-mono); font-size: 11px; fill: var(--muted); dominant-baseline: central; }
+.ls .lb { font-family: var(--font-mono); font-size: 12px; font-weight: 700; text-anchor: middle; }
+.ls .lb.l1 { fill: var(--pre); }
+.ls .lb.l2 { fill: var(--suf); }
+.ls .lb.tail { fill: var(--fix); }
+.ls .lb.new { fill: var(--ans); }
+.ls .lb.lost { fill: var(--bad); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: 3px; }
+.legend i.a, .legend i.b { width: 12px; height: 12px; vertical-align: -1px; border-radius: 3px; border: 1.5px solid; }
+.legend i.a { background: var(--pre-soft); border-color: var(--pre); }
+.legend i.b { background: var(--suf-soft); border-color: var(--suf); }
+.legend i.fw { background: var(--muted); }
+.legend i.ok { background: var(--ans); }
+.legend i.hot { background: var(--ans); height: 6px; vertical-align: 2px; box-shadow: 0 0 0 3px var(--ans-soft); }
+.legend i.lost { width: 12px; height: 12px; vertical-align: -1px; border: 1.5px solid var(--edge); opacity: .4; border-radius: 3px; }
+.reads { display: flex; flex-direction: column; gap: 4px; font-family: var(--font-mono); font-size: 14px; }
+.reads .rl { overflow-wrap: anywhere; }
+.reads .rl b { font-weight: 700; }
+
+/* 表格 */
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 13px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+td code { white-space: nowrap; }
+td.mono { white-space: nowrap; }
+tr:last-child td, tr:last-child th { border-bottom: 0; }
+
+/* 交互组件外壳 */
+.lab { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.lab-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button {
+  font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+}
+button:hover { border-color: var(--muted); }
+button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button.mono { font-family: var(--font-mono); }
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--suf); outline-offset: 2px; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+input[type=text] {
+  font-family: var(--font-mono); font-size: 15px; padding: 6px 10px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink); min-width: 0; width: 100%;
+  font-variant-ligatures: none;
+}
+.pair { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+@media (min-width: 520px) { .pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-size: 14px; font-weight: 700; font-family: var(--font-mono); }
+.field.a label { color: var(--pre); }
+.field.b label { color: var(--suf); }
+.err { color: var(--bad); font-size: 14px; }
+.modes { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.modes legend { font-size: 14px; font-weight: 700; margin-bottom: 6px; padding: 0; }
+.modes label { display: inline-flex; flex-wrap: wrap; max-width: 100%; align-items: center; gap: 6px; font-size: 14px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 99px; cursor: pointer; background: var(--bg); }
+.modes label:has(input:checked) { border-color: var(--ink); background: var(--surface); font-weight: 700; }
+.modes label:has(input:focus-visible) { outline: 2px solid var(--suf); outline-offset: 2px; }
+.modes input { accent-color: var(--fix); margin: 0; }
+
+/* 代码块 */
+pre.code { margin: 0; background: var(--code-bg); border-radius: 8px; padding: 12px 0; overflow-x: auto; font-family: var(--font-mono); font-size: 14px; line-height: 1.7; }
+pre.code .ln { display: block; padding: 0 14px; border-left: 3px solid transparent; white-space: pre; }
+pre.code .ln.hl0 { background: var(--line); border-left-color: var(--ink); }
+pre.code .ln.hl { background: var(--pre-soft); border-left-color: var(--pre); }
+pre.code .ln.hl2 { background: var(--suf-soft); border-left-color: var(--suf); }
+pre.code .ln.hl3 { background: var(--bad-soft); border-left-color: var(--bad); }
+pre.code .ln.hl4 { background: var(--ans-soft); border-left-color: var(--ans); }
+pre.code .ln.hl5 { background: var(--fix-soft); border-left-color: var(--fix); }
+pre.code .ln.mut .c { color: var(--bad); font-style: normal; font-weight: 600; }
+.k { color: var(--suf); font-weight: 600; }
+.c { color: var(--muted); font-style: italic; }
+.n { color: var(--pre); }
+.code-cap { font-size: 14px; color: var(--muted); }
+
+.msg { min-height: 3.5em; padding: 10px 14px; border-radius: 8px; background: var(--bg); font-size: 15px; }
+.progress { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+.pill { display: inline-block; font-family: var(--font-mono); font-size: 14px; padding: 2px 12px; border-radius: 99px; border: 1.5px solid var(--line); white-space: nowrap; }
+.pill.t { border-color: var(--ans); color: var(--ans); background: var(--ans-soft); }
+.pill.f { border-color: var(--bad); color: var(--bad); background: var(--bad-soft); }
+
+/* 单步执行 */
+.vars { display: flex; gap: 8px; flex-wrap: wrap; }
+.var { font-family: var(--font-mono); padding: 3px 12px; border-radius: 99px; font-size: 14px; border: 1.5px solid var(--line); white-space: pre; }
+.var.a { border-color: var(--pre); color: var(--pre); }
+.var.b { border-color: var(--suf); color: var(--suf); }
+.var.f { border-color: var(--fix); color: var(--fix); }
+.stepper-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+@media (min-width: 720px) { .stepper-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); align-items: start; } }
+.viz { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+/* 调用栈 */
+.stk { display: flex; flex-direction: column; gap: 4px; }
+.stk-cap { font-size: 13px; color: var(--muted); }
+.fr { font-family: var(--font-mono); font-size: 13px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--muted); overflow-wrap: anywhere; }
+.fr.on { border-color: var(--suf); color: var(--ink); background: var(--suf-soft); }
+.fr.none { border-style: dashed; }
+
+/* 测验 */
+.quiz { display: flex; flex-direction: column; gap: 18px; }
+.q { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.q-text { font-weight: 500; }
+.opts { display: flex; flex-direction: column; gap: 6px; }
+.opt { text-align: left; background: var(--bg); }
+.opt.right { background: var(--ans-soft); border-color: var(--ans); }
+.opt.wrong { background: var(--bad-soft); border-color: var(--bad); }
+.explain { font-size: 14px; color: var(--muted); }
+
+.checklist { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.checklist label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.checklist input { margin-top: 6px; accent-color: var(--ans); width: 16px; height: 16px; flex: none; }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.code-group { display: flex; flex-direction: column; gap: 10px; }
+ul.plain, ol.plain { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
+footer { font-size: 13px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:14px">
+  <span class="eyebrow">NeetCode · Linked List · Easy</span>
+  <h1>合并两个有序链表</h1>
+  <p class="lead">Merge Two Sorted Linked Lists。先复习“挪标签”和“改箭头”的区别，再从“两队人按身高排好，每次比两个排头”讲出合并的思路。然后讲哨兵节点 <code>dummy</code> 为什么能省掉一堆特判，一步一步看 <code>tail</code> 怎么把节点一个个接起来，最后看递归写法。</p>
+</header>
+
+<section class="problem" aria-label="题目">
+  <div><span class="tag">题目</span></div>
+  <p>给你两个已经从小到大排好序的链表的头节点 <code>list1</code> 和 <code>list2</code>。把它们合并成一个有序链表，返回新链表的头节点。新链表要由 list1 和 list2 原有的节点组成。</p>
+  <div class="example">输入: list1 = [1,2,4], list2 = [1,3,5]
+输出: [1,1,2,3,4,5]
+
+输入: list1 = [], list2 = [1,2]
+输出: [1,2]
+
+输入: list1 = [], list2 = []
+输出: []</div>
+  <p style="font-size:14px;color:var(--muted)">约束：每条链表长度 0 到 100，−100 ≤ Node.val ≤ 100。</p>
+</section>
+
+<nav aria-label="目录" style="display:flex;flex-direction:column;gap:10px">
+  <span class="eyebrow">学习路线</span>
+  <ol class="toc">
+    <li><a href="#recap">复习：挪标签 vs 改箭头</a></li>
+    <li><a href="#idea">合并的想法：比两个排头</a></li>
+    <li><a href="#brute">笨办法：抄出来排序</a></li>
+    <li><a href="#dummy">哨兵节点 dummy</a></li>
+    <li><a href="#loop">一轮循环做三件事</a></li>
+    <li><a href="#step">单步执行：迭代</a></li>
+    <li><a href="#rest">收尾：接上剩下的</a></li>
+    <li><a href="#rec">递归写法</a></li>
+    <li><a href="#template">合并模板与同类题</a></li>
+    <li><a href="#code">完整代码与复杂度</a></li>
+    <li><a href="#quiz">自测</a></li>
+  </ol>
+  <p class="toc-part">01 是前置知识；02–07 是迭代解法，也就是你提交的那种写法；08 是递归解法。还没接触过链表的话，先看<a href="reverse-linked-list.html">反转链表</a>那页的 01–02 章。</p>
+</nav>
+
+<!-- 01 -->
+<section id="recap">
+  <div class="chap"><span class="num">01</span><h2>复习：挪标签 vs 改箭头</h2></div>
+  <p>链表的每个节点有两样东西：值 <code>val</code>，和指向下一个节点的 <code>next</code>（最后一个节点的 next 是 <code>None</code>）。题目只给你两个头节点，其它节点都要顺着 next 一个一个走过去才能拿到。</p>
+<pre class="code" data-lang="py">class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val      # 这个节点存的值
+        self.next = next    # 下一个节点；没有下一个就是 None</pre>
+  <p>变量（<code>list1</code>、<code>tail</code> 这些）只是贴在节点上的<strong>名字标签</strong>。判断一行代码有没有改链表，看等号<strong>左边</strong>：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>写法</th><th>改了什么</th><th>链表变没变</th></tr>
+    <tr><td><code>list1 = list1.next</code></td><td>list1 这个标签挪到下一个节点</td><td>没变</td></tr>
+    <tr><td><code>tail = tail.next</code></td><td>tail 这个标签挪到下一个节点</td><td>没变</td></tr>
+    <tr><td><code>tail.next = list1</code></td><td>tail 指着的那个节点，它的箭头改成指向 list1 指着的节点</td><td class="ans">变了</td></tr>
+  </table></div>
+  <p>这道题的代码里，真正改链表的只有 <code>tail.next = ...</code> 这一种行。其它行都是在挪标签。下面的图和单步执行都按这个分：<strong>箭头</strong>画成线，<strong>标签</strong>写在节点旁边。</p>
+  <p class="note warn">本题不需要新建任何存值的节点。题目说“由原有的节点组成”，意思就是只改这些节点的箭头，把它们重新串成一条。</p>
+</section>
+
+<!-- 02 -->
+<section id="idea">
+  <div class="chap"><span class="num">02</span><h2>合并的想法：比两个排头</h2></div>
+  <p>想象两队人，每队都已经按身高从矮到高站好。现在要把两队并成一队，还是从矮到高。</p>
+  <p>全场最矮的人在哪？一定是两个<strong>排头</strong>之一：每队排头都是本队最矮的。所以只要比一下两个排头，矮的那个出列，站到新队伍末尾。出列以后，他那队的第二个人变成新排头，再比，再出列……直到有一队空了，另一队剩下的人本来就排好了，整队接到末尾就行。</p>
+  <p>用样例 <span class="l1">list1 = [1,2,4]</span>、<span class="l2">list2 = [1,3,5]</span> 走一遍：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>轮</th><th>list1 剩下</th><th>list2 剩下</th><th>比较排头</th><th>取谁</th><th>结果</th></tr>
+    <tr><td>1</td><td class="mono l1">1,2,4</td><td class="mono l2">1,3,5</td><td class="mono">1 &lt;= 1</td><td>list1 的 <span class="l1">1</span></td><td class="mono">1</td></tr>
+    <tr><td>2</td><td class="mono l1">2,4</td><td class="mono l2">1,3,5</td><td class="mono">2 &gt; 1</td><td>list2 的 <span class="l2">1</span></td><td class="mono">1,1</td></tr>
+    <tr><td>3</td><td class="mono l1">2,4</td><td class="mono l2">3,5</td><td class="mono">2 &lt;= 3</td><td>list1 的 <span class="l1">2</span></td><td class="mono">1,1,2</td></tr>
+    <tr><td>4</td><td class="mono l1">4</td><td class="mono l2">3,5</td><td class="mono">4 &gt; 3</td><td>list2 的 <span class="l2">3</span></td><td class="mono">1,1,2,3</td></tr>
+    <tr><td>5</td><td class="mono l1">4</td><td class="mono l2">5</td><td class="mono">4 &lt;= 5</td><td>list1 的 <span class="l1">4</span></td><td class="mono">1,1,2,3,4</td></tr>
+    <tr><td>收尾</td><td class="mono">空</td><td class="mono l2">5</td><td>list1 用完了</td><td>list2 剩下的整段</td><td class="mono">1,1,2,3,4,5</td></tr>
+  </table></div>
+  <ul class="plain">
+    <li>每轮只比较<strong>一次</strong>，取走<strong>一个</strong>节点。两条一共 m + n 个节点，最多 m + n 轮，时间 O(m + n)。</li>
+    <li>两个排头相等时取哪个都对。用 <code>&lt;=</code> 就先取 list1 的，用 <code>&lt;</code> 就先取 list2 的，输出的值完全一样。</li>
+    <li>这个“比排头”的过程就是归并排序（merge sort）里“合并”那一步。数组版和链表版想法一样，区别只在怎么把元素放进结果。</li>
+  </ul>
+</section>
+
+<!-- 03 -->
+<section id="brute">
+  <div class="chap"><span class="num">03</span><h2>笨办法：抄出来排序</h2></div>
+  <p>不想动脑的话：把两条链表的值都抄进一个数组，排序，再按顺序建一条新链表。</p>
+<pre class="code" data-lang="py">vals = []
+for cur in (list1, list2):
+    while cur:                  # 把两条链表的值都抄下来
+        vals.append(cur.val)
+        cur = cur.next
+vals.sort()                     # 排序：O((m+n) log(m+n))
+dummy = ListNode()
+tail = dummy
+for v in vals:                  # 按顺序新建节点串起来
+    tail.next = ListNode(v)
+    tail = tail.next
+return dummy.next</pre>
+  <ul class="plain">
+    <li>能过，但排序要 <strong>O((m+n) log(m+n))</strong>，还多开了数组和一整套新节点，额外空间 O(m+n)。</li>
+    <li>它完全没用上“两条已经排好序”这个条件。有序是题目白送的信息，用上它就能省掉排序，降到 O(m+n)。</li>
+    <li>它建的是新节点，不符合“由原有节点组成”的要求（判题一般不查这个，但面试官会问）。</li>
+  </ul>
+  <p>不过这段代码里已经出现了 <code>dummy</code> 和 <code>tail</code>。正解也用它们，下一章专门讲。</p>
+</section>
+
+<!-- 04 -->
+<section id="dummy">
+  <div class="chap"><span class="num">04</span><h2>哨兵节点 dummy</h2></div>
+  <p>合并时要一边比较一边往结果末尾接节点。麻烦在<strong>第一个</strong>节点：结果一开始是空的，没有“末尾”可接，只能单独处理，先找出谁是头，再进循环。不用 dummy 的写法长这样：</p>
+<pre class="code" data-lang="py">if not list1:                   # 先处理有空链表的情况
+    return list2
+if not list2:
+    return list1
+if list1.val &lt;= list2.val:      # 单独选出结果的头
+    head = list1
+    list1 = list1.next
+else:
+    head = list2
+    list2 = list2.next
+tail = head
+while list1 and list2:
+    ...                         # 后面才是正常的“比较、接上”</pre>
+  <p>选头的那段和循环里做的事几乎一样，只是因为“还没有末尾”被迫多写一遍。<strong>哨兵节点</strong>（dummy node）的办法是：先造一个假的节点放在最前面当车头。这样结果从一开始就有末尾了，第一个真节点也是“接在末尾后面”，和其它节点一视同仁。</p>
+<pre class="code" data-lang="py">dummy = ListNode()      # 假节点，值是默认的 0，我们不会去读它
+tail = dummy            # tail：结果链表现在的最后一个节点
+# ... 循环里每次：tail.next = 较小的排头，然后 tail = tail.next
+return dummy.next       # 跳过假节点，后面才是真正的答案</pre>
+  <p>合并完以后，链表长这样。左边虚线框是 dummy，橙色是 list1 原来的节点，蓝色是 list2 的。节点从左到右的位置就是它在答案里的位置：</p>
+  <div class="lab">
+    <div class="lwrap" id="s4"></div>
+    <div class="legend"><span><i class="a"></i>list1 的节点（上排）</span><span><i class="b"></i>list2 的节点（下排）</span><span><i class="ok"></i>结果链表的箭头</span></div>
+    <div class="reads" id="s4Reads"></div>
+  </div>
+  <ul class="plain">
+    <li><code>dummy</code> 从头到尾都不动，一直指着那个假节点，所以最后能靠它找回结果的开头。</li>
+    <li><code>tail</code> 一直在往后挪，永远停在结果的最后一个节点上，方便往后接。这和反转链表那页的 <code>head</code> 不动、<code>cur</code> 往后走是一回事。</li>
+    <li>两条都是空链表时，循环一次都不进，<code>dummy.next</code> 还是 None，正好就是答案。不用任何特判。</li>
+  </ul>
+  <p class="note ok">记住一句话：<strong>要从零拼出一条链表，就先建一个 dummy</strong>。最后返回 <code>dummy.next</code>，不是 <code>dummy</code>。</p>
+</section>
+
+<!-- 05 -->
+<section id="loop">
+  <div class="chap"><span class="num">05</span><h2>一轮循环做三件事</h2></div>
+<pre class="code" data-lang="py">while list1 and list2:          # 两条都还有节点，才需要比较
+    if list1.val &lt;= list2.val:
+        tail.next = list1       # 1. 把较小的排头接到结果末尾
+        list1 = list1.next      # 2. 那条链表的排头往后挪
+    else:
+        tail.next = list2
+        list2 = list2.next
+    tail = tail.next            # 3. tail 挪到刚接上的节点</pre>
+  <div class="tbl-wrap"><table>
+    <tr><th>代码</th><th>做什么</th><th>为什么</th></tr>
+    <tr><td><code>tail.next = list1</code></td><td>改箭头：结果的最后一个节点指向较小的排头</td><td>这是唯一真正改链表的一行</td></tr>
+    <tr><td><code>list1 = list1.next</code></td><td>挪标签：list1 的排头往后一格</td><td>这个节点已经进了结果，下一轮该比它后面的</td></tr>
+    <tr><td><code>tail = tail.next</code></td><td>挪标签：tail 走到刚接上的节点</td><td>它现在是结果的最后一个，下一个要接在它后面</td></tr>
+  </table></div>
+  <ul class="plain">
+    <li>第 1、2 行的顺序可以换吗？不能先挪 list1：<code>list1 = list1.next</code> 之后，list1 已经指着下一个了，再 <code>tail.next = list1</code> 就接错了节点。</li>
+    <li>第 3 行写成 <code>tail = list1</code> 也不行，因为这时 list1 已经挪走了。<code>tail.next</code> 才是刚接上的那个节点。</li>
+    <li>循环条件是 <code>and</code>：只要有一条空了就停。如果写成 <code>or</code>，一条空了还进循环，<code>list1.val</code> 会在 None 上取值报错。</li>
+  </ul>
+  <p>有个容易让人困惑的地方：节点被接进结果后，它<strong>自己的箭头</strong>还指着原来那条链表里的下一个。下图是样例跑完两轮的样子：</p>
+  <div class="lab">
+    <div class="lwrap" id="s5"></div>
+    <div class="legend"><span><i class="ok"></i>已经定下来的箭头</span><span><i class="fw"></i>还是原来的箭头</span></div>
+    <div class="reads" id="s5Reads"></div>
+  </div>
+  <p>从 dummy.next 读出来是 <span class="mono">1 → 1 → 3 → 5</span>，好像漏了 2 和 4。其实只有绿色箭头那段是定下来的。tail 后面那根灰箭头是蓝色 1 在 list2 里原来的箭头，下一轮比较 2 和 3，会执行 <code>tail.next = list1</code>，把它改到 2 上。</p>
+  <p class="note">不变的规律：每轮循环结束时，从 <code>dummy.next</code> 到 <code>tail</code> 这一段，正好是目前最小的那几个节点，已经排好。tail 之后的箭头暂时不算数。</p>
+</section>
+
+<!-- 06 -->
+<section id="step">
+  <div class="chap"><span class="num">06</span><h2>单步执行：迭代</h2></div>
+  <p>输入任意两条有序链表，一步一步看 tail 怎么把节点接起来。右边高亮当前执行的代码行。也可以切换成两种常见的漏写，看结果错在哪。</p>
+  <div class="lab">
+    <div id="itIn"></div>
+    <fieldset class="modes" id="itModes"><legend>写法</legend>
+      <label><input type="radio" name="itMode" value="ok" checked>正确</label>
+      <label><input type="radio" name="itMode" value="noadv">漏写 <span class="mono">tail = tail.next</span></label>
+      <label><input type="radio" name="itMode" value="norest">漏写最后的 <span class="mono">tail.next = list1 or list2</span></label>
+    </fieldset>
+    <div>
+      <div class="lwrap" id="itList"></div>
+      <div class="legend"><span><i class="a"></i>list1</span><span><i class="b"></i>list2</span><span><i class="ok"></i>接进结果的箭头</span><span><i class="fw"></i>原来的箭头</span><span><i class="hot"></i>这一步改的</span><span><i class="lost"></i>没接上</span></div>
+    </div>
+    <div class="stepper-grid">
+      <div class="viz">
+        <div class="vars"><span class="var a" id="itV1"></span><span class="var b" id="itV2"></span><span class="var f" id="itVt"></span></div>
+        <div class="reads" id="itReads"></div>
+        <div><span id="itOut" class="pill">运行中</span></div>
+      </div>
+      <pre class="code" id="itCode"></pre>
+    </div>
+    <div class="msg" id="itMsg" aria-live="polite"></div>
+    <div class="lab-head">
+      <div class="controls">
+        <button type="button" id="itReset">重来</button>
+        <button type="button" id="itPrev">上一步</button>
+        <button type="button" id="itNext" class="primary">下一步</button>
+        <button type="button" id="itPlay">自动播放</button>
+      </div>
+      <span class="progress" id="itProg"></span>
+    </div>
+  </div>
+  <p style="font-size:14px;color:var(--muted)">试试 <span class="mono">[1,2,3] + [4,5,6]</span>：list1 三轮就用完了，list2 一个都没比过，最后一行把它整段接上。再试试一条是空的：循环一次都不进。</p>
+</section>
+
+<!-- 07 -->
+<section id="rest">
+  <div class="chap"><span class="num">07</span><h2>收尾：接上剩下的</h2></div>
+  <p>循环在“有一条空了”时停下。另一条可能还剩一段，这时只要一行：</p>
+<pre class="code" data-lang="py">tail.next = list1 or list2</pre>
+  <p>Python 的 <code>a or b</code>：a 不是 None（算“真”）就得到 a，否则得到 b。循环结束时至少有一条是 None，所以这一行就是“哪条还有剩，就接哪条”：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>循环结束时</th><th><code>list1 or list2</code> 得到</th><th>效果</th></tr>
+    <tr><td>list1 有剩，list2 是 None</td><td>list1</td><td>把 list1 剩下的整段接上</td></tr>
+    <tr><td>list1 是 None，list2 有剩</td><td>list2</td><td>把 list2 剩下的整段接上</td></tr>
+    <tr><td>两条都是 None</td><td>None</td><td>tail.next = None，结果到此结束</td></tr>
+  </table></div>
+  <p>不习惯 <code>or</code> 的话，写成 if/else 是一样的：</p>
+<pre class="code" data-lang="py">if list1:
+    tail.next = list1
+else:
+    tail.next = list2</pre>
+  <ul class="plain">
+    <li><strong>为什么一行就够，不用再循环？</strong>剩下的节点本来就一个接一个连着，而且有序。接上它的第一个节点，后面的整段就跟着进来了。</li>
+    <li><strong>为什么直接接在后面是对的？</strong>每轮取的都是当时最小的，所以剩下的节点都不比已经取出的小，排在最后没问题。</li>
+    <li>数组版合并要用循环把剩下的元素一个个复制过去；链表版只改一根箭头，这是链表的方便之处。</li>
+  </ul>
+  <p class="note no">漏了这一行，结果会少一截：循环结束时 tail 是用完的那条链表的最后一个节点，它的 next 是 None，另一条剩下的就没接上（第 06 章可以切换试试）。</p>
+</section>
+
+<!-- 08 -->
+<section id="rec">
+  <div class="chap"><span class="num">08</span><h2>递归写法</h2></div>
+  <p>换个角度想：合并结果的头是谁？就是两个排头里小的那个，比如 list1。它后面接什么？接“list1 去掉头以后”和“整个 list2”合并的结果，这是同一个问题，只是少了一个节点。</p>
+<pre class="code" data-lang="py">def mergeTwoLists(list1, list2):
+    if not list1:               # list1 用完了，剩下的 list2 就是结果
+        return list2
+    if not list2:
+        return list1
+    if list1.val &lt;= list2.val:
+        list1.next = mergeTwoLists(list1.next, list2)   # 后面那段交给下一层
+        return list1            # list1 是这一段的头
+    else:
+        list2.next = mergeTwoLists(list1, list2.next)
+        return list2</pre>
+  <ul class="plain">
+    <li>每一层只做一件事：选出这一段的头，把它的 next 接到“下一层返回的结果”上，再把自己返回给上一层。</li>
+    <li>递归的终点是有一条空了，直接返回另一条，这就是迭代写法里收尾那一行。</li>
+    <li>往下走的时候一根箭头都不改；所有 <code>.next = ...</code> 都发生在<strong>往回返</strong>的路上，从结果的最后面开始，一层层往前接好。</li>
+    <li>不需要 dummy：每一层返回的就是头，没有“第一个节点”的特殊情况。</li>
+  </ul>
+  <p>下面看递归一层层进去、再一层层回来。左下是<strong>调用栈</strong>：每调用一次压上一层，返回一次弹掉一层，最上面那层是正在执行的。</p>
+  <div class="lab">
+    <div id="rcIn"></div>
+    <div>
+      <div class="lwrap" id="rcList"></div>
+      <div class="legend"><span><i class="a"></i>list1</span><span><i class="b"></i>list2</span><span><i class="ok"></i>已经合并好的一段</span><span><i class="fw"></i>原来的箭头</span><span><i class="hot"></i>这一步改的</span></div>
+    </div>
+    <div class="stepper-grid">
+      <div class="viz">
+        <div class="stk" id="rcStack"></div>
+        <div class="reads" id="rcReads"></div>
+        <div><span id="rcOut" class="pill">运行中</span></div>
+      </div>
+      <pre class="code" id="rcCode"></pre>
+    </div>
+    <div class="msg" id="rcMsg" aria-live="polite"></div>
+    <div class="lab-head">
+      <div class="controls">
+        <button type="button" id="rcReset">重来</button>
+        <button type="button" id="rcPrev">上一步</button>
+        <button type="button" id="rcNext" class="primary">下一步</button>
+        <button type="button" id="rcPlay">自动播放</button>
+      </div>
+      <span class="progress" id="rcProg"></span>
+    </div>
+  </div>
+  <p class="note warn">递归写法时间也是 O(m+n)，但每取一个节点就多一层调用，最多 m+n 层，额外空间 <strong>O(m+n)</strong>。本题每条最多 100 个节点，递归没问题；链表很长时 Python 会报递归太深。面试首选迭代写法。</p>
+</section>
+
+<!-- 09 -->
+<section id="template">
+  <div class="chap"><span class="num">09</span><h2>合并模板与同类题</h2></div>
+  <p>“dummy + tail”是拼链表的通用骨架，值得背下来：</p>
+<pre class="code" data-lang="py">dummy = ListNode()
+tail = dummy
+while 还有节点要接:
+    node = 这一步要接的节点
+    tail.next = node        # 接到末尾
+    tail = tail.next        # 末尾往后挪
+return dummy.next</pre>
+  <div class="tbl-wrap"><table>
+    <tr><th>题目</th><th>和本题的关系</th></tr>
+    <tr><td><strong>本题</strong></td><td>每次从两个排头里挑小的接上</td></tr>
+    <tr><td>Merge K Sorted Lists</td><td>从 k 个排头里挑最小的，用最小堆加速挑选；或者两两调用本题</td></tr>
+    <tr><td>Sort List</td><td>链表的归并排序：从中间切开，两半各自排好，再用本题合并</td></tr>
+    <tr><td>Add Two Numbers</td><td>同样的 dummy + tail，每一位新建一个节点接上</td></tr>
+    <tr><td>Remove Nth Node From End</td><td>用 dummy 放在最前面，删除头节点时就不用特判</td></tr>
+    <tr><td>Merge Sorted Array</td><td>数组版合并，从后往前填，避免覆盖还没比较的元素</td></tr>
+  </table></div>
+  <h3>下次怎么想到</h3>
+  <ol class="plain">
+    <li>看到“两个有序序列合成一个”：最小的一定在两个开头之一，比开头，小的先走。</li>
+    <li>要从零拼出一条链表：先建 dummy，用 tail 记住末尾，最后返回 dummy.next。</li>
+    <li>循环条件写“两条都还有”，循环外面再处理剩下的那条。</li>
+  </ol>
+</section>
+
+<!-- 10 -->
+<section id="code">
+  <div class="chap"><span class="num">10</span><h2>完整代码与复杂度</h2></div>
+  <div class="tabs" role="tablist" aria-label="语言">
+    <button type="button" role="tab" aria-selected="true" data-lang="py">Python</button>
+    <button type="button" role="tab" aria-selected="false" data-lang="java">Java</button>
+    <button type="button" role="tab" aria-selected="false" data-lang="cpp">C++</button>
+  </div>
+  <div class="code-group" id="code-py">
+    <p class="code-cap">迭代（推荐，和你的提交一样）</p>
+<pre class="code" data-lang="py">class Solution:
+    def mergeTwoLists(self, list1: Optional[ListNode], list2: Optional[ListNode]) -&gt; Optional[ListNode]:
+        dummy = ListNode()
+        tail = dummy
+        while list1 and list2:
+            if list1.val &lt;= list2.val:
+                tail.next = list1
+                list1 = list1.next
+            else:
+                tail.next = list2
+                list2 = list2.next
+            tail = tail.next
+        tail.next = list1 or list2
+        return dummy.next</pre>
+    <p class="code-cap">递归</p>
+<pre class="code" data-lang="py">class Solution:
+    def mergeTwoLists(self, list1: Optional[ListNode], list2: Optional[ListNode]) -&gt; Optional[ListNode]:
+        if not list1:
+            return list2
+        if not list2:
+            return list1
+        if list1.val &lt;= list2.val:
+            list1.next = self.mergeTwoLists(list1.next, list2)
+            return list1
+        else:
+            list2.next = self.mergeTwoLists(list1, list2.next)
+            return list2</pre>
+  </div>
+  <div class="code-group" id="code-java" hidden>
+    <p class="code-cap">迭代（推荐）</p>
+<pre class="code" data-lang="java">class Solution {
+    public ListNode mergeTwoLists(ListNode list1, ListNode list2) {
+        ListNode dummy = new ListNode();
+        ListNode tail = dummy;
+        while (list1 != null &amp;&amp; list2 != null) {
+            if (list1.val &lt;= list2.val) {
+                tail.next = list1;
+                list1 = list1.next;
+            } else {
+                tail.next = list2;
+                list2 = list2.next;
+            }
+            tail = tail.next;
+        }
+        tail.next = (list1 != null) ? list1 : list2;
+        return dummy.next;
+    }
+}</pre>
+    <p class="code-cap">递归</p>
+<pre class="code" data-lang="java">class Solution {
+    public ListNode mergeTwoLists(ListNode list1, ListNode list2) {
+        if (list1 == null) return list2;
+        if (list2 == null) return list1;
+        if (list1.val &lt;= list2.val) {
+            list1.next = mergeTwoLists(list1.next, list2);
+            return list1;
+        }
+        list2.next = mergeTwoLists(list1, list2.next);
+        return list2;
+    }
+}</pre>
+  </div>
+  <div class="code-group" id="code-cpp" hidden>
+    <p class="code-cap">迭代（推荐）</p>
+<pre class="code" data-lang="cpp">class Solution {
+public:
+    ListNode* mergeTwoLists(ListNode* list1, ListNode* list2) {
+        ListNode dummy;
+        ListNode* tail = &amp;dummy;
+        while (list1 != nullptr &amp;&amp; list2 != nullptr) {
+            if (list1-&gt;val &lt;= list2-&gt;val) {
+                tail-&gt;next = list1;
+                list1 = list1-&gt;next;
+            } else {
+                tail-&gt;next = list2;
+                list2 = list2-&gt;next;
+            }
+            tail = tail-&gt;next;
+        }
+        tail-&gt;next = (list1 != nullptr) ? list1 : list2;
+        return dummy.next;
+    }
+};</pre>
+    <p class="code-cap">递归</p>
+<pre class="code" data-lang="cpp">class Solution {
+public:
+    ListNode* mergeTwoLists(ListNode* list1, ListNode* list2) {
+        if (list1 == nullptr) return list2;
+        if (list2 == nullptr) return list1;
+        if (list1-&gt;val &lt;= list2-&gt;val) {
+            list1-&gt;next = mergeTwoLists(list1-&gt;next, list2);
+            return list1;
+        }
+        list2-&gt;next = mergeTwoLists(list1, list2-&gt;next);
+        return list2;
+    }
+};</pre>
+  </div>
+  <p style="font-size:14px;color:var(--muted)"><code>Optional[ListNode]</code> 是类型提示，意思是“一个 ListNode 或者 None”。递归写法在类里要写 <code>self.mergeTwoLists(...)</code>。Java、C++ 没有 Python 那种 <code>or</code> 用法，用 <code>条件 ? a : b</code>（条件成立取 a，否则取 b）。C++ 里 <code>ListNode dummy;</code> 直接在函数里建一个节点，<code>&amp;dummy</code> 取它的地址给 tail；它在函数结束时自动销毁，而返回的 <code>dummy.next</code> 指着的是原有的节点，不受影响。</p>
+
+  <h3>复杂度（m、n 是两条链表的长度）</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>解法</th><th>时间</th><th>额外空间</th><th>说明</th></tr>
+    <tr><td>抄出来排序再建新链表</td><td>O((m+n) log(m+n))</td><td>O(m+n)</td><td>没用上“已经有序”</td></tr>
+    <tr><td>迭代：dummy + tail</td><td class="ans">O(m+n)</td><td class="ans">O(1)</td><td>每个节点接一次，只多了一个 dummy 和几个变量</td></tr>
+    <tr><td>递归</td><td>O(m+n)</td><td>O(m+n)</td><td>调用栈最多 m+n 层</td></tr>
+  </table></div>
+
+  <h3>最容易写错的五个地方</h3>
+  <ul class="plain">
+    <li><strong>漏写 <code>tail = tail.next</code></strong>：tail 一直停在 dummy 上，每轮都在改 <code>dummy.next</code>，前面接的节点全被挤掉。<code>[1,2,4] + [1,3,5]</code> 只返回 <code>[5]</code>。</li>
+    <li><strong>漏写最后的 <code>tail.next = list1 or list2</code></strong>：剩下的那段没接上，<code>[1,2,4] + [1,3,5]</code> 返回 <code>[1,1,2,3,4]</code>，少了 5。</li>
+    <li><strong>返回 <code>dummy</code></strong>：答案前面多了一个假节点 0，返回 <code>[0,1,1,2,3,4,5]</code>。要返回 <code>dummy.next</code>。</li>
+    <li><strong>返回 <code>tail</code></strong>：tail 在结果的最后面，只能读到最后一小段。</li>
+    <li><strong>循环条件写成 <code>while list1 or list2</code></strong>：一条用完后还进循环，<code>list1.val</code> 在 None 上取值，报 <code>AttributeError</code>。</li>
+  </ul>
+</section>
+
+<!-- 11 -->
+<section id="quiz">
+  <div class="chap"><span class="num">11</span><h2>自测</h2></div>
+  <p>点选答案，立即判分。</p>
+  <div class="quiz" id="quizBox"></div>
+  <p class="progress" id="quizScore"></p>
+
+  <h3 style="margin-top:12px">掌握清单</h3>
+  <ul class="checklist" id="checklist">
+    <li><label><input type="checkbox" id="ck1"><span>能说出为什么剩下节点里最小的，一定是两个排头之一。</span></label></li>
+    <li><label><input type="checkbox" id="ck2"><span>能分清 <code>tail.next = list1</code>（改箭头）和 <code>list1 = list1.next</code>、<code>tail = tail.next</code>（挪标签）。</span></label></li>
+    <li><label><input type="checkbox" id="ck3"><span>能说出 dummy 省掉了哪段特判，以及为什么返回 <code>dummy.next</code>。</span></label></li>
+    <li><label><input type="checkbox" id="ck4"><span>知道循环条件为什么是 <code>and</code> 不是 <code>or</code>。</span></label></li>
+    <li><label><input type="checkbox" id="ck5"><span>能解释 <code>tail.next = list1 or list2</code>，以及剩下的为什么一行就能接上。</span></label></li>
+    <li><label><input type="checkbox" id="ck6"><span>能说出漏写 <code>tail = tail.next</code> 或漏写最后一行分别会返回什么。</span></label></li>
+    <li><label><input type="checkbox" id="ck7"><span>能讲清递归写法每一层返回的是什么，空间为什么是 O(m+n)。</span></label></li>
+    <li><label><input type="checkbox" id="ck8"><span>不看本页，5 分钟内写出可以通过的迭代代码。</span></label></li>
+  </ul>
+</section>
+
+<footer>同类题型：Merge K Sorted Lists 是本题的进阶版，从两个排头变成 k 个；Sort List 用本题做归并排序的合并步骤；Add Two Numbers、Remove Nth Node From End 都靠 dummy 省掉头节点的特判；Reorder List 最后一步也是把两条链表交替接起来。</footer>
+</main>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  function showErr(id, msg) { $(id).textContent = msg || ""; $(id).hidden = !msg; return !!msg; }
+  const fmt = (vals) => "[" + vals.join(",") + "]";
+
+  /* ---------- 数据：list1 的节点下标 0..m-1，list2 的是 m..m+n-1，dummy 是 m+n；next[i] = -1 表示 None ---------- */
+  function makeP(a, b) {
+    const m = a.length, n = b.length, D = m + n;
+    const vals = a.concat(b, [null]), next0 = [];
+    for (let i = 0; i < m; i++) next0[i] = i < m - 1 ? i + 1 : -1;
+    for (let j = 0; j < n; j++) next0[m + j] = j < n - 1 ? m + j + 1 : -1;
+    next0[D] = -1;
+    // 每个节点在答案里排第几（相等时 list1 在前，和 <= 一致），用来定它的横坐标
+    const col = [], want = [];
+    let i = 0, j = 0, k = 0;
+    while (i < m || j < n) {
+      if (j >= n || (i < m && a[i] <= b[j])) { col[i] = k++; want.push(a[i++]); }
+      else { col[m + j] = k++; want.push(b[j++]); }
+    }
+    return { a, b, m, n, D, N: m + n, vals, next0, col, want };
+  }
+  const side = (P, id) => (id < P.m ? "l1" : "l2");
+  const nm = (P, id) => (id === -1 ? "None" : id === P.D ? "dummy" : '<b class="' + side(P, id) + '">' + P.vals[id] + "</b>");
+  const ok = (x) => x !== null && x !== undefined && x !== -1;
+  function walk(next, s, stop, limit) {
+    const out = [];
+    let c = s, g = 0;
+    while (ok(c) && c !== stop && g++ < limit) { out.push(c); c = next[c]; }
+    return out;
+  }
+  function readFrom(P, next, s) {
+    if (!ok(s)) return "None";
+    const seen = new Set(), out = [];
+    let c = s;
+    while (c !== -1) {
+      if (seen.has(c)) return out.join(" → ") + ' → <span class="bad">…（绕回去了）</span>';
+      seen.add(c); out.push('<span class="' + side(P, c) + '">' + P.vals[c] + "</span>"); c = next[c];
+    }
+    return out.concat("None").join(" → ");
+  }
+  function reach(next, roots) {
+    const s = new Set();
+    roots.forEach((r) => { let c = r; while (ok(c) && !s.has(c)) { s.add(c); c = next[c]; } });
+    return s;
+  }
+  const valsOf = (P, next, s) => walk(next, s, null, P.N + 2).map((c) => P.vals[c]);
+  const same = (x, y) => x.length === y.length && x.every((v, i) => v === y[i]);
+
+  // 接受 [1,2,4]、1,2,4、1 2 4、[]
+  function parseList(text, maxLen, name) {
+    const t = text.trim().replace(/^[\[［]/, "").replace(/[\]］]$/, "").trim();
+    if (!t) return { vals: [] };
+    const parts = t.split(/[\s,，]+/).filter(Boolean);
+    if (!parts.every((p) => /^-?\d+$/.test(p))) return { err: name + "：请输入整数，用逗号或空格隔开，例如 [1,2,4]" };
+    const vals = parts.map(Number);
+    if (vals.some((v) => v < -100 || v > 100)) return { err: name + "：题目规定 −100 ≤ Node.val ≤ 100" };
+    if (vals.length > maxLen) return { err: name + "：演示里每条最多 " + maxLen + " 个节点，方便看清" };
+    for (let i = 1; i < vals.length; i++) if (vals[i] < vals[i - 1]) return { err: name + " 要从小到大排好（题目保证两条都是有序的）" };
+    return { vals };
+  }
+  function randSorted() {
+    const n = 1 + Math.floor(Math.random() * 5);
+    return Array.from({ length: n }, () => Math.floor(Math.random() * 10)).sort((x, y) => x - y);
+  }
+  function wire2(p, init, presets, maxLen, load) {
+    const fld = (id, cls, lab, v) => '<div class="field ' + cls + '"><label for="' + id + '">' + lab + '</label><input type="text" id="' + id + '" value="' + fmt(v) +
+      '" autocomplete="off" spellcheck="false" aria-describedby="' + p + 'Err"></div>';
+    $(p + "In").innerHTML = '<div class="pair">' + fld(p + "A", "a", "list1 =", init[0]) + fld(p + "B", "b", "list2 =", init[1]) + "</div>" +
+      '<div class="controls" id="' + p + 'Presets" style="margin-top:10px"></div><span class="err" id="' + p + 'Err" hidden></span>';
+    const run = () => {
+      const x = parseList($(p + "A").value, maxLen, "list1"), y = parseList($(p + "B").value, maxLen, "list2");
+      if (showErr(p + "Err", x.err || y.err)) return;
+      load(x.vals, y.vals);
+    };
+    [p + "A", p + "B"].forEach((id) => $(id).addEventListener("input", run));
+    const el = $(p + "Presets");
+    el.innerHTML = presets.map((x, k) => '<button type="button" class="mono" data-k="' + k + '">' + (x === "随机" ? "随机" : fmt(x[0]) + " + " + fmt(x[1])) + "</button>").join("");
+    el.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-k]"); if (!btn) return;
+      const x = presets[+btn.dataset.k], v = x === "随机" ? [randSorted(), randSorted()] : x;
+      $(p + "A").value = fmt(v[0]); $(p + "B").value = fmt(v[1]); run();
+    });
+    run();
+  }
+
+  /* ---------- 链表图：上排 list1，下排 list2，dummy 在最左边两排中间 ---------- */
+  const NW = 46, NH = 38, STEP = 84, LT = 40, BAND = 62, PADL = 16, PADR = 58;
+  const TOP = LT, BOT = LT + NH + BAND, DTOP = LT + NH + BAND / 2 - NH / 2;
+  const r1 = (x) => Math.round(x * 10) / 10;
+  function xOf(P, id, off) { return id === P.D ? PADL : PADL + (P.col[id] + off) * STEP; }
+  function yOf(P, id) { return id === P.D ? DTOP : id < P.m ? TOP : BOT; }
+  function seg(x1, y1, x2, y2, cls, hot) {
+    const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+    const bx = x2 - ux * 8, by = y2 - uy * 8, px = -uy * 5, py = ux * 5;
+    return (hot ? '<line class="halo" x1="' + r1(x1) + '" y1="' + r1(y1) + '" x2="' + r1(x2) + '" y2="' + r1(y2) + '"/>' : "") +
+      '<line class="ar ' + cls + (hot ? " hot" : "") + '" x1="' + r1(x1) + '" y1="' + r1(y1) + '" x2="' + r1(bx) + '" y2="' + r1(by) + '"/>' +
+      '<polygon class="ah ' + cls + '" points="' + r1(x2) + "," + r1(y2) + " " + r1(bx + px) + "," + r1(by + py) + " " + r1(bx - px) + "," + r1(by - py) + '"/>';
+  }
+  // o.ptrs：[[名字, 节点, 颜色类]]；o.green：箭头算“已接进结果”的节点；o.changed：这一步改了谁的箭头；o.roots：还活着的变量（找没接上的节点）；o.ring：描粗的节点
+  function svg2(P, next, o) {
+    o = o || {};
+    const N = P.N, D = P.D, off = o.noDummy ? 0 : 1, showD = !o.noDummy && !o.hideDummy;
+    if (!N && !showD) return '<p class="empty">list1 = None，list2 = None：两条都是空链表</p>';
+    const W = PADL + (N + off - 1) * STEP + NW + PADR, H = BOT + NH + 8 + 2 * 15;
+    const ids = []; for (let i = 0; i < N; i++) ids.push(i); if (showD) ids.push(D);
+    const green = new Set(o.green || []), ring = o.ring || [];
+    const alive = o.roots ? reach(next, o.roots) : null;
+    let arrows = "";
+    ids.forEach((s) => {
+      const t = next[s], hot = o.changed === s, xs = xOf(P, s, off), ys = yOf(P, s);
+      if (t === -1) {
+        const y = ys + NH / 2;
+        arrows += seg(xs + NW + 3, y, xs + NW + 18, y, "nn", hot) + '<text class="nt" x="' + (xs + NW + 21) + '" y="' + y + '">None</text>';
+        return;
+      }
+      const cls = green.has(s) || hot ? "ok" : "fw", xt = xOf(P, t, off), yt = yOf(P, t);
+      const rs = s === D ? 2 : s < P.m ? 0 : 1, rt = t < P.m ? 0 : 1;
+      let x1, y1, x2, y2;
+      if (rs === 2) { x1 = xs + NW + 3; y1 = ys + NH / 2; x2 = xt + NW / 2 - 8; y2 = rt === 0 ? yt + NH + 3 : yt - 3; }
+      else if (rs === rt) { y1 = y2 = ys + NH / 2; if (xt > xs) { x1 = xs + NW + 3; x2 = xt - 3; } else { x1 = xs - 3; x2 = xt + NW + 3; } }
+      else if (rs === 0) { x1 = xs + NW / 2 + 8; y1 = ys + NH + 3; x2 = xt + NW / 2 - 8; y2 = yt - 3; }
+      else { x1 = xs + NW / 2 + 8; y1 = ys - 3; x2 = xt + NW / 2 - 8; y2 = yt + NH + 3; }
+      arrows += seg(x1, y1, x2, y2, cls, hot);
+    });
+    const byNode = {};
+    (o.ptrs || []).forEach(([name, idx, cls]) => { if (ok(idx) && (idx !== D || showD)) (byNode[idx] = byNode[idx] || []).push([name, cls]); });
+    let nodes = "";
+    ids.forEach((s) => {
+      const x = xOf(P, s, off), y = yOf(P, s), isD = s === D;
+      const lost = alive && !isD && !alive.has(s);
+      if (lost) (byNode[s] = byNode[s] || []).push(["没接上", "lost"]);
+      nodes += "<g" + (lost ? ' class="lost"' : "") + '><rect class="nd ' + (isD ? "d" : s < P.m ? "a" : "b") + (ring.includes(s) ? " ring" : "") +
+        '" x="' + x + '" y="' + y + '" width="' + NW + '" height="' + NH + '" rx="7"/>' +
+        '<text class="nv' + (isD ? " d" : "") + '" x="' + (x + NW / 2) + '" y="' + (y + NH / 2) + '">' + (isD ? "dummy" : P.vals[s]) + "</text></g>";
+    });
+    let labs = "";
+    Object.keys(byNode).forEach((k) => byNode[k].forEach(([name, cls], r) => {
+      const id = +k, x = xOf(P, id, off) + NW / 2;
+      const y = id === D ? DTOP + NH + 14 + r * 15 : id < P.m ? TOP - 8 - r * 15 : BOT + NH + 16 + r * 15;
+      labs += '<text class="lb ' + cls + '" x="' + x + '" y="' + y + '">' + esc(name) + "</text>";
+    }));
+    return '<svg class="ls" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + esc(o.label || "两条链表") + '">' + arrows + nodes + labs + "</svg>";
+  }
+  // 手机上图比框宽时横向滚动，让关注的节点停在中间
+  function focusX(wrap, P, id, off) {
+    const svg = wrap.querySelector("svg");
+    if (!svg || wrap.scrollWidth <= wrap.clientWidth + 1 || !ok(id)) return;
+    const base = svg.getBoundingClientRect().left - wrap.getBoundingClientRect().left + wrap.scrollLeft;
+    wrap.scrollLeft = base + xOf(P, id, off) + NW / 2 - wrap.clientWidth / 2;
+  }
+  const readLine = (name, cls, text) => '<span class="rl">从 <b class="' + cls + '">' + name + "</b> 读：" + text + "</span>";
+
+  /* ---------- 语法高亮 ---------- */
+  const KW = /\b(class|def|for|in|range|if|else|not|and|or|while|return|self|None|True|False|Optional|ListNode|public|new|null|nullptr)\b|\b(\d+)\b/g;
+  function hlCode(text, lang) {
+    const marker = lang === "py" ? "#" : "//";
+    const pos = text.indexOf(marker);
+    const codePart = pos >= 0 ? text.slice(0, pos) : text;
+    const comPart = pos >= 0 ? text.slice(pos) : "";
+    const body = esc(codePart).replace(KW, (m, k, n) => k ? '<span class="k">' + k + "</span>" : '<span class="n">' + n + "</span>");
+    return body + (comPart ? '<span class="c">' + esc(comPart) + "</span>" : "");
+  }
+  document.querySelectorAll("pre.code[data-lang]").forEach((pre) => {
+    const lang = pre.dataset.lang;
+    pre.innerHTML = pre.textContent.split("\n").map((l) => '<span class="ln">' + (hlCode(l, lang) || " ") + "</span>").join("");
+  });
+  function renderCode(el, lines, mut) {
+    el.innerHTML = lines.map((l, k) => '<span class="ln' + (k === mut ? " mut" : "") + '" data-k="' + k + '">' + (hlCode(l, "py") || " ") + "</span>").join("");
+  }
+  function markLine(el, line, hl) {
+    const set = [].concat(line);
+    el.querySelectorAll(".ln").forEach((x) => {
+      x.classList.remove("hl0", "hl", "hl2", "hl3", "hl4", "hl5");
+      if (set.includes(+x.dataset.k)) x.classList.add(hl);
+    });
+  }
+  function makePlayer(p, draw) {
+    const S = { frames: [], idx: 0, timer: null };
+    const el = (s) => $(p + s);
+    function render() {
+      draw(S.frames[S.idx]);
+      el("Prog").textContent = "第 " + (S.idx + 1) + " / " + S.frames.length + " 步";
+      el("Prev").disabled = S.idx === 0;
+      el("Next").disabled = S.idx === S.frames.length - 1;
+    }
+    function stop() { if (S.timer) { clearInterval(S.timer); S.timer = null; } el("Play").textContent = "自动播放"; }
+    el("Next").addEventListener("click", () => { stop(); if (S.idx < S.frames.length - 1) { S.idx++; render(); } });
+    el("Prev").addEventListener("click", () => { stop(); if (S.idx > 0) { S.idx--; render(); } });
+    el("Reset").addEventListener("click", () => { stop(); S.idx = 0; render(); });
+    el("Play").addEventListener("click", () => {
+      if (S.timer) { stop(); return; }
+      if (S.idx === S.frames.length - 1) { S.idx = 0; render(); }
+      el("Play").textContent = "暂停";
+      S.timer = setInterval(() => { if (S.idx < S.frames.length - 1) { S.idx++; render(); } else stop(); }, 1100);
+    });
+    return { load(frames) { stop(); S.frames = frames; S.idx = 0; render(); } };
+  }
+  const radio = (name, def) => { const c = document.querySelector('input[name="' + name + '"]:checked'); return c ? c.value : def; };
+
+  /* ---------- 04 / 05 静态图 ---------- */
+  (function () {
+    const P = makeP([1, 2, 4], [1, 3, 5]), D = P.D;   // 0:1 1:2 2:4 | 3:1 4:3 5:5
+    const fin = [3, 4, 5, 1, 2, -1]; fin[D] = 0;
+    $("s4").innerHTML = svg2(P, fin, { ptrs: [["dummy.next", 0, "new"]], green: walk(fin, D, null, 9), label: "合并完：dummy → 1 → 1 → 2 → 3 → 4 → 5 → None" });
+    $("s4Reads").innerHTML = readLine("dummy.next", "ans", readFrom(P, fin, 0));
+    const mid = [3, 2, -1, 4, 5, -1]; mid[D] = 0;
+    $("s5").innerHTML = svg2(P, mid, { ptrs: [["tail", 3, "tail"], ["list1", 1, "l1"], ["list2", 4, "l2"]], green: [D, 0], ring: [3], label: "跑完两轮：tail 在 list2 的 1 上" });
+    $("s5Reads").innerHTML = readLine("dummy.next", "ans", readFrom(P, mid, 0)) + readLine("list1", "l1", readFrom(P, mid, 1)) + readLine("list2", "l2", readFrom(P, mid, 4));
+  })();
+
+  /* ---------- 06 迭代单步 ---------- */
+  const IT_BASE = [
+    "dummy = ListNode()",
+    "tail = dummy",
+    "while list1 and list2:",
+    "    if list1.val <= list2.val:",
+    "        tail.next = list1",
+    "        list1 = list1.next",
+    "    else:",
+    "        tail.next = list2",
+    "        list2 = list2.next",
+    "    tail = tail.next",
+    "tail.next = list1 or list2",
+    "return dummy.next"
+  ];
+  const IT_CODE = { ok: IT_BASE, noadv: IT_BASE.slice(), norest: IT_BASE.slice() };
+  IT_CODE.noadv[9] = "    # tail = tail.next   ← 漏写了这一行";
+  IT_CODE.norest[10] = "# tail.next = list1 or list2   ← 漏写了这一行";
+  const IT_MUT = { ok: -1, noadv: 9, norest: 10 };
+  function itBuild(P, mode) {
+    const D = P.D, next = P.next0.slice(), F = [];
+    let l1 = P.m ? 0 : -1, l2 = P.n ? P.m : -1, tail = null, hasD = false, linked = false, all = false, round = 0;
+    const push = (o) => {
+      let green = [];
+      if (hasD) {
+        if (all) green = walk(next, D, null, P.N + 2);
+        else { green = walk(next, D, tail, P.N + 2); if (linked && tail !== null) green.push(tail); }
+      }
+      F.push(Object.assign({ next: next.slice(), l1, l2, tail, hasD, changed: -1, ring: [], green, final: false, res: null, verdict: null, focus: tail !== null ? tail : 0 }, o));
+    };
+    const rd = () => readFrom(P, next, next[D]);
+    push({ line: -1, hl: "hl0", msg: "两条链表各自从小到大排好：<b class=\"l1\">橙色上排</b>是 list1，<b class=\"l2\">蓝色下排</b>是 list2。节点从左到右的位置，就是它在答案里的位置。点“下一步”开始。" });
+    hasD = true;
+    push({ line: 0, hl: "hl5", msg: "dummy = ListNode()：新建一个假节点（虚线框）。它的值没用，只是给结果链表当车头，后面的节点都往它后面接。" });
+    tail = D;
+    push({ line: 1, hl: "hl5", msg: "tail = dummy：tail 指着结果链表的最后一个节点。现在结果里只有 dummy，所以 tail 就是 dummy。" });
+    for (let g = 0; g < P.N + 2; g++) {
+      if (l1 === -1 || l2 === -1) {
+        const who = l1 === -1 && l2 === -1 ? "list1 和 list2 都是 None" : l1 === -1 ? "list1 是 None" : "list2 是 None";
+        const left = l1 !== -1 ? "list1" : l2 !== -1 ? "list2" : null;
+        push({ line: 2, hl: "hl3", msg: who + "，<code>while list1 and list2</code> 不成立，循环结束。" + (left ? left + " 还剩 " + readFrom(P, next, left === "list1" ? l1 : l2) + "，一个都没比过也没关系。" : "") });
+        break;
+      }
+      round++;
+      push({ line: 2, hl: "hl4", ring: [l1, l2], msg: "第 " + round + " 轮：list1 指着 " + nm(P, l1) + "，list2 指着 " + nm(P, l2) + "，两条都还有，进入循环。" });
+      const takeA = P.vals[l1] <= P.vals[l2], pick = takeA ? l1 : l2;
+      const va = P.vals[l1], vb = P.vals[l2];
+      push({ line: takeA ? 3 : [3, 6], hl: "hl0", ring: [l1, l2], msg: "比较两个排头：list1.val = " + va + "，list2.val = " + vb + "。" +
+        (takeA ? (va === vb ? va + " &lt;= " + vb + " 成立（相等也算），取 list1 的。" : va + " &lt;= " + vb + " 成立，list1 的更小，取它。") : va + " &lt;= " + vb + " 不成立，走 else，取 list2 的 " + vb + "。") });
+      const old = next[tail];
+      next[tail] = pick; linked = true;
+      let m = "tail.next = " + (takeA ? "list1" : "list2") + "：把 tail（" + nm(P, tail) + "）的箭头接到 " + nm(P, pick) + " 上。";
+      if (old === pick) m += "这根箭头原来就指着它（两个节点本来就在同一条链表里挨着），改了等于没改。但必须照写，事先你不知道是不是这样。";
+      if (mode === "noadv" && tail === D && old !== -1 && old !== pick) m += '<span class="bad">dummy.next 原来指着 ' + nm(P, old) + "，现在被覆盖了，" + nm(P, old) + " 从结果里掉了出去。</span>";
+      m += "从 dummy.next 读：" + rd() + "。";
+      push({ line: takeA ? 4 : 7, hl: "hl4", changed: tail, ring: [pick], msg: m });
+      if (takeA) l1 = next[l1]; else l2 = next[l2];
+      const nowAt = takeA ? l1 : l2, nmL = takeA ? "list1" : "list2";
+      push({ line: takeA ? 5 : 8, hl: "hl2", msg: nmL + " = " + nmL + ".next：" + nmL + " 这个标签往后挪一格，到 " + nm(P, nowAt) + "。" + (nowAt === -1 ? nmL + " 用完了。" : "") + "挪的是标签，箭头没动。" });
+      if (mode === "noadv") {
+        push({ line: 9, hl: "hl3", msg: "这里本该写 <code>tail = tail.next</code>，漏了。tail 还停在 dummy 上，下一轮接的节点又会接在 dummy 后面。" });
+      } else {
+        tail = next[tail]; linked = false;
+        push({ line: 9, hl: "hl", ring: [tail], msg: "tail = tail.next：tail 挪到刚接上的 " + nm(P, tail) + "，它现在是结果的最后一个。" +
+          (round === 1 ? "注意它自己的箭头还指着原来那条链表里的下一个（灰色），这根箭头还没定，下一轮会被改掉，或者本来就是对的。" : "") });
+      }
+    }
+    const rest = l1 !== -1 ? l1 : l2;
+    if (mode !== "norest") {
+      next[tail] = rest; linked = true; all = true;
+      let m = "tail.next = list1 or list2：";
+      if (rest === -1) m += "两条都是 None，<code>or</code> 的结果是 None，tail.next 本来就是 None，没变。";
+      else {
+        m += (l1 !== -1 ? "list1" : "list2") + " 不是 None，就接它。把 tail（" + nm(P, tail) + "）的箭头直接接到 " + nm(P, rest) + " 上。剩下这段本来就连好、排好了，整段一次接上，不用再循环。";
+        if (mode === "noadv") m += '<span class="bad">可是 tail 还是 dummy，这一行又把 dummy.next 覆盖了一次。</span>';
+      }
+      push({ line: 10, hl: "hl4", changed: tail, msg: m });
+    } else {
+      push({ line: 10, hl: "hl3", msg: "这里本该把剩下的接上，漏了。" + (rest !== -1
+        ? '<span class="bad">' + (l1 !== -1 ? "list1" : "list2") + " 剩下的 " + readFrom(P, next, rest) + " 没接上。</span>"
+        : "不过这组输入两条正好都用完了，没有剩下的。") });
+    }
+    all = true;
+    const res = next[D], got = valsOf(P, next, res), good = same(got, P.want);
+    let msg = "return dummy.next：跳过假节点，返回 " + nm(P, res) + "，读出来是 " + fmt(got) + "。";
+    if (good) {
+      msg += '<span class="ans">正确</span>。';
+      if (mode === "ok") msg += P.N ? "每个节点都只接了一次，dummy 从头到尾没动过。" : "两条都是空的，循环一次都没进，dummy.next 还是 None。";
+      else msg += "这组输入碰巧对了，换成 [1,2,4] + [1,3,5] 试试。";
+    } else {
+      msg += '<span class="bad">错了</span>，应该是 ' + fmt(P.want) + "。";
+      if (mode === "noadv") msg += "tail 一直停在 dummy 上，每次接新节点都是在改 dummy.next，前面接上的节点全被挤掉，只剩最后接的那一段。";
+      else if (tail === D) msg += "有一条一开始就是空的，循环一次都没进，tail 还是 dummy。全靠最后那一行把另一条接上，漏了它就什么都没接。";
+      else msg += "循环结束时，tail 是用完的那条链表的最后一个节点，它的 next 是 None，另一条剩下的就这样丢在外面。";
+    }
+    push({ line: 11, hl: good ? "hl4" : "hl3", final: true, res, verdict: good ? "ok" : "bad", result: got, msg, focus: res !== -1 ? res : D });
+    return F;
+  }
+  const it = { P: null, mode: "ok" };
+  const itP = makePlayer("it", (f) => {
+    const P = it.P, D = P.D;
+    const ptrs = [];
+    if (f.tail !== null) ptrs.push(["tail", f.tail, "tail"]);
+    if (!f.final) { ptrs.push(["list1", f.l1, "l1"]); ptrs.push(["list2", f.l2, "l2"]); }
+    else if (ok(f.res)) ptrs.push(["返回值", f.res, "new"]);
+    $("itList").innerHTML = svg2(P, f.next, {
+      ptrs, green: f.green, changed: f.changed, ring: f.ring, hideDummy: !f.hasD,
+      roots: f.hasD ? (f.final ? [D] : [D, f.l1, f.l2]) : null,
+      label: f.hasD ? "从 dummy.next 读：" + readFrom(P, f.next, f.next[D]).replace(/<[^>]+>/g, "") : "两条输入链表"
+    });
+    focusX($("itList"), P, f.focus, 1);
+    const vv = (x) => (x === D ? "dummy" : P.vals[x]);
+    $("itV1").textContent = "list1 " + (f.l1 === -1 ? "= None" : "→ " + vv(f.l1));
+    $("itV2").textContent = "list2 " + (f.l2 === -1 ? "= None" : "→ " + vv(f.l2));
+    $("itVt").textContent = f.tail === null ? "tail 还没定义" : "tail → " + vv(f.tail);
+    let r = "";
+    if (f.hasD) r += readLine("dummy.next", "ans", readFrom(P, f.next, f.next[D]));
+    if (!f.final) r += readLine("list1", "l1", readFrom(P, f.next, f.l1)) + readLine("list2", "l2", readFrom(P, f.next, f.l2));
+    $("itReads").innerHTML = r;
+    const out = $("itOut");
+    out.className = "pill" + (f.verdict === "ok" ? " t" : f.verdict ? " f" : "");
+    out.textContent = f.verdict === "ok" ? "返回 " + fmt(f.result) + " ✓" : f.verdict === "bad" ? "返回 " + fmt(f.result) + " ✗" : "运行中";
+    markLine($("itCode"), f.line, f.hl);
+    $("itMsg").innerHTML = f.msg;
+  });
+  function itLoad(a, b) {
+    if (a !== undefined) it.P = makeP(a, b);
+    it.mode = radio("itMode", "ok");
+    renderCode($("itCode"), IT_CODE[it.mode], IT_MUT[it.mode]);
+    itP.load(itBuild(it.P, it.mode));
+    $("itList").scrollLeft = 0;
+  }
+  $("itModes").addEventListener("change", () => itLoad());
+  wire2("it", [[1, 2, 4], [1, 3, 5]], [[[1, 2, 4], [1, 3, 5]], [[1, 2, 3], [4, 5, 6]], [[5], [1, 2, 4]], [[2, 2], [2]], [[], [0]], [[], []], "随机"], 5, itLoad);
+
+  /* ---------- 08 递归单步 ---------- */
+  const RC_CODE = [
+    "def merge(list1, list2):",
+    "    if not list1:",
+    "        return list2",
+    "    if not list2:",
+    "        return list1",
+    "    if list1.val <= list2.val:",
+    "        list1.next = merge(list1.next, list2)",
+    "        return list1",
+    "    else:",
+    "        list2.next = merge(list1, list2.next)",
+    "        return list2"
+  ];
+  renderCode($("rcCode"), RC_CODE, -1);
+  function rcBuild(P) {
+    const next = P.next0.slice(), F = [], stack = [];
+    let gfrom = -1;
+    const push = (o) => F.push(Object.assign({ next: next.slice(), stack: stack.map((s) => Object.assign({}, s)), changed: -1, ring: [],
+      green: ok(gfrom) ? walk(next, gfrom, null, P.N + 2) : [], res: null, verdict: null }, o));
+    const up = (d) => (d > 1 ? "第 " + (d - 1) + " 层" : "最外面的调用者");
+    function call(a, b) {
+      stack.push({ a, b, r: null });
+      const d = stack.length, top = stack[d - 1];
+      push({ line: 0, hl: "hl0", ring: [a, b].filter(ok), msg: "第 " + d + " 层：merge(list1 = " + nm(P, a) + "，list2 = " + nm(P, b) + ")。" + (d > 1 ? "上一层停在调用这一行，等它的结果。" : "") });
+      if (a === -1) {
+        gfrom = b;
+        push({ line: [1, 2], hl: "hl4", res: b, msg: "list1 是 None，用完了。return list2：剩下的 " + readFrom(P, next, b) + " 原样就是合并结果，交给" + up(d) + "。" });
+        stack.pop(); return b;
+      }
+      if (b === -1) {
+        gfrom = a;
+        push({ line: [3, 4], hl: "hl4", res: a, msg: "list2 是 None，用完了。return list1：剩下的 " + readFrom(P, next, a) + " 原样就是合并结果，交给" + up(d) + "。" });
+        stack.pop(); return a;
+      }
+      const takeA = P.vals[a] <= P.vals[b], h = takeA ? a : b, nmL = takeA ? "list1" : "list2";
+      push({ line: takeA ? 5 : [5, 8], hl: "hl0", ring: [a, b], msg: "两条都不是 None。比较 " + P.vals[a] + " 和 " + P.vals[b] + "：" + (takeA ? "list1 的不比 list2 的大" : "list2 的更小") +
+        "，所以 " + nm(P, h) + " 是这一段合并结果的头。" });
+      const na = takeA ? next[a] : a, nb = takeA ? b : next[b];
+      push({ line: takeA ? 6 : 9, hl: "hl2", ring: [h], msg: nm(P, h) + " 后面接什么？交给下一层：merge(" + nm(P, na) + "，" + nm(P, nb) + ")。第 " + d + " 层先停在这里。" });
+      const r = call(na, nb);
+      top.r = r;
+      const old = next[h];
+      next[h] = r; gfrom = h;
+      push({ line: takeA ? 6 : 9, hl: "hl4", changed: h, res: r, msg: "回到第 " + d + " 层：下一层返回了 " + nm(P, r) + "。" + nmL + ".next = 返回值：把 " + nm(P, h) + " 的箭头接上去" +
+        (old === r ? "（原来就指着它，没变）" : "") + "。从 " + nm(P, h) + " 读：" + readFrom(P, next, h) + "。" });
+      push({ line: takeA ? 7 : 10, hl: "hl4", res: h, msg: "return " + nmL + "：把 " + nm(P, h) + " 交给" + up(d) + "。" });
+      stack.pop(); return h;
+    }
+    const r = call(P.m ? 0 : -1, P.n ? P.m : -1);
+    const got = valsOf(P, next, r);
+    push({ line: -1, hl: "hl0", res: r, verdict: same(got, P.want) ? "ok" : "bad", got, msg: "调用栈空了，最终返回 " + nm(P, r) + "：" + readFrom(P, next, r) + "。" +
+      '<span class="ans">正确</span>。' + (P.N ? "每个节点的 next 都是在往回返的路上设好的，从最后面开始一层层往前接。" : "") });
+    return F;
+  }
+  const rc = { P: null };
+  const rcP = makePlayer("rc", (f) => {
+    const P = rc.P, top = f.stack[f.stack.length - 1];
+    const ptrs = [];
+    if (top) { ptrs.push(["list1", top.a, "l1"]); ptrs.push(["list2", top.b, "l2"]); }
+    if (ok(f.res)) ptrs.push(["返回值", f.res, "new"]);
+    $("rcList").innerHTML = svg2(P, f.next, { ptrs, green: f.green, changed: f.changed, ring: f.ring, noDummy: true, label: "递归中的两条链表" });
+    focusX($("rcList"), P, ok(f.changed) ? f.changed : top ? (ok(top.a) ? top.a : top.b) : f.res, 0);
+    const vv = (x) => (x === -1 ? "None" : P.vals[x] + (x < P.m ? "₁" : "₂"));
+    let sh = '<span class="stk-cap">调用栈（最上面是正在执行的一层；₁ 是 list1 的节点，₂ 是 list2 的）</span>';
+    if (!f.stack.length) sh += '<div class="fr none">空：所有调用都返回了</div>';
+    for (let k = f.stack.length - 1; k >= 0; k--) {
+      const s = f.stack[k];
+      sh += '<div class="fr' + (k === f.stack.length - 1 ? " on" : "") + '">第 ' + (k + 1) + " 层 · merge(" + vv(s.a) + ", " + vv(s.b) + ")" + (s.r !== null ? " · 拿到 " + vv(s.r) : "") + "</div>";
+    }
+    $("rcStack").innerHTML = sh;
+    let r = "";
+    if (top) r += readLine("list1", "l1", readFrom(P, f.next, top.a)) + readLine("list2", "l2", readFrom(P, f.next, top.b));
+    if (f.res !== null) r += readLine("返回值", "ans", readFrom(P, f.next, f.res));
+    $("rcReads").innerHTML = r;
+    const out = $("rcOut");
+    out.className = "pill" + (f.verdict === "ok" ? " t" : f.verdict ? " f" : "");
+    out.textContent = f.verdict === "ok" ? "返回 " + fmt(f.got) + " ✓" : f.verdict === "bad" ? "返回 " + fmt(f.got) + " ✗" : "运行中";
+    markLine($("rcCode"), f.line, f.hl);
+    $("rcMsg").innerHTML = f.msg;
+  });
+  wire2("rc", [[1, 2, 4], [1, 3, 5]], [[[1, 2, 4], [1, 3, 5]], [[1, 2, 3], [4, 5, 6]], [[], [0]], [[], []], "随机"], 4, (a, b) => {
+    rc.P = makeP(a, b); rcP.load(rcBuild(rc.P)); $("rcList").scrollLeft = 0;
+  });
+
+  /* ---------- 10 语言切换 ---------- */
+  document.querySelectorAll('.tabs [role="tab"]').forEach((t) => t.addEventListener("click", () => {
+    document.querySelectorAll('.tabs [role="tab"]').forEach((x) => x.setAttribute("aria-selected", x === t ? "true" : "false"));
+    ["py", "java", "cpp"].forEach((l) => { $("code-" + l).hidden = l !== t.dataset.lang; });
+  }));
+
+  /* ---------- 11 自测 ---------- */
+  const QUIZ = [
+    { q: "为什么每轮只需要比较两个排头？", o: ["两条都排好序，排头是各自最小的，所以剩下所有节点里最小的一定是两个排头之一", "因为链表只能访问头节点，没有别的办法", "因为两条链表一样长", "只是习惯，比较别的节点也行"], a: 0,
+      e: "每条链表的排头就是它剩下部分里最小的，全场最小的只能在这两个里面。" },
+    { q: "循环里的 list1 = list1.next 做了什么？", o: ["只把 list1 这个标签挪到下一个节点，链表没变", "删掉了 list1 原来的头节点", "改了 list1 头节点的箭头", "把 list1 接到结果后面"], a: 0,
+      e: "等号左边是变量 list1，挪的是标签。真正改链表的只有 tail.next = ... 这种行。" },
+    { q: "dummy 节点解决了什么问题？", o: ["让接第一个节点和接后面的节点写成同一句，不用单独选头", "让代码跑得更快", "存放两条链表里最小的值", "防止链表出现环"], a: 0,
+      e: "没有 dummy 时，结果一开始没有末尾可接，只能先单独选出头节点。" },
+    { q: "最后应该返回什么？", o: ["dummy.next", "dummy", "tail", "list1"], a: 0,
+      e: "dummy 是假节点，返回它会在答案前面多一个 0；真正的头在 dummy.next。" },
+    { q: "漏写 tail = tail.next，输入 [1,2,4] 和 [1,3,5] 返回？", o: ["[5]", "[1,1,2,3,4,5]", "[1,1,2,3,4]", "[]"], a: 0,
+      e: "tail 一直是 dummy，每轮都在改 dummy.next，最后收尾那一行把 dummy.next 改成剩下的 5。" },
+    { q: "漏写最后的 tail.next = list1 or list2，输入 [1,2,4] 和 [1,3,5] 返回？", o: ["[1,1,2,3,4]", "[1,1,2,3,4,5]", "[5]", "报错"], a: 0,
+      e: "list1 的 4 接上后 list1 用完，循环结束，4 的 next 是 None，list2 剩下的 5 没接上。" },
+    { q: "循环条件写成 while list1 or list2 会怎样？", o: ["一条用完后还进循环，在 None 上取 .val 报错", "结果一样，只是慢一点", "死循环", "返回空链表"], a: 0,
+      e: "比如 list1 已经是 None，list1.val 就是 AttributeError。所以要用 and，剩下的放到循环外面处理。" },
+    { q: "循环结束时 list1 是 None，tail.next = list1 or list2 得到？", o: ["list2", "None", "list1", "报错"], a: 0,
+      e: "a or b：a 是 None（假）时得到 b。" },
+    { q: "为什么剩下的那条一行就能接上，不用再循环？", o: ["剩下的节点本来就连着且有序，接上第一个，整段就进来了", "Python 会自动把后面的节点复制过去", "因为剩下的最多只有一个节点", "其实需要循环，这一行只接了一个"], a: 0,
+      e: "链表接的是箭头，不是一个个元素。剩下的都不比已经取出的小，直接排在最后。" },
+    { q: "list1 = []，list2 = [0]，迭代写法返回？", o: ["[0]，不需要特判", "报错，要先判断空链表", "[]", "[0,0]"], a: 0,
+      e: "循环一次都不进，tail.next = list1 or list2 就是 list2，返回 dummy.next = 节点 0。" },
+    { q: "把 <= 改成 <，结果还对吗？", o: ["对，只是值相等时先取 list2 的节点", "不对，会漏掉相等的节点", "不对，会死循环", "只有没有重复值时才对"], a: 0,
+      e: "相等的两个节点谁先谁后，输出的值都一样。" },
+    { q: "递归写法里，每一层返回的是？", o: ["这一段合并结果的头，也就是两个排头里较小的那个", "原来 list1 的头", "合并结果的最后一个节点", "dummy"], a: 0,
+      e: "较小的排头当这一段的头，它的 next 接上下一层返回的结果，再把自己交上去。" },
+    { q: "迭代和递归的额外空间分别是？", o: ["O(1) 和 O(m+n)", "都是 O(1)", "都是 O(m+n)", "O(m+n) 和 O(1)"], a: 0,
+      e: "迭代只多了 dummy 和几个变量；递归每取一个节点多一层调用。" }
+  ];
+  const answered = {};
+  $("quizBox").innerHTML = QUIZ.map((q, qi) =>
+    '<div class="q"><div class="q-text">' + (qi + 1) + ". " + esc(q.q) + '</div><div class="opts">' +
+    q.o.map((o, oi) => ({ o, oi, r: (qi * 7 + oi * 5) % 4 })).sort((x, y) => x.r - y.r)
+      .map(({ o, oi }) => '<button type="button" class="opt" data-q="' + qi + '" data-o="' + oi + '">' + esc(o) + "</button>").join("") +
+    '</div><div class="explain" id="ex' + qi + '" hidden></div></div>').join("");
+  function score() {
+    const keys = Object.keys(answered), right = keys.filter((k) => answered[k]).length;
+    $("quizScore").textContent = keys.length ? "已作答 " + keys.length + " / " + QUIZ.length + "，答对 " + right + " 题" : "";
+  }
+  $("quizBox").addEventListener("click", (e) => {
+    const b = e.target.closest(".opt"); if (!b) return;
+    const qi = +b.dataset.q, oi = +b.dataset.o, q = QUIZ[qi], box = b.parentElement;
+    box.querySelectorAll(".opt").forEach((x) => x.classList.remove("right", "wrong"));
+    const right = oi === q.a;
+    b.classList.add(right ? "right" : "wrong");
+    if (!right) box.querySelector('[data-o="' + q.a + '"]').classList.add("right");
+    if (!(qi in answered)) answered[qi] = right;
+    const ex = $("ex" + qi); ex.hidden = false;
+    ex.textContent = (right ? "答对了。" : "再想想。") + q.e;
+    score();
+  });
+
+  /* ---------- 掌握清单（仅保存在本浏览器） ---------- */
+  document.querySelectorAll("#checklist input").forEach((cb) => {
+    try { cb.checked = localStorage.getItem("m2l-" + cb.id) === "1"; } catch (e) {}
+    cb.addEventListener("change", () => { try { localStorage.setItem("m2l-" + cb.id, cb.checked ? "1" : "0"); } catch (e) {} });
+  });
+})();
+</script>
+</body>
+</html>
