@@ -1,0 +1,1168 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>链表环检测</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* 版式：单栏教材，一章一个前置知识；slow 琥珀色，fast 蓝色，环上的节点和接回去的那根箭头紫色，相遇/走过的节点绿色，贯穿全页 */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --ink: #17202b;
+  --muted: #586372;
+  --line: #dce1e7;
+  --edge: #b5bfcb;
+  --pre: #b86e0a;
+  --pre-soft: #fcefd8;
+  --suf: #1d6aa3;
+  --suf-soft: #e0edf8;
+  --fix: #7445b8;
+  --fix-soft: #efe7fa;
+  --ans: #2b7a4b;
+  --ans-soft: #e1f2e7;
+  --bad: #b3372f;
+  --bad-soft: #fbe5e3;
+  --code-bg: #eef1f5;
+  --font-display: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151b; --surface: #19202a; --ink: #e5e9ef; --muted: #9ba6b4; --line: #2b3441; --edge: #4b5666;
+    --pre: #f0a845; --pre-soft: #3a2b14; --suf: #6cb2e8; --suf-soft: #142b3e;
+    --fix: #b893f2; --fix-soft: #2a2140;
+    --ans: #5fcb8c; --ans-soft: #153223; --bad: #f08379; --bad-soft: #3d1c1a;
+    --code-bg: #141a22;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151b; --surface: #19202a; --ink: #e5e9ef; --muted: #9ba6b4; --line: #2b3441; --edge: #4b5666;
+  --pre: #f0a845; --pre-soft: #3a2b14; --suf: #6cb2e8; --suf-soft: #142b3e;
+  --fix: #b893f2; --fix-soft: #2a2140;
+  --ans: #5fcb8c; --ans-soft: #153223; --bad: #f08379; --bad-soft: #3d1c1a;
+  --code-bg: #141a22;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.75;
+  font-variant-ligatures: none; /* 等宽字体的连字会把 == 显示成一个符号，初学者容易抄错 */
+}
+.wrap {
+  max-width: 760px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 80px;
+  display: flex; flex-direction: column; gap: 56px;
+}
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.3; margin: 0; }
+h1 { font-size: clamp(28px, 6vw, 42px); font-weight: 800; }
+h2 { font-size: clamp(22px, 4.2vw, 28px); font-weight: 800; }
+h3 { font-size: 18px; font-weight: 600; }
+p { margin: 0; }
+section { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lead { font-size: 18px; color: var(--muted); }
+code, .mono { font-family: var(--font-mono); font-size: .92em; }
+:not(pre) > code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; }
+.sl { color: var(--pre); font-weight: 700; }
+.fa { color: var(--suf); font-weight: 700; }
+.fix { color: var(--fix); font-weight: 700; }
+.ans { color: var(--ans); font-weight: 700; }
+.bad { color: var(--bad); font-weight: 700; }
+.ix { font-family: var(--font-mono); font-size: 11px; color: var(--muted); font-weight: 400; margin-left: 1px; }
+a { color: var(--suf); }
+
+/* 题目卡 */
+.problem { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 99px; background: var(--ans-soft); color: var(--ans); }
+.example { font-family: var(--font-mono); font-size: 14px; background: var(--code-bg); border-radius: 6px; padding: 10px 12px; overflow-x: auto; white-space: pre; }
+
+/* 目录 */
+.toc { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; padding: 0; margin: 0; list-style: none; counter-reset: toc; }
+.toc li { counter-increment: toc; }
+.toc a { display: flex; gap: 10px; align-items: baseline; text-decoration: none; color: var(--ink); padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 15px; }
+.toc a::before { content: counter(toc, decimal-leading-zero); font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.toc a:hover, .toc a:focus-visible { border-color: var(--suf); }
+.toc-part { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+.chap { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.chap .num { font-family: var(--font-mono); font-size: 14px; color: var(--muted); }
+
+.note { border-left: 3px solid var(--suf); padding: 4px 0 4px 14px; }
+.note.warn { border-color: var(--pre); }
+.note.ok { border-color: var(--ans); }
+.note.no { border-color: var(--bad); }
+
+/* 链表图：节点排成一行，尾节点接回去的那根箭头从下面绕回来（和题目配图一样） */
+.lab > * { min-width: 0; }
+.lwrap { overflow-x: auto; padding: 2px 0; max-width: 100%; }
+.lwrap svg { display: block; margin: 0 auto; }
+.lwrap .empty { font-family: var(--font-mono); font-size: 14px; color: var(--muted); text-align: center; padding: 18px 0; }
+.ls .nd { fill: var(--surface); stroke: var(--edge); stroke-width: 1.5; }
+.ls .nd.cyc { fill: var(--fix-soft); }
+.ls .nd.seen { fill: var(--ans-soft); stroke: var(--ans); }
+.ls .rg { fill: none; stroke-width: 3; }
+.ls .rg.s { stroke: var(--pre); }
+.ls .rg.f { stroke: var(--suf); }
+.ls .rg.m { stroke: var(--ans); }
+.ls .rg.b { stroke: var(--ink); }
+.ls .rg.x { stroke: var(--bad); }
+.ls .rg.e { stroke: var(--fix); }
+.ls .nv { font-family: var(--font-mono); font-size: 16px; font-weight: 600; fill: var(--ink); text-anchor: middle; dominant-baseline: central; }
+.ls .nv.sm { font-size: 13px; }
+.ls .ixt { font-family: var(--font-mono); font-size: 10px; fill: var(--muted); text-anchor: middle; }
+.ls .ar { stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+.ls .ar.fw { stroke: var(--muted); }
+.ls .ah.fw { fill: var(--muted); }
+.ls .ar.cy { stroke: var(--fix); stroke-width: 2.2; }
+.ls .ah.cy { fill: var(--fix); }
+.ls .ar.nn { stroke: var(--edge); }
+.ls .ah.nn { fill: var(--edge); }
+.ls .nt { font-family: var(--font-mono); font-size: 11px; fill: var(--muted); dominant-baseline: central; }
+.ls .lb { font-family: var(--font-mono); font-size: 12px; font-weight: 700; text-anchor: middle; }
+.ls .lb.s { fill: var(--pre); }
+.ls .lb.f { fill: var(--suf); }
+.ls .lb.h { fill: var(--muted); }
+.ls .lb.e { fill: var(--fix); }
+.ls .lb.m { fill: var(--ans); }
+.ls .tx { font-family: var(--font-body); font-size: 13px; fill: var(--muted); text-anchor: middle; }
+.ls .tx.e { fill: var(--fix); font-weight: 700; }
+.ls .tx.m { fill: var(--ans); font-weight: 700; }
+.ls .br { stroke: var(--muted); stroke-width: 1; fill: none; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: 3px; }
+.legend i.sq { width: 12px; height: 12px; vertical-align: -1px; border-radius: 3px; border: 1.5px solid var(--edge); background: var(--surface); }
+.legend i.cyc { background: var(--fix-soft); }
+.legend i.seen { background: var(--ans-soft); border-color: var(--ans); }
+.legend i.rs { border: 2.5px solid var(--pre); background: transparent; }
+.legend i.rf { border: 2.5px solid var(--suf); background: transparent; }
+.legend i.rm { border: 2.5px solid var(--ans); background: transparent; }
+.legend i.cy { background: var(--fix); }
+.reads { display: flex; flex-direction: column; gap: 4px; font-family: var(--font-mono); font-size: 14px; }
+.reads .rl { overflow-wrap: anywhere; }
+.reads .rl b { font-weight: 700; }
+.rho { display: block; margin: 0 auto; width: 100%; height: auto; }
+
+/* 表格 */
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 13px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+td code { white-space: nowrap; }
+td.mono { white-space: nowrap; }
+tr:last-child td, tr:last-child th { border-bottom: 0; }
+
+/* 交互组件外壳 */
+.lab { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.lab-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button {
+  font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+}
+button:hover { border-color: var(--muted); }
+button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button.mono { font-family: var(--font-mono); }
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--suf); outline-offset: 2px; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+input[type=text] {
+  font-family: var(--font-mono); font-size: 15px; padding: 6px 10px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink); min-width: 0; width: 100%;
+  font-variant-ligatures: none;
+}
+.pair { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+@media (min-width: 520px) { .pair { grid-template-columns: minmax(0, 1fr) 140px; } }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-size: 14px; font-weight: 700; font-family: var(--font-mono); }
+.field.e label { color: var(--fix); }
+.err { color: var(--bad); font-size: 14px; }
+.modes { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.modes legend { font-size: 14px; font-weight: 700; margin-bottom: 6px; padding: 0; }
+.modes label { display: inline-flex; flex-wrap: wrap; max-width: 100%; align-items: center; gap: 6px; font-size: 14px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 99px; cursor: pointer; background: var(--bg); }
+.modes label:has(input:checked) { border-color: var(--ink); background: var(--surface); font-weight: 700; }
+.modes label:has(input:focus-visible) { outline: 2px solid var(--suf); outline-offset: 2px; }
+.modes input { accent-color: var(--fix); margin: 0; }
+
+/* 代码块 */
+pre.code { margin: 0; background: var(--code-bg); border-radius: 8px; padding: 12px 0; overflow-x: auto; font-family: var(--font-mono); font-size: 14px; line-height: 1.7; }
+pre.code .ln { display: block; padding: 0 14px; border-left: 3px solid transparent; white-space: pre; }
+pre.code .ln.hl0 { background: var(--line); border-left-color: var(--ink); }
+pre.code .ln.hl { background: var(--pre-soft); border-left-color: var(--pre); }
+pre.code .ln.hl2 { background: var(--suf-soft); border-left-color: var(--suf); }
+pre.code .ln.hl3 { background: var(--bad-soft); border-left-color: var(--bad); }
+pre.code .ln.hl4 { background: var(--ans-soft); border-left-color: var(--ans); }
+pre.code .ln.hl5 { background: var(--fix-soft); border-left-color: var(--fix); }
+pre.code .ln.mut .c { color: var(--bad); font-style: normal; font-weight: 600; }
+.k { color: var(--suf); font-weight: 600; }
+.c { color: var(--muted); font-style: italic; }
+.n { color: var(--pre); }
+.code-cap { font-size: 14px; color: var(--muted); }
+
+.msg { min-height: 3.5em; padding: 10px 14px; border-radius: 8px; background: var(--bg); font-size: 15px; }
+.progress { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+.pill { display: inline-block; font-family: var(--font-mono); font-size: 14px; padding: 2px 12px; border-radius: 99px; border: 1.5px solid var(--line); white-space: nowrap; }
+.pill.t { border-color: var(--ans); color: var(--ans); background: var(--ans-soft); }
+.pill.f { border-color: var(--bad); color: var(--bad); background: var(--bad-soft); }
+
+/* 单步执行 */
+.vars { display: flex; gap: 8px; flex-wrap: wrap; }
+.var { font-family: var(--font-mono); padding: 3px 12px; border-radius: 99px; font-size: 14px; border: 1.5px solid var(--line); white-space: pre; }
+.var.s { border-color: var(--pre); color: var(--pre); }
+.var.f { border-color: var(--suf); color: var(--suf); }
+.var.e { border-color: var(--fix); color: var(--fix); }
+.var.m { border-color: var(--ans); color: var(--ans); }
+.var:empty { display: none; }
+.setbox { font-family: var(--font-mono); font-size: 14px; overflow-wrap: anywhere; }
+.setbox .chip { display: inline-block; padding: 0 8px; margin: 2px 4px 2px 0; border-radius: 5px; background: var(--ans-soft); color: var(--ans); border: 1px solid var(--ans); }
+.setbox .chip.hit { background: var(--bad-soft); color: var(--bad); border-color: var(--bad); }
+.setbox .chip.ok { background: var(--ans); color: var(--surface); }
+.stepper-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+@media (min-width: 720px) { .stepper-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); align-items: start; } }
+.viz { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+/* 测验 */
+.quiz { display: flex; flex-direction: column; gap: 18px; }
+.q { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.q-text { font-weight: 500; }
+.opts { display: flex; flex-direction: column; gap: 6px; }
+.opt { text-align: left; background: var(--bg); }
+.opt.right { background: var(--ans-soft); border-color: var(--ans); }
+.opt.wrong { background: var(--bad-soft); border-color: var(--bad); }
+.explain { font-size: 14px; color: var(--muted); }
+
+.checklist { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.checklist label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.checklist input { margin-top: 6px; accent-color: var(--ans); width: 16px; height: 16px; flex: none; }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.code-group { display: flex; flex-direction: column; gap: 10px; }
+ul.plain, ol.plain { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
+footer { font-size: 13px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:14px">
+  <span class="eyebrow">NeetCode · Linked List · Easy</span>
+  <h1>链表环检测</h1>
+  <p class="lead">Linked List Cycle Detection。先看清“环”在链表里长什么样，为什么平常的遍历会停不下来。接着用哈希集合的笨办法打底，再讲快慢指针：为什么快的一定能追上慢的，为什么一次走两步刚好合适，循环条件为什么是 <code>fast and fast.next</code>。最后顺带讲怎么找出环从哪里开始。</p>
+</header>
+
+<section class="problem" aria-label="题目">
+  <div><span class="tag">题目</span></div>
+  <p>给你链表的头节点 <code>head</code>。如果链表里有环，返回 <code>true</code>，否则返回 <code>false</code>。</p>
+  <p>“有环”的意思是：顺着 <code>next</code> 一直走下去，会再次走到某个已经走过的节点。</p>
+  <p>判题系统内部用 <code>index</code> 表示尾节点的 <code>next</code> 接回第几个节点（从 0 数）。<code>index = -1</code> 表示尾节点的 next 是 null，没有环。注意：<code>index</code> <strong>不会</strong>作为参数传给你。</p>
+  <div class="example">输入: head = [1,2,3,4], index = 1
+输出: true
+
+输入: head = [1,2], index = -1
+输出: false</div>
+  <p style="font-size:14px;color:var(--muted)">约束：1 ≤ 链表长度 ≤ 1000，−1000 ≤ Node.val ≤ 1000，index 是 −1 或者一个合法下标。</p>
+</section>
+
+<nav aria-label="目录" style="display:flex;flex-direction:column;gap:10px">
+  <span class="eyebrow">学习路线</span>
+  <ol class="toc">
+    <li><a href="#shape">环长什么样</a></li>
+    <li><a href="#hash">笨办法：记住走过的节点</a></li>
+    <li><a href="#idea">快慢指针：操场上跑圈</a></li>
+    <li><a href="#why">为什么一定会相遇</a></li>
+    <li><a href="#cond">循环条件和比较的位置</a></li>
+    <li><a href="#step">单步执行：快慢指针</a></li>
+    <li><a href="#entry">进阶：找到环的入口</a></li>
+    <li><a href="#template">快慢指针模板与同类题</a></li>
+    <li><a href="#code">完整代码与复杂度</a></li>
+    <li><a href="#quiz">自测</a></li>
+  </ol>
+  <p class="toc-part">01 是前置知识；02 是哈希集合解法；03–06 是快慢指针解法，也就是面试想看的那种；07 是进阶，这道题用不到。还没接触过链表的话，先看<a href="reverse-linked-list.html">反转链表</a>那页的 01–02 章。</p>
+</nav>
+
+<!-- 01 -->
+<section id="shape">
+  <div class="chap"><span class="num">01</span><h2>环长什么样</h2></div>
+  <p>链表的每个节点有两样东西：值 <code>val</code>，和指向下一个节点的 <code>next</code>。题目只给你头节点 <code>head</code>，其它节点都要顺着 next 一个一个走过去才能拿到。</p>
+<pre class="code" data-lang="py">class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val      # 这个节点存的值
+        self.next = next    # 下一个节点；没有下一个就是 None</pre>
+  <p>平常遍历链表是这样写的，它靠“走到 None”停下来：</p>
+<pre class="code" data-lang="py">cur = head
+while cur:              # cur 变成 None 才停
+    cur = cur.next</pre>
+  <p>题目的样例：尾节点 4 的 next 没有指向 None，而是接回了第 1 个节点（值为 2，从 0 数）。图里节点上方的 <span class="mono">#0 #1 …</span> 是节点的编号，紫色是环上的节点和接回去的那根箭头：</p>
+  <div class="lab">
+    <div class="lwrap" id="s1a"></div>
+    <div class="reads" id="s1aReads"></div>
+    <div class="lwrap" id="s1b"></div>
+    <div class="reads" id="s1bReads"></div>
+    <div class="legend"><span><i class="sq cyc"></i>环上的节点</span><span><i class="cy"></i>尾节点接回去的箭头</span></div>
+  </div>
+  <div class="tbl-wrap"><table>
+    <tr><th>情况</th><th>一直 <code>cur = cur.next</code> 会怎样</th></tr>
+    <tr><td>没有环</td><td>走完最后一个节点，cur 变成 None，循环结束</td></tr>
+    <tr><td class="fix">有环</td><td>走到尾节点又被送回前面，在圈里转个不停，<strong>永远走不到 None</strong></td></tr>
+  </table></div>
+  <ul class="plain">
+    <li>所以普通遍历没法判断有没有环：没环时它会停，有环时它停不下来，程序卡死，你等不到一个“有环”的结论。</li>
+    <li>有环的链表一定长成希腊字母 <strong>ρ</strong> 的样子：前面一段“尾巴”，后面一个圈。每个节点只有一个 next，所以一旦走进圈就再也出不来，圈后面不可能再挂别的节点。尾巴可以没有（index = 0，整条都是圈），圈也可以只有一个节点（尾节点指向自己）。</li>
+    <li>“走过的节点”指的是<strong>同一个节点</strong>，不是值相同的节点。<code>[1,2,1,2]</code> 里值有重复，但完全可以没有环。</li>
+    <li>你拿不到 <code>index</code>，也拿不到长度（链表没有长度属性，有环时长度也没意义）。能做的只有顺着 next 走，看会不会回到走过的地方。</li>
+  </ul>
+</section>
+
+<!-- 02 -->
+<section id="hash">
+  <div class="chap"><span class="num">02</span><h2>笨办法：记住走过的节点</h2></div>
+  <p>最直接的想法：边走边把走过的节点记进一个集合。每到一个节点先查一下，<strong>以前来过</strong>就说明绕回来了，有环；走到 None 都没遇到来过的，就没环。</p>
+<pre class="code" data-lang="py">seen = set()
+cur = head
+while cur:
+    if cur in seen:     # 第二次来到同一个节点：有环
+        return True
+    seen.add(cur)       # 记下这个节点（节点本身，不是 cur.val）
+    cur = cur.next
+return False            # 走到 None 了：没环</pre>
+  <p>一步一步看集合怎么变。也可以切换成“存值”的错误写法，用 <span class="mono">[1,2,1,3]</span> 试试：</p>
+  <div class="lab">
+    <div id="hsIn"></div>
+    <fieldset class="modes" id="hsModes"><legend>写法</legend>
+      <label><input type="radio" name="hsMode" value="node" checked>存节点 <span class="mono">seen.add(cur)</span></label>
+      <label><input type="radio" name="hsMode" value="val">存值 <span class="mono">seen.add(cur.val)</span></label>
+    </fieldset>
+    <div>
+      <div class="lwrap" id="hsList"></div>
+      <div class="legend"><span><i class="sq rs"></i>cur 在这</span><span><i class="sq seen"></i>已经记进 seen</span><span><i class="sq cyc"></i>环上的节点</span><span><i class="cy"></i>接回去的箭头</span></div>
+    </div>
+    <div class="stepper-grid">
+      <div class="viz">
+        <div class="vars"><span class="var s" id="hsVc"></span><span class="var" id="hsVr"></span></div>
+        <div class="setbox" id="hsSet"></div>
+        <div><span id="hsOut" class="pill">运行中</span></div>
+      </div>
+      <pre class="code" id="hsCode"></pre>
+    </div>
+    <div class="msg" id="hsMsg" aria-live="polite"></div>
+    <div class="lab-head">
+      <div class="controls">
+        <button type="button" id="hsReset">重来</button>
+        <button type="button" id="hsPrev">上一步</button>
+        <button type="button" id="hsNext" class="primary">下一步</button>
+        <button type="button" id="hsPlay">自动播放</button>
+      </div>
+      <span class="progress" id="hsProg"></span>
+    </div>
+  </div>
+  <ul class="plain">
+    <li><strong>存节点，不存值。</strong>Python 里自己定义的类（ListNode 没写 <code>__eq__</code>），放进 set 时按“是不是同一个对象”来比较，正好是我们要的。存 <code>cur.val</code> 的话，两个值相同的不同节点会被当成同一个，没环也会返回 True。</li>
+    <li>每个节点最多进集合一次、查一次，时间 <strong>O(n)</strong>。但集合最多存 n 个节点，额外空间 <strong>O(n)</strong>。</li>
+    <li>这个写法完全能通过，面试时也可以先说它。但面试官几乎一定会追问：<strong>能不能只用 O(1) 的额外空间？</strong>下一章就是答案。</li>
+  </ul>
+  <p class="note warn">还有个偷懒办法：约束说最多 1000 个节点，那就数步数，走了 1001 步还没到 None，一定有环。它能过，但完全依赖约束里的数字，换个约束就失效，面试时不算一个解法。</p>
+</section>
+
+<!-- 03 -->
+<section id="idea">
+  <div class="chap"><span class="num">03</span><h2>快慢指针：操场上跑圈</h2></div>
+  <p>想象两个人同时从起点出发，一个跑得快，速度是另一个的两倍。</p>
+  <ul class="plain">
+    <li>如果路是一条<strong>直路</strong>，有终点：快的人先到终点，慢的人永远在他后面，两人不会再碰面。</li>
+    <li>如果路的尽头是一个<strong>环形跑道</strong>：两人迟早都会跑进圈里。快的人在圈里一圈圈地跑，一定会从后面<strong>追上</strong>慢的人，也就是“套圈”。</li>
+  </ul>
+  <p>链表里也一样，放两个指针：<span class="sl">slow</span> 每次走 1 步，<span class="fa">fast</span> 每次走 2 步。</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>发生了什么</th><th>说明</th><th>返回</th></tr>
+    <tr><td>fast 走到了 None</td><td>路有尽头，没有环</td><td class="mono">False</td></tr>
+    <tr><td>slow 和 fast 站到了<strong>同一个节点</strong>上</td><td>fast 绕回来追上了 slow，有环</td><td class="mono">True</td></tr>
+  </table></div>
+<pre class="code" data-lang="py">slow, fast = head, head
+while fast and fast.next:   # fast 前面还有至少两步的路
+    slow = slow.next        # 慢的走 1 步
+    fast = fast.next.next   # 快的走 2 步
+    if slow == fast:        # 站到了同一个节点上
+        return True
+return False</pre>
+  <p>这个方法叫 <strong>Floyd 判圈算法</strong>，也叫“龟兔赛跑”。它只用了两个变量，额外空间 <strong>O(1)</strong>。</p>
+  <p>下面是一个更大的 ρ 形链表，用来讲为什么一定会追上。前面是长度 <span class="mono">a = 3</span> 的尾巴，后面是长度 <span class="mono">L = 6</span> 的圈，圈的方向是顺时针：</p>
+  <div class="lab"><div id="rho1"></div></div>
+</section>
+
+<!-- 04 -->
+<section id="why">
+  <div class="chap"><span class="num">04</span><h2>为什么一定会相遇</h2></div>
+  <p>分两段看。</p>
+  <h3>第一段：slow 还在尾巴上</h3>
+  <p>fast 跑得快，一定比 slow 先进圈。slow 走完尾巴的 a 步时，两个都已经在圈上了。</p>
+  <h3>第二段：两个都在圈上，fast 追 slow</h3>
+  <p>圈上没有“前后”，只有“追”。顺着箭头方向数，设 fast 还要走 <span class="fix">d</span> 步才到 slow 的位置，叫它<strong>差距</strong>（0 ≤ d &lt; L）。每一轮：</p>
+  <ul class="plain">
+    <li>slow 往前走 1 步，差距 +1；</li>
+    <li>fast 往前走 2 步，差距 −2；</li>
+    <li>合起来，差距<strong>正好减少 1</strong>。</li>
+  </ul>
+  <p>差距每轮少 1，从 d 一路减到 0，不可能跳过 0。差距变成 0 的那一刻，两个指针就站在同一个节点上。用题目样例 <span class="mono">[1,2,3,4], index = 1</span>（尾巴 a = 1，圈 L = 3）走一遍：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>轮</th><th>slow</th><th>fast</th><th>都在圈上？</th><th>差距 d</th></tr>
+    <tr><td>开始</td><td class="mono sl">1<span class="ix">#0</span></td><td class="mono fa">1<span class="ix">#0</span></td><td>否</td><td>—</td></tr>
+    <tr><td>1</td><td class="mono sl">2<span class="ix">#1</span></td><td class="mono fa">3<span class="ix">#2</span></td><td>是</td><td class="mono">2</td></tr>
+    <tr><td>2</td><td class="mono sl">3<span class="ix">#2</span></td><td class="mono fa">2<span class="ix">#1</span></td><td>是</td><td class="mono">1</td></tr>
+    <tr><td>3</td><td class="mono sl">4<span class="ix">#3</span></td><td class="mono fa">4<span class="ix">#3</span></td><td>是</td><td class="mono ans">0 相遇</td></tr>
+  </table></div>
+  <p>第 1 轮 fast 在 #2，看起来在 slow 前面一格。但它是在圈上，顺着箭头 #2 → #3 → #1，要走 2 步才到 slow，所以差距是 2。第 2 轮 fast 绕过了尾节点，从 #2 走到 #3 再到 #1。</p>
+  <h3>要跑多久</h3>
+  <ul class="plain">
+    <li>slow 进圈时差距 d &lt; L，所以 slow 进圈后不到 L 轮就被追上，slow 在圈上连一整圈都跑不完。</li>
+    <li>总轮数不超过 a + L = n（尾巴加圈正好是全部节点）。没有环时，fast 每轮走 2 步，大约 n/2 轮就走到 None。两种情况时间都是 <strong>O(n)</strong>。</li>
+  </ul>
+  <h3>为什么 fast 走 2 步，不走 3 步</h3>
+  <p>fast 走 3 步的话，差距每轮减 2，可能会<strong>跳过 0</strong>。比如圈长 L = 4，差距从 1 开始：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>fast 每轮走</th><th>差距每轮减少</th><th>差距变化（L = 4，从 1 开始）</th><th>结果</th></tr>
+    <tr><td>2 步</td><td>1</td><td class="mono">1 → 0</td><td class="ans">下一轮就相遇</td></tr>
+    <tr><td>3 步</td><td>2</td><td class="mono">1 → 3 → 1 → 3 → …</td><td class="bad">永远踩不到同一个节点</td></tr>
+  </table></div>
+  <p>差距减 2 时，奇数减 2 还是奇数，绕一圈（加 L = 4）也还是奇数，永远到不了 0。fast 在途中会“路过” slow 的节点，但每轮结束时都没停在那里，代码只在每轮结束时比较。走 2 步保证差距一次只少 1，一定能停在同一个节点上，也是最省事的选择。</p>
+</section>
+
+<!-- 05 -->
+<section id="cond">
+  <div class="chap"><span class="num">05</span><h2>循环条件和比较的位置</h2></div>
+<pre class="code" data-lang="py">while fast and fast.next:</pre>
+  <p>循环里要执行 <code>fast = fast.next.next</code>，也就是要先取 <code>fast.next</code>，再取 <code>fast.next.next</code>。这两步都要求“点号前面的东西不是 None”：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>检查</th><th>保护的是</th><th>什么时候会是 None</th></tr>
+    <tr><td><code>fast</code></td><td>取 <code>fast.next</code> 不报错</td><td>链表长度是偶数：fast 一次跨两步，正好跨出末尾，或者 head 本身就是 None</td></tr>
+    <tr><td><code>fast.next</code></td><td>取 <code>fast.next.next</code> 不报错</td><td>链表长度是奇数：fast 停在最后一个节点上</td></tr>
+  </table></div>
+  <ul class="plain">
+    <li><code>and</code> 是“短路”的：如果 fast 已经是 None，Python 就不会再去算 <code>fast.next</code>，所以不会报错。顺序不能反，写成 <code>fast.next and fast</code>，fast 是 None 时一上来就报错。</li>
+    <li><strong>slow 不用检查</strong>：slow 走的路 fast 都走过，而且 fast 总在前面。fast 没出界，slow 就不可能出界。</li>
+    <li>只写 <code>while fast:</code> 不够：奇数长度时 fast 停在最后一个节点，<code>fast.next</code> 是 None，再取 <code>.next</code> 就是 <code>AttributeError</code>。</li>
+  </ul>
+  <h3>比较放在移动之后</h3>
+  <p>一开始 slow 和 fast 都在 head 上，本来就是同一个节点。如果先比较再走，第一轮就会返回 True，不管有没有环。所以要<strong>先走，再比较</strong>。</p>
+  <h3><code>==</code> 比的是什么</h3>
+  <p>ListNode 没有定义 <code>__eq__</code>，<code>slow == fast</code> 比的是“是不是同一个节点”，和 <code>slow is fast</code> 一样。千万别写成 <code>slow.val == fast.val</code>：值相同的两个不同节点会被误判成相遇；fast 走到 None 时取 <code>fast.val</code> 还会报错。</p>
+  <p class="note">这一章的三种写错法（只检查 fast、先比较再走、比较值），下一章都可以切换着跑一遍。</p>
+</section>
+
+<!-- 06 -->
+<section id="step">
+  <div class="chap"><span class="num">06</span><h2>单步执行：快慢指针</h2></div>
+  <p>输入任意链表和 index，一步一步看 slow 和 fast 怎么跑。两个都进圈以后，左边会显示还差几步追上。也可以切换成常见的写错法，看错在哪。</p>
+  <div class="lab">
+    <div id="fpIn"></div>
+    <fieldset class="modes" id="fpModes"><legend>写法</legend>
+      <label><input type="radio" name="fpMode" value="ok" checked>正确</label>
+      <label><input type="radio" name="fpMode" value="nofn">只写 <span class="mono">while fast:</span></label>
+      <label><input type="radio" name="fpMode" value="early">先比较再走</label>
+      <label><input type="radio" name="fpMode" value="val">比较 <span class="mono">.val</span></label>
+    </fieldset>
+    <div>
+      <div class="lwrap" id="fpList"></div>
+      <div class="legend"><span><i class="sq rs"></i>slow 在这</span><span><i class="sq rf"></i>fast 在这</span><span><i class="sq rm"></i>同一个节点</span><span><i class="sq cyc"></i>环上的节点</span><span><i class="cy"></i>接回去的箭头</span></div>
+    </div>
+    <div class="stepper-grid">
+      <div class="viz">
+        <div class="vars"><span class="var" id="fpVr"></span><span class="var s" id="fpVs"></span><span class="var f" id="fpVf"></span><span class="var e" id="fpVd"></span></div>
+        <div class="reads" id="fpReads"></div>
+        <div><span id="fpOut" class="pill">运行中</span></div>
+      </div>
+      <pre class="code" id="fpCode"></pre>
+    </div>
+    <div class="msg" id="fpMsg" aria-live="polite"></div>
+    <div class="lab-head">
+      <div class="controls">
+        <button type="button" id="fpReset">重来</button>
+        <button type="button" id="fpPrev">上一步</button>
+        <button type="button" id="fpNext" class="primary">下一步</button>
+        <button type="button" id="fpPlay">自动播放</button>
+      </div>
+      <span class="progress" id="fpProg"></span>
+    </div>
+  </div>
+  <p style="font-size:14px;color:var(--muted)">试试 <span class="mono">[1,2,3,4,5,6,7,8] · index 7</span>：圈只有一个节点（尾节点指向自己），slow 要走完整条尾巴才进圈。切到“只写 while fast:”，用奇数长度的 <span class="mono">[1,2,3] · -1</span> 看它怎么报错；切到“比较 .val”，用 <span class="mono">[2,3,3,4] · -1</span> 看它怎么误判。</p>
+</section>
+
+<!-- 07 -->
+<section id="entry">
+  <div class="chap"><span class="num">07</span><h2>进阶：找到环的入口</h2></div>
+  <p>本题只问有没有环。它的进阶版 Linked List Cycle II 还要你返回<strong>环从哪个节点开始</strong>（入口）。快慢指针相遇以后，再加几行就能找到。</p>
+  <p>还用第 03 章那个链表（a = 3，L = 6）。slow 和 fast 第 6 轮在 #6 相遇，它在入口 #3 之后 <span class="mono">b = 3</span> 步：</p>
+  <div class="lab"><div id="rho2"></div></div>
+  <ul class="plain">
+    <li>相遇时 slow 走了 <span class="mono">a + b</span> 步，fast 走了它的两倍 <span class="mono">2(a + b)</span> 步。</li>
+    <li>fast 多走的那 <span class="mono">a + b</span> 步，全是在圈上多绕的整圈，所以 <span class="mono">a + b = k·L</span>（k 是某个正整数）。</li>
+    <li>移项：<span class="mono">a = k·L − b</span>。从相遇点再往前走 a 步，等于先走 <span class="mono">L − b</span> 步回到入口，再绕 k − 1 个整圈，最后还停在入口。</li>
+    <li>所以：一个指针放回 head，一个留在相遇点，<strong>两个都每次走 1 步</strong>。走 a 步后，从 head 出发的那个刚好走完尾巴到了入口，留在圈上的那个也刚好到了入口，它们就在入口相遇。</li>
+  </ul>
+<pre class="code" data-lang="py">def detectCycle(head):
+    slow, fast = head, head
+    while fast and fast.next:
+        slow = slow.next
+        fast = fast.next.next
+        if slow == fast:            # 第一段：相遇，说明有环
+            p = head
+            while p != slow:        # 第二段：都每次走 1 步
+                p = p.next
+                slow = slow.next
+            return p                # 再次相遇的地方就是入口
+    return None</pre>
+  <p>图里正好 a = 3：从 head #0 走 3 步到 #3，从相遇点 #6 走 3 步（#7 → #8 → #3）也到 #3。</p>
+</section>
+
+<!-- 08 -->
+<section id="template">
+  <div class="chap"><span class="num">08</span><h2>快慢指针模板与同类题</h2></div>
+  <p>“一个走 1 步，一个走 2 步”是链表题里很常用的骨架：</p>
+<pre class="code" data-lang="py">slow, fast = head, head
+while fast and fast.next:
+    slow = slow.next
+    fast = fast.next.next
+    # 判环：在这里比较 slow == fast
+# 循环结束时，没有环的话 slow 停在链表中间</pre>
+  <div class="tbl-wrap"><table>
+    <tr><th>题目</th><th>和本题的关系</th></tr>
+    <tr><td><strong>本题</strong></td><td>fast 追上 slow 就有环，fast 到 None 就没环</td></tr>
+    <tr><td>Linked List Cycle II</td><td>相遇后一个回 head，同速再走一次，相遇处是入口（第 07 章）</td></tr>
+    <tr><td>Middle of the Linked List</td><td>fast 走到头时，slow 正好在中间</td></tr>
+    <tr><td>Reorder List</td><td>先用快慢指针找中点，再反转后半段，最后交替接起来</td></tr>
+    <tr><td>Palindrome Linked List</td><td>找中点，反转后半段，和前半段逐个比较</td></tr>
+    <tr><td>Find the Duplicate Number</td><td>把数组看成链表 i → nums[i]，重复的数就是环的入口，正好用第 07 章的方法</td></tr>
+    <tr><td>Happy Number</td><td>不断算“各位数字平方和”，要么到 1，要么进入循环。用快慢指针判圈，不用集合</td></tr>
+  </table></div>
+  <h3>下次怎么想到</h3>
+  <ol class="plain">
+    <li>看到“会不会重复/会不会绕回来”：第一反应是用集合记住来过的，能过但要 O(n) 空间。</li>
+    <li>被要求 O(1) 空间，而且每个位置只有唯一的“下一个”（链表的 next、函数 f(x)）：用快慢指针，快的走 2 步、慢的走 1 步。</li>
+    <li>循环条件写 <code>fast and fast.next</code>，先走再比较，比较的是节点本身。</li>
+  </ol>
+</section>
+
+<!-- 09 -->
+<section id="code">
+  <div class="chap"><span class="num">09</span><h2>完整代码与复杂度</h2></div>
+  <div class="tabs" role="tablist" aria-label="语言">
+    <button type="button" role="tab" aria-selected="true" data-lang="py">Python</button>
+    <button type="button" role="tab" aria-selected="false" data-lang="java">Java</button>
+    <button type="button" role="tab" aria-selected="false" data-lang="cpp">C++</button>
+  </div>
+  <div class="code-group" id="code-py">
+    <p class="code-cap">快慢指针（推荐）</p>
+<pre class="code" data-lang="py">class Solution:
+    def hasCycle(self, head: Optional[ListNode]) -&gt; bool:
+        slow, fast = head, head
+        while fast and fast.next:
+            slow = slow.next
+            fast = fast.next.next
+            if slow == fast:
+                return True
+        return False</pre>
+    <p class="code-cap">哈希集合</p>
+<pre class="code" data-lang="py">class Solution:
+    def hasCycle(self, head: Optional[ListNode]) -&gt; bool:
+        seen = set()
+        cur = head
+        while cur:
+            if cur in seen:
+                return True
+            seen.add(cur)
+            cur = cur.next
+        return False</pre>
+  </div>
+  <div class="code-group" id="code-java" hidden>
+    <p class="code-cap">快慢指针（推荐）</p>
+<pre class="code" data-lang="java">public class Solution {
+    public boolean hasCycle(ListNode head) {
+        ListNode slow = head, fast = head;
+        while (fast != null &amp;&amp; fast.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+            if (slow == fast) return true;
+        }
+        return false;
+    }
+}</pre>
+    <p class="code-cap">哈希集合</p>
+<pre class="code" data-lang="java">public class Solution {
+    public boolean hasCycle(ListNode head) {
+        Set&lt;ListNode&gt; seen = new HashSet&lt;&gt;();
+        for (ListNode cur = head; cur != null; cur = cur.next) {
+            if (!seen.add(cur)) return true;   // add 返回 false 说明已经在里面
+        }
+        return false;
+    }
+}</pre>
+  </div>
+  <div class="code-group" id="code-cpp" hidden>
+    <p class="code-cap">快慢指针（推荐）</p>
+<pre class="code" data-lang="cpp">class Solution {
+public:
+    bool hasCycle(ListNode* head) {
+        ListNode* slow = head;
+        ListNode* fast = head;
+        while (fast != nullptr &amp;&amp; fast-&gt;next != nullptr) {
+            slow = slow-&gt;next;
+            fast = fast-&gt;next-&gt;next;
+            if (slow == fast) return true;
+        }
+        return false;
+    }
+};</pre>
+    <p class="code-cap">哈希集合</p>
+<pre class="code" data-lang="cpp">class Solution {
+public:
+    bool hasCycle(ListNode* head) {
+        unordered_set&lt;ListNode*&gt; seen;
+        for (ListNode* cur = head; cur != nullptr; cur = cur-&gt;next) {
+            if (seen.count(cur)) return true;
+            seen.insert(cur);
+        }
+        return false;
+    }
+};</pre>
+  </div>
+  <p style="font-size:14px;color:var(--muted)"><code>Optional[ListNode]</code> 是类型提示，意思是“一个 ListNode 或者 None”。Java 里对象用 <code>==</code> 比较的是“是不是同一个对象”，C++ 里比较的是两个指针存的地址，都正好是“同一个节点”的意思。Java 的 <code>seen.add(cur)</code> 在元素已经存在时返回 false，可以把“查”和“加”合成一步。</p>
+
+  <h3>复杂度（n 是节点个数）</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>解法</th><th>时间</th><th>额外空间</th><th>说明</th></tr>
+    <tr><td>哈希集合</td><td>O(n)</td><td>O(n)</td><td>每个节点进集合一次</td></tr>
+    <tr><td>快慢指针</td><td class="ans">O(n)</td><td class="ans">O(1)</td><td>有环时不超过 n 轮，没环时约 n/2 轮</td></tr>
+  </table></div>
+
+  <h3>最容易写错的五个地方</h3>
+  <ul class="plain">
+    <li><strong>循环条件只写 <code>while fast:</code></strong>：奇数长度的无环链表，fast 停在最后一个节点，<code>fast.next.next</code> 报 <code>AttributeError</code>。</li>
+    <li><strong>先比较再走</strong>：slow 和 fast 一开始都在 head，第一轮就返回 True。</li>
+    <li><strong>比较 <code>slow.val == fast.val</code></strong>：<code>[2,3,3,4]</code> 没有环，第一轮 slow 在第一个 3、fast 在第二个 3，值相等就误判成 True。</li>
+    <li><strong>哈希集合里存 <code>cur.val</code></strong>：同样的问题，<code>[1,2,1,3]</code> 没有环也返回 True。</li>
+    <li><strong>写成 <code>fast = slow.next.next</code></strong> 之类的笔误：fast 不再是“每轮比 slow 多走 1 步”，差距不会稳定地减 1，可能永远追不上。</li>
+  </ul>
+</section>
+
+<!-- 10 -->
+<section id="quiz">
+  <div class="chap"><span class="num">10</span><h2>自测</h2></div>
+  <p>点选答案，立即判分。</p>
+  <div class="quiz" id="quizBox"></div>
+  <p class="progress" id="quizScore"></p>
+
+  <h3 style="margin-top:12px">掌握清单</h3>
+  <ul class="checklist" id="checklist">
+    <li><label><input type="checkbox" id="ck1"><span>能说出为什么 <code>while cur: cur = cur.next</code> 没法判断有环。</span></label></li>
+    <li><label><input type="checkbox" id="ck2"><span>能写出哈希集合解法，并说清为什么存节点不存值。</span></label></li>
+    <li><label><input type="checkbox" id="ck3"><span>能用“操场跑圈”讲清快慢指针的想法：直路追不上，环形跑道一定追上。</span></label></li>
+    <li><label><input type="checkbox" id="ck4"><span>能证明两个都进圈后差距每轮减 1，所以一定相遇，而且不超过 n 轮。</span></label></li>
+    <li><label><input type="checkbox" id="ck5"><span>能举例说明 fast 走 3 步为什么可能永远追不上。</span></label></li>
+    <li><label><input type="checkbox" id="ck6"><span>知道循环条件为什么是 <code>fast and fast.next</code>，为什么不用检查 slow。</span></label></li>
+    <li><label><input type="checkbox" id="ck7"><span>知道为什么要先走再比较，以及 <code>==</code> 比的是同一个节点。</span></label></li>
+    <li><label><input type="checkbox" id="ck8"><span>能讲出找环入口的做法和 <code>a = kL − b</code> 的由来。</span></label></li>
+    <li><label><input type="checkbox" id="ck9"><span>不看本页，3 分钟内写出可以通过的快慢指针代码。</span></label></li>
+  </ul>
+</section>
+
+<footer>同类题型：Linked List Cycle II 在本题基础上找环的入口；Find the Duplicate Number 把数组当链表，用同一套判圈和找入口；Middle of the Linked List、Reorder List、Palindrome Linked List 都用快慢指针找中点；Happy Number 用快慢指针代替集合判断数字序列有没有进入循环。</footer>
+</main>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  function showErr(id, msg) { $(id).textContent = msg || ""; $(id).hidden = !msg; return !!msg; }
+  const fmt = (vals) => "[" + vals.join(",") + "]";
+
+  /* ---------- 数据：节点编号 0..n-1，next[i] = -1 表示 None；尾节点的 next = pos ---------- */
+  function makeL(vals, pos) {
+    const n = vals.length, next = [];
+    for (let i = 0; i < n; i++) next[i] = i < n - 1 ? i + 1 : pos;
+    return { vals, pos, n, next, has: pos >= 0 };
+  }
+  const nm = (L, id) => (id === -1 ? "None" : "<b>" + L.vals[id] + '</b><span class="ix">#' + id + "</span>");
+  const tx = (L, id) => (id === -1 ? "None" : L.vals[id] + "#" + id);
+  function readFrom(L, s) {
+    if (s === -1) return "None";
+    const seen = new Set(), out = [];
+    let c = s;
+    while (c !== -1) {
+      if (seen.has(c)) { out.push(String(L.vals[c])); return out.join(" → ") + ' → <span class="fix">…（又绕回来了，停不下来）</span>'; }
+      seen.add(c); out.push(String(L.vals[c])); c = L.next[c];
+    }
+    return out.concat("None").join(" → ");
+  }
+  const readLine = (name, cls, text) => '<span class="rl">从 <b class="' + cls + '">' + name + "</b> 往下读：" + text + "</span>";
+
+  // 接受 [1,2,3]、1,2,3、1 2 3、[]
+  function parseHead(text, maxLen) {
+    const t = text.trim().replace(/^[\[［]/, "").replace(/[\]］]$/, "").trim();
+    if (!t) return { vals: [] };
+    const parts = t.split(/[\s,，]+/).filter(Boolean);
+    if (!parts.every((p) => /^-?\d+$/.test(p))) return { err: "head：请输入整数，用逗号或空格隔开，例如 [1,2,3,4]" };
+    const vals = parts.map(Number);
+    if (vals.some((v) => v < -1000 || v > 1000)) return { err: "head：题目规定 −1000 ≤ Node.val ≤ 1000" };
+    if (vals.length > maxLen) return { err: "head：演示里最多 " + maxLen + " 个节点，方便看清" };
+    return { vals };
+  }
+  function parseIdx(text, n) {
+    const t = text.trim();
+    if (!/^-?\d+$/.test(t)) return { err: "index：请输入一个整数，−1 表示没有环" };
+    const v = Number(t);
+    if (v === -1) return { pos: -1 };
+    if (!n) return { err: "index：空链表只能是 −1" };
+    if (v < 0 || v >= n) return { err: "index：要么是 −1，要么是 0 到 " + (n - 1) + " 之间（尾节点接回第几个节点）" };
+    return { pos: v };
+  }
+  function randCase() {
+    const n = 2 + Math.floor(Math.random() * 6);
+    const vals = Array.from({ length: n }, () => Math.floor(Math.random() * 10));
+    const pos = Math.random() < 0.3 ? -1 : Math.floor(Math.random() * n);
+    return [vals, pos];
+  }
+  function wireL(p, init, presets, maxLen, load) {
+    $(p + "In").innerHTML = '<div class="pair">' +
+      '<div class="field"><label for="' + p + 'A">head =</label><input type="text" id="' + p + 'A" value="' + fmt(init[0]) + '" autocomplete="off" spellcheck="false" aria-describedby="' + p + 'Err"></div>' +
+      '<div class="field e"><label for="' + p + 'B">index =</label><input type="text" id="' + p + 'B" value="' + init[1] + '" autocomplete="off" spellcheck="false" inputmode="numeric" aria-describedby="' + p + 'Err"></div>' +
+      '</div><div class="controls" id="' + p + 'Presets" style="margin-top:10px"></div><span class="err" id="' + p + 'Err" hidden></span>';
+    const run = () => {
+      const h = parseHead($(p + "A").value, maxLen);
+      if (showErr(p + "Err", h.err)) return;
+      const ix = parseIdx($(p + "B").value, h.vals.length);
+      if (showErr(p + "Err", ix.err)) return;
+      load(h.vals, ix.pos);
+    };
+    [p + "A", p + "B"].forEach((id) => $(id).addEventListener("input", run));
+    const el = $(p + "Presets");
+    el.innerHTML = presets.map((x, k) => '<button type="button" class="mono" data-k="' + k + '">' + (x === "随机" ? "随机" : fmt(x[0]) + " · " + x[1]) + "</button>").join("");
+    el.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-k]"); if (!btn) return;
+      const x = presets[+btn.dataset.k], v = x === "随机" ? randCase() : x;
+      $(p + "A").value = fmt(v[0]); $(p + "B").value = v[1]; run();
+    });
+    run();
+  }
+
+  /* ---------- 链表图：一行节点，尾节点的箭头从下面绕回 index 那个节点 ---------- */
+  const NW = 44, NH = 36, STEP = 74, PADL = 10, PADR = 66, LT = 58, DROP = 24;
+  const xOf = (i) => PADL + i * STEP;
+  const r1 = (x) => Math.round(x * 10) / 10;
+  function seg(x1, y1, x2, y2, cls) {
+    const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+    const bx = x2 - ux * 8, by = y2 - uy * 8, px = -uy * 5, py = ux * 5;
+    return '<line class="ar ' + cls + '" x1="' + r1(x1) + '" y1="' + r1(y1) + '" x2="' + r1(bx) + '" y2="' + r1(by) + '"/>' +
+      '<polygon class="ah ' + cls + '" points="' + r1(x2) + "," + r1(y2) + " " + r1(bx + px) + "," + r1(by + py) + " " + r1(bx - px) + "," + r1(by - py) + '"/>';
+  }
+  // o.ptrs：[[名字, 节点, 颜色类]]（节点 -1 表示 None，标在 None 字样上方）；o.rings：[[节点, 颜色类]]；o.seen：已记进集合的节点
+  function svgL(L, o) {
+    o = o || {};
+    const n = L.n;
+    if (!n) return '<p class="empty">head = None：空链表</p>';
+    const W = xOf(n - 1) + NW + PADR, H = LT + NH + (L.has ? DROP + 10 : 12), cy = LT + NH / 2, xt = xOf(n - 1), noneX = xt + NW + 22;
+    let ar = "";
+    for (let i = 0; i < n - 1; i++) ar += seg(xOf(i) + NW + 3, cy, xOf(i + 1) - 3, cy, "fw");
+    if (!L.has) ar += seg(xt + NW + 3, cy, xt + NW + 19, cy, "nn") + '<text class="nt" x="' + noneX + '" y="' + cy + '">None</text>';
+    else {
+      const by = LT + NH + 3, yb = LT + NH + DROP, sx = xt + NW / 2 + 7, ex = xOf(L.pos) + NW / 2 - 7;
+      ar += '<polyline class="ar cy" points="' + sx + "," + by + " " + sx + "," + yb + " " + ex + "," + yb + " " + ex + "," + (by + 8) + '"/>' +
+        '<polygon class="ah cy" points="' + ex + "," + by + " " + (ex - 5) + "," + (by + 9) + " " + (ex + 5) + "," + (by + 9) + '"/>';
+    }
+    const seen = o.seen || new Set();
+    let nodes = "";
+    for (let i = 0; i < n; i++) {
+      const x = xOf(i), cls = seen.has(i) ? " seen" : L.has && i >= L.pos ? " cyc" : "";
+      const v = String(L.vals[i]);
+      nodes += '<rect class="nd' + cls + '" x="' + x + '" y="' + LT + '" width="' + NW + '" height="' + NH + '" rx="7"/>' +
+        '<text class="nv' + (v.length > 3 ? " sm" : "") + '" x="' + (x + NW / 2) + '" y="' + cy + '">' + esc(v) + "</text>" +
+        '<text class="ixt" x="' + (x + NW / 2) + '" y="' + (LT - 9) + '">#' + i + "</text>";
+    }
+    (o.rings || []).forEach(([id, c]) => {
+      if (id >= 0 && id < n) nodes += '<rect class="rg ' + c + '" x="' + (xOf(id) - 4) + '" y="' + (LT - 4) + '" width="' + (NW + 8) + '" height="' + (NH + 8) + '" rx="10"/>';
+    });
+    const byNode = {};
+    (o.ptrs || []).forEach(([name, id, cls]) => { if (id === null || id === undefined) return; if (id === -1 && L.has) return; (byNode[id] = byNode[id] || []).push([name, cls]); });
+    let labs = "";
+    Object.keys(byNode).forEach((k) => byNode[k].forEach(([name, cls], r) => {
+      const id = +k, x = id === -1 ? noneX + 14 : xOf(id) + NW / 2;
+      labs += '<text class="lb ' + cls + '" x="' + x + '" y="' + (LT - 24 - r * 15) + '">' + esc(name) + "</text>";
+    }));
+    const label = o.label || ("链表 " + fmt(L.vals) + (L.has ? "，尾节点接回 #" + L.pos : "，没有环"));
+    return '<svg class="ls" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + esc(label) + '">' + ar + nodes + labs + "</svg>";
+  }
+  // 手机上图比框宽时横向滚动，让关注的节点停在中间
+  function focusX(wrap, L, id) {
+    const svg = wrap.querySelector("svg");
+    if (!svg || wrap.scrollWidth <= wrap.clientWidth + 1) return;
+    const base = svg.getBoundingClientRect().left - wrap.getBoundingClientRect().left + wrap.scrollLeft;
+    if (id === null || id === undefined) id = 0;
+    const x = id === -1 ? xOf(L.n - 1) + NW + 30 : xOf(id) + NW / 2;
+    wrap.scrollLeft = base + x - wrap.clientWidth / 2;
+  }
+
+  /* ---------- ρ 形示意图：尾巴 a = 3，圈 L = 6，顺时针 ---------- */
+  function rhoSVG(o) {
+    const R = 82, r = 17, cy = 132, cx = 302, P = [];
+    [28, 92, 156].forEach((x) => P.push([x, cy]));
+    for (let j = 0; j < 6; j++) { const t = Math.PI - j * Math.PI / 3; P.push([cx + R * Math.cos(t), cy - R * Math.sin(t)]); }
+    const W = 470, H = 262;
+    let ar = "";
+    for (let i = 0; i < 9; i++) {
+      const s = P[i], t = P[i < 8 ? i + 1 : 3];
+      const dx = t[0] - s[0], dy = t[1] - s[1], d = Math.hypot(dx, dy), ux = dx / d, uy = dy / d;
+      ar += seg(s[0] + ux * (r + 3), s[1] + uy * (r + 3), t[0] - ux * (r + 3), t[1] - uy * (r + 3), i >= 3 ? "cy" : "fw");
+    }
+    let nodes = "";
+    P.forEach(([x, y], i) => {
+      nodes += '<circle class="nd' + (i >= 3 ? " cyc" : "") + '" cx="' + r1(x) + '" cy="' + r1(y) + '" r="' + r + '"/>' +
+        '<text class="nv sm" x="' + r1(x) + '" y="' + r1(y) + '">#' + i + "</text>";
+    });
+    (o.rings || []).forEach(([i, c]) => { nodes += '<circle class="rg ' + c + '" cx="' + r1(P[i][0]) + '" cy="' + r1(P[i][1]) + '" r="' + (r + 5) + '"/>'; });
+    let t = "";
+    // 尾巴下方的括号和 a
+    t += '<path class="br" d="M28,' + (cy + 28) + " V" + (cy + 34) + " H220 V" + (cy + 28) + '"/>' + '<text class="tx" x="124" y="' + (cy + 52) + '">尾巴 a = 3 步</text>';
+    t += '<text class="tx" x="28" y="' + (cy - 28) + '">head</text>';
+    (o.texts || []).forEach(([x, y, s, c]) => { t += '<text class="tx' + (c ? " " + c : "") + '" x="' + x + '" y="' + y + '">' + s + "</text>"; });
+    return '<svg class="ls rho" viewBox="0 0 ' + W + " " + H + '" style="max-width:' + W + 'px" role="img" aria-label="' + esc(o.label) + '">' + ar + nodes + t + "</svg>";
+  }
+  $("rho1").innerHTML = rhoSVG({
+    label: "ρ 形链表：#0 到 #2 是尾巴，#3 到 #8 是一个圈，#8 接回 #3",
+    rings: [[3, "e"]],
+    texts: [[302, 137, "圈 L = 6", ""], [220, 182, "入口 #3", "e"]]
+  });
+  $("rho2").innerHTML = rhoSVG({
+    label: "相遇点 #6 在入口 #3 之后 3 步；从 #6 再走 3 步回到入口",
+    rings: [[3, "e"], [6, "m"]],
+    texts: [[302, 26, "b = 3 步（入口 → 相遇点）", ""], [302, 254, "L − b = 3 步（相遇点 → 入口）", ""], [220, 182, "入口", "e"], [428, 137, "相遇点", "m"]]
+  });
+
+  /* ---------- 01 静态图 ---------- */
+  (function () {
+    const A = makeL([1, 2, 3, 4], 1), B = makeL([1, 2, 3, 4], -1);
+    $("s1a").innerHTML = svgL(A, { ptrs: [["head", 0, "h"]], label: "有环：1 → 2 → 3 → 4，4 的 next 接回 #1" });
+    $("s1aReads").innerHTML = readLine("head", "fix", readFrom(A, 0));
+    $("s1b").innerHTML = svgL(B, { ptrs: [["head", 0, "h"]], label: "没环：1 → 2 → 3 → 4 → None" });
+    $("s1bReads").innerHTML = readLine("head", "ans", readFrom(B, 0));
+  })();
+
+  /* ---------- 语法高亮 ---------- */
+  const KW = /\b(class|def|for|in|is|if|else|not|and|or|while|return|self|None|True|False|Optional|ListNode|set|public|boolean|bool|new|null|nullptr|true|false)\b|\b(\d+)\b/g;
+  function hlCode(text, lang) {
+    const marker = lang === "py" ? "#" : "//";
+    const pos = text.indexOf(marker);
+    const codePart = pos >= 0 ? text.slice(0, pos) : text;
+    const comPart = pos >= 0 ? text.slice(pos) : "";
+    const body = esc(codePart).replace(KW, (m, k, n) => k ? '<span class="k">' + k + "</span>" : '<span class="n">' + n + "</span>");
+    return body + (comPart ? '<span class="c">' + esc(comPart) + "</span>" : "");
+  }
+  document.querySelectorAll("pre.code[data-lang]").forEach((pre) => {
+    const lang = pre.dataset.lang;
+    pre.innerHTML = pre.textContent.split("\n").map((l) => '<span class="ln">' + (hlCode(l, lang) || " ") + "</span>").join("");
+  });
+  function renderCode(el, lines, mut) {
+    el.innerHTML = lines.map((l, k) => '<span class="ln' + (k === mut ? " mut" : "") + '" data-k="' + k + '">' + (hlCode(l, "py") || " ") + "</span>").join("");
+  }
+  function markLine(el, line, hl) {
+    const set = [].concat(line);
+    el.querySelectorAll(".ln").forEach((x) => {
+      x.classList.remove("hl0", "hl", "hl2", "hl3", "hl4", "hl5");
+      if (set.includes(+x.dataset.k)) x.classList.add(hl);
+    });
+  }
+  function makePlayer(p, draw) {
+    const S = { frames: [], idx: 0, timer: null };
+    const el = (s) => $(p + s);
+    function render() {
+      draw(S.frames[S.idx]);
+      el("Prog").textContent = "第 " + (S.idx + 1) + " / " + S.frames.length + " 步";
+      el("Prev").disabled = S.idx === 0;
+      el("Next").disabled = S.idx === S.frames.length - 1;
+    }
+    function stop() { if (S.timer) { clearInterval(S.timer); S.timer = null; } el("Play").textContent = "自动播放"; }
+    el("Next").addEventListener("click", () => { stop(); if (S.idx < S.frames.length - 1) { S.idx++; render(); } });
+    el("Prev").addEventListener("click", () => { stop(); if (S.idx > 0) { S.idx--; render(); } });
+    el("Reset").addEventListener("click", () => { stop(); S.idx = 0; render(); });
+    el("Play").addEventListener("click", () => {
+      if (S.timer) { stop(); return; }
+      if (S.idx === S.frames.length - 1) { S.idx = 0; render(); }
+      el("Play").textContent = "暂停";
+      S.timer = setInterval(() => { if (S.idx < S.frames.length - 1) { S.idx++; render(); } else stop(); }, 1100);
+    });
+    return { load(frames) { stop(); S.frames = frames; S.idx = 0; render(); } };
+  }
+  const radio = (name, def) => { const c = document.querySelector('input[name="' + name + '"]:checked'); return c ? c.value : def; };
+  const intro = (L) => L.n
+    ? (L.has ? "这条链表的尾节点 " + nm(L, L.n - 1) + " 接回了 " + nm(L, L.pos) + "，有环，紫色是环上的节点。" : "这条链表的尾节点指向 None，没有环。") + "不过代码看不到 index，只能顺着 next 走。点“下一步”开始。"
+    : "head 是 None，空链表，当然没有环。点“下一步”开始。";
+  function setPill(el, f) {
+    el.className = "pill" + (f.verdict === "t" ? " t" : f.verdict ? " f" : "");
+    el.textContent = f.verdict === "t" ? "返回 " + f.ret + " ✓" : f.verdict === "f" ? "返回 " + f.ret + " ✗" : f.verdict === "x" ? "报错 ✗" : "运行中";
+  }
+
+  /* ---------- 02 哈希集合单步 ---------- */
+  const HS_CODE = {
+    node: ["seen = set()", "cur = head", "while cur:", "    if cur in seen:", "        return True", "    seen.add(cur)", "    cur = cur.next", "return False"],
+    val: ["seen = set()", "cur = head", "while cur:", "    if cur.val in seen:     # 查的是值", "        return True", "    seen.add(cur.val)       # 存的是值", "    cur = cur.next", "return False"]
+  };
+  function hsBuild(L, mode) {
+    const F = [], N = L.next, byVal = mode === "val";
+    let cur = null, seen = [], inSet = false, hit = -1, hitOk = false;
+    const push = (o) => F.push(Object.assign({ cur, seen: seen.slice(), inSet, hit, hitOk, verdict: null }, o));
+    push({ line: -1, hl: "hl0", msg: intro(L) });
+    inSet = true;
+    push({ line: 0, hl: "hl5", msg: "seen = set()：一个空集合，用来记住走过的" + (byVal ? "值" : "节点") + "。" });
+    cur = L.n ? 0 : -1;
+    push({ line: 1, hl: "hl5", msg: "cur = head：cur 从 " + nm(L, cur) + " 出发。" });
+    const done = (ret, m) => { const good = ret === L.has; push({ line: ret ? 4 : 7, hl: good ? "hl4" : "hl3", verdict: good ? "t" : "f", ret: ret ? "True" : "False", msg: m + (good ? '<span class="ans">答对了</span>。' : '<span class="bad">答错了</span>，这条链表' + (L.has ? "有" : "没有") + "环。") }); };
+    for (let g = 0; g < L.n + 3; g++) {
+      if (cur === -1) {
+        push({ line: 2, hl: "hl3", msg: "cur 是 None：走到链表末尾了，循环结束。" });
+        done(false, "return False：一路上没有遇到来过的" + (byVal ? "值" : "节点") + "，没有环。"); return F;
+      }
+      push({ line: 2, hl: "hl4", msg: "cur 指着 " + nm(L, cur) + "，不是 None，进入循环。" });
+      const key = byVal ? L.vals[cur] : cur;
+      hit = seen.indexOf(key);
+      if (hit >= 0) {
+        if (byVal) {
+          const real = F.some((f) => f.cur === cur && f.line === 5);
+          hitOk = real;
+          push({ line: 3, hl: real ? "hl4" : "hl3", msg: "值 " + L.vals[cur] + " 已经在 seen 里了，判定“来过”。" + (real ? "这次确实是同一个节点又来了一次。" :
+            '<span class="bad">可是 seen 里那个 ' + L.vals[cur] + " 是别的节点留下的，" + nm(L, cur) + " 是第一次来。值一样不代表是同一个节点。</span>") });
+          done(true, "return True：" + (!real && L.has ? "这条链表碰巧真有环，蒙对了，但理由是错的。" : ""));
+        } else {
+          hitOk = true;
+          push({ line: 3, hl: "hl4", msg: nm(L, cur) + " 已经在 seen 里了：我们第二次走到了同一个节点，说明绕回来了。" });
+          done(true, "return True：有环。");
+        }
+        return F;
+      }
+      push({ line: 3, hl: "hl0", msg: (byVal ? "值 " + L.vals[cur] : nm(L, cur)) + " 不在 seen 里，第一次来，不进 if。" });
+      seen.push(key);
+      push({ line: 5, hl: "hl4", msg: "seen.add(" + (byVal ? "cur.val" : "cur") + ")：把 " + (byVal ? "值 " + L.vals[cur] : nm(L, cur)) + " 记下来。seen 里现在有 " + seen.length + " 个" + (byVal ? "值" : "节点") + "。" });
+      const c0 = cur; cur = N[cur];
+      push({ line: 6, hl: "hl", msg: "cur = cur.next：往后走一步，" + nm(L, c0) + " → " + nm(L, cur) + "。" + (L.has && c0 === L.n - 1 ? "这一步走的是尾节点接回去的那根紫色箭头。" : "") });
+    }
+    return F;
+  }
+  const hs = { L: null, mode: "node" };
+  const hsP = makePlayer("hs", (f) => {
+    const L = hs.L, byVal = hs.mode === "val";
+    const seenNodes = new Set();
+    if (!byVal) f.seen.forEach((x) => seenNodes.add(x));
+    else {
+      // 存值时，按实际走过的节点着色（走过的就是 cur 之前的那些）
+      let c = 0, k = 0; while (k < f.seen.length && c !== -1) { seenNodes.add(c); c = L.next[c]; k++; }
+    }
+    const rings = f.cur !== null && f.cur !== -1 ? [[f.cur, f.hit >= 0 ? (f.hitOk ? "m" : "x") : "s"]] : [];
+    $("hsList").innerHTML = svgL(L, { ptrs: f.cur !== null ? [["cur", f.cur, "s"]] : [], rings, seen: seenNodes });
+    focusX($("hsList"), L, f.cur);
+    $("hsVc").textContent = f.cur === null ? "cur 还没定义" : "cur " + (f.cur === -1 ? "= None" : "→ " + tx(L, f.cur));
+    $("hsVr").textContent = "";
+    let s = '<span style="color:var(--muted)">seen = </span>';
+    if (!f.inSet) s += '<span style="color:var(--muted)">还没定义</span>';
+    else if (!f.seen.length) s += "{ }";
+    else s += "{ " + f.seen.map((x, i) => '<span class="chip' + (i === f.hit ? (f.hitOk ? " ok" : " hit") : "") + '">' + (byVal ? esc(x) : esc(tx(L, x))) + "</span>").join("") + "}";
+    $("hsSet").innerHTML = s;
+    setPill($("hsOut"), f);
+    markLine($("hsCode"), f.line, f.hl);
+    $("hsMsg").innerHTML = f.msg;
+  });
+  function hsLoad(vals, pos) {
+    if (vals !== undefined) hs.L = makeL(vals, pos);
+    hs.mode = radio("hsMode", "node");
+    renderCode($("hsCode"), HS_CODE[hs.mode], hs.mode === "val" ? 3 : -1);
+    hsP.load(hsBuild(hs.L, hs.mode));
+    $("hsList").scrollLeft = 0;
+  }
+  $("hsModes").addEventListener("change", () => hsLoad());
+  wireL("hs", [[1, 2, 3, 4], 1], [[[1, 2, 3, 4], 1], [[1, 2, 3], -1], [[1, 2, 1, 3], -1], [[7], 0], "随机"], 8, hsLoad);
+
+  /* ---------- 06 快慢指针单步 ---------- */
+  const FP_OK = ["slow, fast = head, head", "while fast and fast.next:", "    slow = slow.next", "    fast = fast.next.next", "    if slow == fast:", "        return True", "return False"];
+  const FP_CODE = { ok: FP_OK, nofn: FP_OK.slice(), val: FP_OK.slice(),
+    early: ["slow, fast = head, head", "while fast and fast.next:", "    if slow == fast:        # 比较放在了移动前面", "        return True", "    slow = slow.next", "    fast = fast.next.next", "return False"] };
+  FP_CODE.nofn[1] = "while fast:                 # 没检查 fast.next";
+  FP_CODE.val[4] = "    if slow.val == fast.val:  # 比的是值";
+  const FP_LN = { ok: { init: 0, cond: 1, ms: 2, mf: 3, cmp: 4, rt: 5, rf: 6 }, early: { init: 0, cond: 1, cmp: 2, rt: 3, ms: 4, mf: 5, rf: 6 } };
+  FP_LN.nofn = FP_LN.ok; FP_LN.val = FP_LN.ok;
+  const FP_MUT = { ok: -1, nofn: 1, val: 4, early: 2 };
+  // 两个都在圈上时，fast 顺着箭头还要走几步才到 slow
+  function gapOf(L, s, f) {
+    if (!L.has || s === null || f === null || s < L.pos || f < L.pos) return null;
+    const C = L.n - L.pos;
+    return ((s - L.pos) - (f - L.pos) + C) % C;
+  }
+  const HINT = {
+    nofn: "这组输入碰巧没暴露问题（无环时链表长度是偶数，或者有环）。换成奇数长度的 [1,2,3] · -1 试试。",
+    early: "这组输入碰巧没暴露问题。换成 [1,2,3] · -1 试试。",
+    val: "这组输入碰巧没暴露问题。换成 [2,3,3,4] · -1 试试。"
+  };
+  function fpBuild(L, mode) {
+    const N = L.next, ln = FP_LN[mode], F = [];
+    let slow = null, fast = null, round = 0;
+    const push = (o) => F.push(Object.assign({ slow, fast, round, verdict: null, met: false, line: -1 }, o));
+    const done = (ret, m) => {
+      const good = ret === L.has;
+      push({ line: ret ? ln.rt : ln.rf, hl: good ? "hl4" : "hl3", verdict: good ? "t" : "f", ret: ret ? "True" : "False", met: ret && slow === fast,
+        msg: m + (good ? '<span class="ans">答对了</span>。' + (mode !== "ok" ? HINT[mode] : "") : '<span class="bad">答错了</span>，这条链表' + (L.has ? "有" : "没有") + "环。") });
+    };
+    const crash = (line, m) => push({ line, hl: "hl3", verdict: "x", msg: '<span class="bad">' + m + "</span>" });
+    push({ line: -1, hl: "hl0", msg: intro(L) });
+    slow = fast = L.n ? 0 : -1;
+    push({ line: ln.init, hl: "hl5", msg: L.n ? "slow 和 fast 都从 head " + nm(L, 0) + " 出发。之后每一轮，slow 走 1 步，fast 走 2 步。" : "head 是 None，slow 和 fast 也都是 None。" });
+    for (let g = 0; g < 3 * L.n + 6; g++) {
+      const c = mode === "nofn" ? fast !== -1 : fast !== -1 && N[fast] !== -1;
+      if (!c) {
+        push({ line: ln.cond, hl: "hl3", msg: !L.n ? "fast 是 None（空链表），循环一次都不进。" : fast === -1
+          ? "fast 是 None，循环条件不成立：fast 已经走出了链表末尾，说明这条路有尽头。"
+          : "fast.next 是 None，循环条件不成立：fast 停在最后一个节点 " + nm(L, fast) + " 上，再走就出界了，说明这条路有尽头。" });
+        done(false, "return False：fast 走到了头，没有环。"); return F;
+      }
+      round++;
+      push({ line: ln.cond, hl: "hl4", msg: "第 " + round + " 轮：fast 指着 " + nm(L, fast) + (mode === "nofn" ? "，不是 None，进入循环。这个写法没检查 fast.next。" : "，fast.next 指着 " + nm(L, N[fast]) + "，都不是 None，进入循环。") });
+      if (mode === "early") {
+        if (slow === fast) {
+          push({ line: ln.cmp, hl: "hl3", met: true, msg: round === 1 ? "slow 和 fast 都还在 head 上，一步都没走，当然是同一个节点。" : "slow 和 fast 在同一个节点 " + nm(L, slow) + " 上。" });
+          done(true, "return True：" + (round === 1 ? "还没开始跑就判定“追上了”。" : "")); return F;
+        }
+        push({ line: ln.cmp, hl: "hl0", msg: "slow 在 " + nm(L, slow) + "，fast 在 " + nm(L, fast) + "，不是同一个节点，继续。" });
+      }
+      const s0 = slow; slow = N[slow];
+      push({ line: ln.ms, hl: "hl", msg: "slow = slow.next：slow 走 1 步，" + nm(L, s0) + " → " + nm(L, slow) + "。" + (L.has && slow === L.pos && s0 !== L.n - 1 ? "slow 刚刚进圈。" : "") });
+      const f0 = fast;
+      if (N[f0] === -1) { crash(ln.mf, "fast.next 是 None，再取 None.next 就报错：AttributeError: 'NoneType' object has no attribute 'next'。这就是循环条件里要检查 fast.next 的原因。"); return F; }
+      const f1 = N[f0]; fast = N[f1];
+      push({ line: ln.mf, hl: "hl2", msg: "fast = fast.next.next：fast 走 2 步，" + nm(L, f0) + " → " + nm(L, f1) + " → " + nm(L, fast) + "。" + (fast === -1 ? "走出链表了，fast 变成 None。" : "") });
+      if (mode === "early") continue;
+      if (mode === "val" && fast === -1) { crash(ln.cmp, "fast 是 None，取 fast.val 报错：AttributeError: 'NoneType' object has no attribute 'val'。"); return F; }
+      const eq = mode === "val" ? L.vals[slow] === L.vals[fast] : slow === fast;
+      if (eq) {
+        if (slow === fast) {
+          push({ line: ln.cmp, hl: "hl4", met: true, msg: "slow 和 fast 站在同一个节点 " + nm(L, slow) + " 上：fast 从后面追上了 slow。" });
+          done(true, "return True：快的能追上慢的，只可能是在圈上绕回来了，所以有环。");
+        } else {
+          push({ line: ln.cmp, hl: "hl3", msg: "slow.val 和 fast.val 都是 " + L.vals[slow] + "，判定相等。" + '<span class="bad">可是 slow 在 ' + nm(L, slow) + "，fast 在 " + nm(L, fast) + "，是两个不同的节点。</span>" });
+          done(true, "return True：" + (L.has ? "这条链表碰巧真有环，蒙对了，但理由是错的。" : ""));
+        }
+        return F;
+      }
+      const d = gapOf(L, slow, fast);
+      let m = "slow 在 " + nm(L, slow) + "，fast 在 " + nm(L, fast) + "，不是同一个节点，继续。";
+      if (d !== null) m += "两个都在圈上了：顺着箭头数，fast 还要走 " + d + " 步才到 slow。每轮 fast 比 slow 多走 1 步，所以再过 " + d + " 轮就会相遇。";
+      else if (L.has && slow !== -1 && slow < L.pos) m += "slow 还没进圈（圈从 " + nm(L, L.pos) + " 开始）" + (fast >= L.pos ? "，fast 已经在圈里转了，等着它。" : "。");
+      push({ line: ln.cmp, hl: "hl0", msg: m });
+    }
+    crash(-1, "演示步数用完了。");
+    return F;
+  }
+  const fp = { L: null, mode: "ok" };
+  const fpP = makePlayer("fp", (f) => {
+    const L = fp.L;
+    const ptrs = [], rings = [];
+    if (f.slow !== null) {
+      if (f.slow === f.fast) { ptrs.push(["slow", f.slow, "s"], ["fast", f.fast, "f"]); rings.push([f.slow, f.met ? (f.verdict === "f" ? "x" : "m") : "b"]); }
+      else { ptrs.push(["slow", f.slow, "s"], ["fast", f.fast, "f"]); rings.push([f.slow, "s"], [f.fast, "f"]); }
+    }
+    $("fpList").innerHTML = svgL(L, { ptrs, rings });
+    focusX($("fpList"), L, f.fast !== null ? f.fast : 0);
+    $("fpVr").textContent = f.round ? "第 " + f.round + " 轮" : "还没进循环";
+    $("fpVs").textContent = f.slow === null ? "slow 还没定义" : "slow " + (f.slow === -1 ? "= None" : "→ " + tx(L, f.slow));
+    $("fpVf").textContent = f.fast === null ? "fast 还没定义" : "fast " + (f.fast === -1 ? "= None" : "→ " + tx(L, f.fast));
+    const d = gapOf(L, f.slow, f.fast);
+    $("fpVd").textContent = d === null ? "" : d === 0 ? "差距 0：同一个节点" : "差距 " + d + "：还差 " + d + " 步追上";
+    let r = "";
+    if (f.slow !== null) r += readLine("slow", "sl", readFrom(L, f.slow)) + readLine("fast", "fa", readFrom(L, f.fast));
+    $("fpReads").innerHTML = r;
+    setPill($("fpOut"), f);
+    markLine($("fpCode"), f.line, f.hl);
+    $("fpMsg").innerHTML = f.msg;
+  });
+  function fpLoad(vals, pos) {
+    if (vals !== undefined) fp.L = makeL(vals, pos);
+    fp.mode = radio("fpMode", "ok");
+    renderCode($("fpCode"), FP_CODE[fp.mode], FP_MUT[fp.mode]);
+    fpP.load(fpBuild(fp.L, fp.mode));
+    $("fpList").scrollLeft = 0;
+  }
+  $("fpModes").addEventListener("change", () => fpLoad());
+  wireL("fp", [[1, 2, 3, 4], 1], [[[1, 2, 3, 4], 1], [[1, 2, 3, 4, 5, 6], 2], [[1, 2, 3, 4, 5, 6, 7, 8], 7], [[1, 2, 3, 4, 5], 0], [[1, 2, 3], -1], [[1, 2, 3, 4], -1], [[2, 3, 3, 4], -1], "随机"], 8, fpLoad);
+
+  /* ---------- 09 语言切换 ---------- */
+  document.querySelectorAll('.tabs [role="tab"]').forEach((t) => t.addEventListener("click", () => {
+    document.querySelectorAll('.tabs [role="tab"]').forEach((x) => x.setAttribute("aria-selected", x === t ? "true" : "false"));
+    ["py", "java", "cpp"].forEach((l) => { $("code-" + l).hidden = l !== t.dataset.lang; });
+  }));
+
+  /* ---------- 10 自测 ---------- */
+  const QUIZ = [
+    { q: "为什么不能用 while cur: cur = cur.next 来判断有没有环？", o: ["有环时永远走不到 None，循环停不下来，等不到结论", "它会跳过一些节点", "它只能处理长度是偶数的链表", "可以，只要数一下走了几步"], a: 0,
+      e: "没环时它会停，有环时它在圈里转个不停，程序卡死。" },
+    { q: "哈希集合写法里，seen 应该存什么？", o: ["节点本身", "节点的值 cur.val", "节点的编号 index", "cur.next"], a: 0,
+      e: "要判断的是“同一个节点又来了一次”。值可以重复，index 你根本拿不到。" },
+    { q: "head = [1,2,1,3]，index = -1。如果 seen 存的是 cur.val，返回？", o: ["True，答错了", "False，答对了", "报错", "死循环"], a: 0,
+      e: "走到第二个 1 时，值 1 已经在集合里，被误判成“来过”。" },
+    { q: "哈希集合写法的时间和额外空间分别是？", o: ["O(n) 和 O(n)", "O(n) 和 O(1)", "O(n²) 和 O(1)", "O(1) 和 O(n)"], a: 0,
+      e: "每个节点进集合一次，集合最多存 n 个节点。" },
+    { q: "两个指针都进圈以后，每一轮“fast 还要追几步”怎么变？", o: ["正好减少 1", "减少 2", "不变", "增加 1"], a: 0,
+      e: "slow 走 1 步让差距 +1，fast 走 2 步让差距 −2，合起来 −1。" },
+    { q: "为什么差距每轮减 1 就保证一定会相遇？", o: ["从一个正整数一次减 1，一定会经过 0，不会跳过", "因为圈的长度是偶数", "因为 fast 一定比 slow 先进圈", "因为最多只有 1000 个节点"], a: 0,
+      e: "差距变成 0 的那一轮结束时，两个指针就在同一个节点上。" },
+    { q: "如果 fast 每轮走 3 步，会怎样？", o: ["差距每轮减 2，可能一直跳过 0，永远追不上", "更快追上，没有任何问题", "一定会报错", "和走 2 步完全一样"], a: 0,
+      e: "例如圈长 4、差距 1：1 → 3 → 1 → 3 …，永远踩不到同一个节点。" },
+    { q: "循环条件为什么要写 fast and fast.next？", o: ["循环里要取 fast.next.next，fast 和 fast.next 都不能是 None", "为了让循环多跑一轮", "为了检查 slow 有没有出界", "只是习惯，写 while fast 也一样"], a: 0,
+      e: "fast 是 None 时取 fast.next 报错；fast.next 是 None 时取 fast.next.next 报错。" },
+    { q: "为什么不用检查 slow 是不是 None？", o: ["slow 走的路 fast 都走过，而且 fast 在前面；fast 没出界 slow 就不会", "slow 永远不会是 None", "Python 会自动处理", "其实需要检查，只是省略了"], a: 0,
+      e: "fast 先替 slow 探过路了。" },
+    { q: "把 if slow == fast 放到两行移动之前，会怎样？", o: ["一开始两个都在 head，第一轮就返回 True", "结果完全一样", "永远返回 False", "死循环"], a: 0,
+      e: "所以要先走，再比较。" },
+    { q: "head = [1,2,3,4]，index = 1。slow 和 fast 在哪里相遇？", o: ["第 3 轮，在值为 4 的节点 #3", "第 1 轮，在值为 2 的节点 #1", "第 2 轮，在值为 3 的节点 #2", "不会相遇"], a: 0,
+      e: "差距依次是 2、1、0，第 3 轮两个都到了 #3（见第 04 章的表）。" },
+    { q: "head = [1,2,3,4,5]，index = -1。循环跑完几轮后返回 False？", o: ["2 轮，然后 fast.next 是 None", "5 轮", "3 轮，然后 fast 是 None", "1 轮"], a: 0,
+      e: "第 1 轮 fast 到 #2，第 2 轮到 #4，#4 是最后一个节点，fast.next 是 None，循环结束。" },
+    { q: "快慢指针解法的额外空间是？", o: ["O(1)", "O(n)", "O(log n)", "O(n²)"], a: 0,
+      e: "只用了 slow、fast 两个变量。" },
+    { q: "要找环的入口，快慢指针相遇以后怎么做？", o: ["一个指针回 head，两个都每次走 1 步，再相遇的地方就是入口", "相遇点就是入口", "fast 再走一圈，数出圈长", "slow 回 head，fast 继续每次走 2 步"], a: 0,
+      e: "因为 a = kL − b：从 head 走 a 步和从相遇点走 a 步，都停在入口。" }
+  ];
+  const answered = {};
+  $("quizBox").innerHTML = QUIZ.map((q, qi) =>
+    '<div class="q"><div class="q-text">' + (qi + 1) + ". " + esc(q.q) + '</div><div class="opts">' +
+    q.o.map((o, oi) => ({ o, oi, r: (qi * 7 + oi * 5) % 4 })).sort((x, y) => x.r - y.r)
+      .map(({ o, oi }) => '<button type="button" class="opt" data-q="' + qi + '" data-o="' + oi + '">' + esc(o) + "</button>").join("") +
+    '</div><div class="explain" id="ex' + qi + '" hidden></div></div>').join("");
+  function score() {
+    const keys = Object.keys(answered), right = keys.filter((k) => answered[k]).length;
+    $("quizScore").textContent = keys.length ? "已作答 " + keys.length + " / " + QUIZ.length + "，答对 " + right + " 题" : "";
+  }
+  $("quizBox").addEventListener("click", (e) => {
+    const b = e.target.closest(".opt"); if (!b) return;
+    const qi = +b.dataset.q, oi = +b.dataset.o, q = QUIZ[qi], box = b.parentElement;
+    box.querySelectorAll(".opt").forEach((x) => x.classList.remove("right", "wrong"));
+    const right = oi === q.a;
+    b.classList.add(right ? "right" : "wrong");
+    if (!right) box.querySelector('[data-o="' + q.a + '"]').classList.add("right");
+    if (!(qi in answered)) answered[qi] = right;
+    const ex = $("ex" + qi); ex.hidden = false;
+    ex.textContent = (right ? "答对了。" : "再想想。") + q.e;
+    score();
+  });
+
+  /* ---------- 掌握清单（仅保存在本浏览器） ---------- */
+  document.querySelectorAll("#checklist input").forEach((cb) => {
+    try { cb.checked = localStorage.getItem("lcd-" + cb.id) === "1"; } catch (e) {}
+    cb.addEventListener("change", () => { try { localStorage.setItem("lcd-" + cb.id, cb.checked ? "1" : "0"); } catch (e) {} });
+  });
+})();
+</script>
+</body>
+</html>
